@@ -1594,6 +1594,217 @@
           font-size: 30px;
         }
       }
+      :root {
+        --text-h1: 40px;
+        --text-h2: 30px;
+        --text-h3: 22px;
+        --text-body: 16px;
+        --text-note: 14px;
+        --section-space: 80px;
+      }
+      body {
+        font-size: var(--text-body);
+      }
+      #main h1 {
+        font-size: var(--text-h1);
+      }
+      #main h2 {
+        font-size: var(--text-h2);
+      }
+      #main h3 {
+        font-size: var(--text-h3);
+      }
+      #main .small,
+      #main .hero-copy,
+      #main .features p,
+      #main .section-heading p,
+      #main .page-head p,
+      #main .trust-card p,
+      #main .hero-examples li {
+        font-size: var(--text-note);
+      }
+      #main .tag {
+        font-size: 12px;
+      }
+      #main .section {
+        padding-block: var(--section-space);
+      }
+      #main .trust-section {
+        padding-top: 0;
+      }
+      .job-card,
+      .creator-card {
+        height: 100%;
+      }
+      .job-card-link {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+      .job-card .card-body,
+      .creator-card .card-body {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-width: 0;
+      }
+      .job-card .job-tags {
+        min-height: 60px;
+        align-content: start;
+      }
+      .job-card-title {
+        min-height: 4.95em;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 3;
+        overflow: hidden;
+      }
+      .job-company {
+        font-size: var(--text-note);
+        min-height: 3.6em;
+        margin-bottom: 12px;
+      }
+      .job-summary {
+        font-size: var(--text-note);
+        line-height: 1.8;
+        height: 3.6em;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+        margin-bottom: 22px;
+      }
+      .job-card .money {
+        margin-top: auto;
+      }
+      .job-card-meta {
+        display: grid;
+        gap: 4px;
+        border-top: 1px solid var(--line);
+        padding-top: 16px;
+        margin-top: 16px;
+        color: #64748b;
+        font-size: var(--text-note);
+      }
+      .job-card-meta span:nth-child(2) {
+        min-height: 3.6em;
+      }
+      .creator-card {
+        display: flex;
+      }
+      .creator-identity {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 16px;
+      }
+      .creator-identity .avatar {
+        width: 56px;
+        height: 56px;
+      }
+      .creator-identity h3 {
+        margin: 0;
+      }
+      .creator-role {
+        min-height: 3.6em;
+        font-size: var(--text-note);
+        font-weight: 600;
+        margin-bottom: 10px;
+      }
+      .creator-certification {
+        min-height: 3.6em;
+        font-size: var(--text-note);
+        margin-bottom: 10px;
+        color: #64748b;
+      }
+      .creator-certification.certified {
+        color: var(--blue);
+      }
+      .creator-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 14px;
+      }
+      .creator-tags .tag {
+        margin: 0;
+      }
+      .creator-sns {
+        font-size: var(--text-note);
+        min-height: 3.6em;
+        color: #64748b;
+        margin-bottom: 16px;
+      }
+      .creator-stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin: auto 0 0;
+        padding: 16px 0;
+        border-top: 1px solid var(--line);
+      }
+      .creator-stats dt {
+        font-size: var(--text-note);
+        color: #64748b;
+      }
+      .creator-stats dd {
+        margin: 4px 0 0;
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--navy);
+      }
+      .creator-stats small {
+        font-size: var(--text-note);
+        font-weight: 400;
+      }
+      .creator-card .card-bottom {
+        margin-top: 0;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .active-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 24px;
+        align-items: center;
+      }
+      .active-filters:empty {
+        display: none;
+      }
+      .filter-chip {
+        min-height: 44px;
+        max-width: 100%;
+        padding: 7px 12px;
+        border: 1px solid #dbeafe;
+        border-radius: 24px;
+        background: #eff6ff;
+        color: #1d4ed8;
+        font-size: 14px;
+        overflow-wrap: anywhere;
+        text-align: left;
+      }
+      .filter-chip:hover {
+        background: #dbeafe;
+      }
+      @media (max-width: 767px) {
+        :root {
+          --text-h1: 30px;
+          --text-h2: 24px;
+          --text-h3: 20px;
+          --section-space: 48px;
+        }
+      }
+      #main .checks,
+      #main .metric p {
+        font-size: var(--text-note);
+      }
+      footer {
+        font-size: var(--text-note);
+      }
+      .footer-bottom {
+        font-size: 12px;
+      }
     </style>
   </head>
   <body>
@@ -2056,6 +2267,10 @@
       const jobs = [
         {
           id: 1,
+          sns: ["TikTok", "Instagram"],
+          summary:
+            "装着感や音質を、日常の使用シーンとともに伝える縦型レビュー動画を制作します。",
+          productSupport: "商品提供あり",
           title: "ワイヤレスヘッドホンの「いい音」を届けるレビュー動画",
           company: "株式会社オトノハ",
           role: roles[0],
@@ -2074,6 +2289,10 @@
         },
         {
           id: 2,
+          sns: ["Instagram", "TikTok"],
+          summary:
+            "キャンプで使うランタンの明るさと携帯性を、動画と写真で紹介します。",
+          productSupport: "商品提供あり",
           title: "週末キャンプを彩る、LEDランタンのUGC制作",
           company: "合同会社FIELD NOTE",
           role: roles[4],
@@ -2092,6 +2311,10 @@
         },
         {
           id: 3,
+          sns: ["YouTube"],
+          summary:
+            "打鍵音やデスクへの馴染み方が伝わる、5〜8分のレビュー動画を制作します。",
+          productSupport: "商品提供あり",
           title: "毎日のデスクを快適に。メカニカルキーボード紹介",
           company: "株式会社DESKLY",
           role: roles[1],
@@ -2109,6 +2332,10 @@
         },
         {
           id: 4,
+          sns: ["TikTok", "Instagram"],
+          summary:
+            "デスクや寝室での加湿器の使い心地を、30秒の生活シーンにまとめます。",
+          productSupport: "商品提供あり",
           title: "コンパクト加湿器のある暮らしをショート動画に",
           company: "株式会社暮らしの余白",
           role: roles[0],
@@ -2126,6 +2353,10 @@
         },
         {
           id: 5,
+          sns: ["Instagram"],
+          summary:
+            "アウトドアブランドの月4投稿を企画・制作し、運用の振り返りを行います。",
+          productSupport: "商品提供なし",
           title: "アウトドアブランドのInstagram運用パートナー",
           company: "株式会社TRAIL WORKS",
           role: roles[3],
@@ -2145,6 +2376,10 @@
         },
         {
           id: 6,
+          sns: ["YouTube"],
+          summary:
+            "支給素材から、テロップやBGMを使った3分のレビュー動画を編集します。",
+          productSupport: "商品提供なし",
           title: "ロボット掃除機のレビュー素材を見やすく編集",
           company: "株式会社CLEAN BASE",
           role: roles[2],
@@ -2163,6 +2398,10 @@
         },
         {
           id: 7,
+          sns: ["Instagram", "TikTok"],
+          summary:
+            "在宅ワークで役立つUSB-Cハブの使い方を、30秒の縦型動画にします。",
+          productSupport: "商品提供あり",
           title: "USB-Cハブの便利な使い方を伝えるUGC",
           company: "合同会社PORT LAB",
           role: roles[4],
@@ -2180,6 +2419,10 @@
         },
         {
           id: 8,
+          sns: ["TikTok", "Instagram"],
+          summary:
+            "外出先やデスクで使うマグボトルの便利さを、短い動画で紹介します。",
+          productSupport: "商品提供あり",
           title: "軽量マグボトルの使い心地をショートレビュー",
           company: "株式会社まいにち道具",
           role: roles[0],
@@ -2197,6 +2440,10 @@
         },
         {
           id: 9,
+          sns: ["YouTube"],
+          summary:
+            "ソロキャンプ用テントの設営手順と居住性を、5分程度でレビューします。",
+          productSupport: "商品貸与あり",
           title: "ソロキャンプ用テントの設営レビュー動画",
           company: "株式会社SOL CAMP",
           role: roles[1],
@@ -2214,6 +2461,10 @@
         },
         {
           id: 10,
+          sns: ["Instagram", "YouTube"],
+          summary:
+            "モニターライトの支給素材を、縦型・横型の紹介動画に編集します。",
+          productSupport: "商品提供なし",
           title: "モニターライトの紹介動画をテンポよく編集",
           company: "株式会社LUMA DESK",
           role: roles[2],
@@ -2231,6 +2482,10 @@
         },
         {
           id: 11,
+          sns: ["Instagram"],
+          summary:
+            "暮らしの家電ブランドの月4投稿と、運用レポートを制作します。",
+          productSupport: "商品提供なし",
           title: "暮らしの家電ブランドのSNS運用サポート",
           company: "株式会社HOMELY",
           role: roles[3],
@@ -2249,6 +2504,10 @@
         },
         {
           id: 12,
+          sns: ["Instagram", "TikTok"],
+          summary:
+            "折りたたみチェアの持ち運びや使用感を、自然な屋外シーンで伝えます。",
+          productSupport: "商品提供あり",
           title: "折りたたみチェアの魅力が伝わるUGC募集",
           company: "合同会社GREEN PATH",
           role: roles[4],
@@ -2268,6 +2527,7 @@
       const creators = [
         {
           name: "美咲",
+          sns: ["Instagram", "TikTok"],
           role: roles[4],
           genre: "ガジェット",
           skill: "撮影",
@@ -2280,6 +2540,7 @@
         },
         {
           name: "大輝",
+          sns: ["YouTube"],
           role: roles[1],
           genre: "PC周辺機器",
           skill: "編集",
@@ -2292,6 +2553,7 @@
         },
         {
           name: "葵",
+          sns: ["TikTok", "Instagram"],
           role: roles[0],
           genre: "生活家電",
           skill: "撮影",
@@ -2304,6 +2566,7 @@
         },
         {
           name: "悠太",
+          sns: ["Instagram"],
           role: roles[3],
           genre: "アウトドア",
           skill: "企画",
@@ -2316,6 +2579,7 @@
         },
         {
           name: "紬",
+          sns: ["YouTube", "Instagram"],
           role: roles[2],
           genre: "生活家電",
           skill: "編集",
@@ -2328,6 +2592,7 @@
         },
         {
           name: "蓮",
+          sns: ["Instagram", "TikTok"],
           role: roles[4],
           genre: "アウトドア",
           skill: "撮影",
@@ -2340,6 +2605,7 @@
         },
         {
           name: "結衣",
+          sns: ["TikTok", "Instagram"],
           role: roles[0],
           genre: "日用品",
           skill: "企画",
@@ -2352,6 +2618,7 @@
         },
         {
           name: "颯太",
+          sns: ["YouTube"],
           role: roles[1],
           genre: "ガジェット",
           skill: "編集",
@@ -2364,6 +2631,7 @@
         },
         {
           name: "真央",
+          sns: ["Instagram"],
           role: roles[3],
           genre: "生活家電",
           skill: "企画",
@@ -2376,6 +2644,7 @@
         },
         {
           name: "晴",
+          sns: ["Instagram", "TikTok"],
           role: roles[4],
           genre: "PC周辺機器",
           skill: "撮影",
@@ -2552,7 +2821,38 @@
         return `<div class="product-art ${type}"><svg viewBox="0 0 160 125" role="img" aria-label="${type === "camp" ? "アウトドアランタン" : type === "keyboard" ? "キーボード" : type === "headphone" ? "ヘッドホン" : "生活家電"}のイラスト">${drawing}</svg></div>`;
       }
       function jobCard(job) {
-        return `<article class="card"><a href="#job/${job.id}" aria-label="${job.title}の詳細">${productArt(job.art)}<div class="card-body"><div class="job-tags"><span class="tag">${job.role}</span><span class="tag">商品提供あり</span><span class="tag sample-tag">サンプル</span></div><h3>${job.title}</h3><p class="muted small" style="margin-bottom:15px">${job.company}</p><div class="money">${yen(job.budget)}<small> ${job.monthly ? "/ 月" : "/ 件"}</small></div><div class="card-bottom"><span class="small muted">募集締切 ${job.deadline.replaceAll("-", ".")}</span><span class="arrow" aria-hidden="true">→</span></div></div></a></article>`;
+        return `
+          <article class="card job-card">
+            <a class="job-card-link" href="#job/${job.id}" aria-label="${job.title}の詳細">
+              ${productArt(job.art)}
+              <div class="card-body">
+                <div class="job-tags"><span class="tag">${job.role}</span><span class="tag sample-tag">サンプル</span></div>
+                <h3 class="job-card-title">${job.title}</h3>
+                <p class="job-company muted">${job.company}</p>
+                <p class="job-summary muted">${job.summary}</p>
+                <div class="money">${yen(job.budget)}<small> ${job.monthly ? "/ 月" : "/ 件"}</small></div>
+                <div class="job-card-meta">
+                  <span>募集締切 ${job.deadline.replaceAll("-", ".")}</span>
+                  <span>対応SNS：${job.sns.join(" / ")}</span>
+                  <span>${job.productSupport}</span>
+                </div>
+              </div>
+            </a>
+          </article>`;
+      }
+      function creatorCard(creator) {
+        return `
+          <article class="card creator-card">
+            <div class="card-body">
+              <div class="creator-identity"><span class="avatar">${creator.name.slice(0, 1)}</span><h3>${creator.name}</h3></div>
+              <p class="creator-role">${creator.role}</p>
+              <p class="creator-certification ${creator.badge ? "certified" : ""}">${creator.badge ? "✦ 認定レビュークリエイター" : "認定バッジなし"}</p>
+              <div class="creator-tags"><span class="tag">${creator.genre}</span><span class="tag">${creator.skill}</span></div>
+              <p class="creator-sns">対応SNS：${creator.sns.join(" / ")}</p>
+              <dl class="creator-stats"><div><dt>制作実績</dt><dd>${creator.works}<small>件</small></dd></div><div><dt>評価</dt><dd>★ ${creator.rating}<small> / 5</small></dd></div></dl>
+              <div class="card-bottom"><span><strong>${yen(creator.price)}</strong><span class="small muted">〜${creator.role === roles[3] ? "/月" : "/件"}</span></span><button class="text-link" data-creator="${creators.indexOf(creator)}">詳細を見る →</button></div>
+            </div>
+          </article>`;
       }
       function renderPlans() {
         return `<div class="plans">${plans.map((plan, i) => `<article class="plan ${i === 1 ? "recommended" : ""}"><span class="plan-badge">${i === 1 ? "いちばん人気のプラン" : i === 0 ? "まずは試してみたい方へ" : "継続的な制作・運用に"}</span><h3 style="margin:12px 0">${plan.name}</h3><div class="money">${yen(plan.price)}<small> / 月（税込）</small></div><ul>${plan.features.map((feature) => `<li>${feature}</li>`).join("")}</ul><button class="btn ${i === 1 ? "primary" : ""}" data-register="company">無料で案件を掲載 →</button></article>`).join("")}</div>`;
@@ -2604,7 +2904,7 @@
             "あなたに合う案件を、見つけよう。",
             "レビュー動画・UGC・SNS運用。得意なことから、次の一歩へ。",
           ) +
-          `<section class="section"><div class="container"><form class="filters" id="job-filters"><label>キーワード<input id="keyword" type="search" placeholder="商品名・企業名など"></label><label>職種<select id="job-role">${options(roles, "すべての職種")}</select></label><label>報酬の下限<input id="min-budget" type="number" min="0" step="1000" placeholder="0 円"></label><label>報酬の上限<input id="max-budget" type="number" min="0" step="1000" placeholder="上限なし"></label><button type="reset" class="text-link" style="text-align:left">条件をリセット ↺</button></form><p class="small muted">SNS運用の報酬は月額です。金額は1件あたり・月額それぞれの表示額で比較します。</p><div class="result-bar"><strong id="job-count" aria-live="polite"></strong><select id="sort" aria-label="案件の並び順"><option value="new">新着順</option><option value="reward">報酬の高い順</option><option value="deadline">締切が近い順</option></select></div><div class="grid" id="job-results"></div></div></section>`;
+          `<section class="section"><div class="container"><form class="filters" id="job-filters"><label>キーワード<input id="keyword" type="search" placeholder="商品名・企業名など"></label><label>職種<select id="job-role">${options(roles, "すべての職種")}</select></label><label>報酬の下限<input id="min-budget" type="number" min="0" step="1000" placeholder="0 円"></label><label>報酬の上限<input id="max-budget" type="number" min="0" step="1000" placeholder="上限なし"></label></form><div id="active-filters" class="active-filters" role="group" aria-label="適用中の絞り込み条件"></div><p class="small muted">SNS運用の報酬は月額です。金額は1件あたり・月額それぞれの表示額で比較します。</p><div class="result-bar"><strong id="job-count" aria-live="polite"></strong><select id="sort" aria-label="案件の並び順"><option value="new">新着順</option><option value="reward">報酬の高い順</option><option value="deadline">締切が近い順</option></select></div><div class="grid" id="job-results"></div></div></section>`;
         const update = () => {
           const keyword = document
             .getElementById("keyword")
@@ -2613,7 +2913,9 @@
           const role = document.getElementById("job-role").value;
           const min = Number(document.getElementById("min-budget").value || 0);
           const max = Number(
-            document.getElementById("max-budget").value || Infinity,
+            document.getElementById("max-budget").value === ""
+              ? Infinity
+              : document.getElementById("max-budget").value,
           );
           const sort = document.getElementById("sort").value;
           const filtered = jobs.filter(
@@ -2636,8 +2938,59 @@
             `${filtered.length} 件の案件`;
           document.getElementById("job-results").innerHTML = filtered.length
             ? filtered.map(jobCard).join("")
-            : '<div class="empty">条件に合う案件がありません。検索条件を変更してください。</div>';
+            : '<div class="empty"><p>条件に合う案件がありません。検索条件を変更してください。</p><button type="button" class="btn" data-reset-filters>条件をリセット</button></div>';
+          renderFilterChips();
         };
+        function resetFilters() {
+          ["keyword", "job-role", "min-budget", "max-budget"].forEach(
+            (id) => (document.getElementById(id).value = ""),
+          );
+          update();
+        }
+        function renderFilterChips() {
+          const chipContainer = document.getElementById("active-filters");
+          chipContainer.replaceChildren();
+          const conditions = [
+            ["keyword", "キーワード"],
+            ["job-role", "職種"],
+            ["min-budget", "報酬の下限"],
+            ["max-budget", "報酬の上限"],
+          ];
+          conditions.forEach(([id, label]) => {
+            const value = document.getElementById(id).value.trim();
+            if (!value) return;
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "filter-chip";
+            button.textContent = `${label}：${id.includes("budget") ? yen(value) : value} ×`;
+            button.setAttribute("aria-label", `${label}「${value}」を解除`);
+            button.addEventListener("click", () => {
+              document.getElementById(id).value = "";
+              update();
+              document.getElementById(id).focus();
+            });
+            chipContainer.append(button);
+          });
+          if (chipContainer.childElementCount) {
+            const clear = document.createElement("button");
+            clear.type = "button";
+            clear.className = "text-link";
+            clear.textContent = "すべて解除";
+            clear.addEventListener("click", () => {
+              resetFilters();
+              document.getElementById("keyword").focus();
+            });
+            chipContainer.append(clear);
+          }
+        }
+        document
+          .getElementById("job-results")
+          .addEventListener("click", (event) => {
+            if (event.target.closest("[data-reset-filters]")) {
+              resetFilters();
+              document.getElementById("keyword").focus();
+            }
+          });
         main
           .querySelectorAll("input, select")
           .forEach((input) => input.addEventListener("input", update));
@@ -2663,7 +3016,7 @@
         }
         main.innerHTML =
           head("PROJECT DETAILS", job.title, job.company) +
-          `<section class="section"><div class="container"><a href="#jobs" class="text-link">← 案件一覧へ戻る</a><div class="detail-layout" style="margin-top:25px"><article><div class="panel">${tabs("案件の詳細", ["案件情報", "企業情報", "応募方法"])}<div class="detail-copy" id="detail-content"></div></div></article><aside><div class="panel"><span class="tag">${job.role}</span><div class="money" style="margin:20px 0">${yen(job.budget)}<small> ${job.monthly ? "/ 月" : "/ 件"}</small></div><p class="small muted">募集締切：${job.deadline}<br>カテゴリ：${job.category}<br>商品提供・貸与あり / オンライン対応</p><button class="btn primary" style="width:100%" data-apply="${job.id}">この案件に応募する →</button><p class="small muted" style="margin:12px 0 0">※サンプル案件です。実際の応募は送信されません。</p></div></aside></div><h2 style="margin-top:60px">こちらの案件もおすすめ</h2><div class="grid">${jobs
+          `<section class="section"><div class="container"><a href="#jobs" class="text-link">← 案件一覧へ戻る</a><div class="detail-layout" style="margin-top:25px"><article><div class="panel">${tabs("案件の詳細", ["案件情報", "企業情報", "応募方法"])}<div class="detail-copy" id="detail-content"></div></div></article><aside><div class="panel"><span class="tag">${job.role}</span><div class="money" style="margin:20px 0">${yen(job.budget)}<small> ${job.monthly ? "/ 月" : "/ 件"}</small></div><p class="small muted">募集締切：${job.deadline}<br>カテゴリ：${job.category}<br>${job.productSupport} / オンライン対応<br>対応SNS：${job.sns.join(" / ")}</p><button class="btn primary" style="width:100%" data-apply="${job.id}">この案件に応募する →</button><p class="small muted" style="margin:12px 0 0">※サンプル案件です。実際の応募は送信されません。</p></div></aside></div><h2 style="margin-top:60px">こちらの案件もおすすめ</h2><div class="grid">${jobs
             .filter((item) => item.id !== id && item.category === job.category)
             .slice(0, 3)
             .map(jobCard)
@@ -2671,10 +3024,10 @@
         const update = (index) => {
           document.getElementById("detail-content").innerHTML =
             index === 0
-              ? `<h2 style="font-size:23px">制作内容</h2><p>${job.detail}</p><h3>応募条件</h3><p>${job.condition}</p><p class="small muted">利用媒体・期間・二次利用の条件は、契約前にチャットで合意してください。</p>`
+              ? `<h2 style="font-size:var(--text-h2)">制作内容</h2><p>${job.detail}</p><h3>応募条件</h3><p>${job.condition}</p><p class="small muted">利用媒体・期間・二次利用の条件は、契約前にチャットで合意してください。</p>`
               : index === 1
-                ? `<h2 style="font-size:23px">${job.company}</h2><p>業種：${job.industry}\n所在地：${job.location}\n評価：★ ${job.rating} / 5（${job.reviews}件のレビュー）</p><p>使う人の毎日を豊かにする商品づくりに取り組む、架空のサンプル企業です。</p>`
-                : `<h2 style="font-size:23px">あなたの得意を、教えてください。</h2><p>応募フォームに氏名・メール・自己PR・制作実績URLを入力してください。審査（基礎研修＋スキルチェック）通過後に応募できる想定のデモです。</p><p>条件交渉 → 契約確認 → 制作・納品 → 検収（48時間以内） → 報酬受取（月末締め翌月末払い）。</p><button class="btn primary" data-apply="${job.id}">応募フォームを開く →</button>`;
+                ? `<h2 style="font-size:var(--text-h2)">${job.company}</h2><p>業種：${job.industry}\n所在地：${job.location}\n評価：★ ${job.rating} / 5（${job.reviews}件のレビュー）</p><p>使う人の毎日を豊かにする商品づくりに取り組む、架空のサンプル企業です。</p>`
+                : `<h2 style="font-size:var(--text-h2)">あなたの得意を、教えてください。</h2><p>応募フォームに氏名・メール・自己PR・制作実績URLを入力してください。審査（基礎研修＋スキルチェック）通過後に応募できる想定のデモです。</p><p>条件交渉 → 契約確認 → 制作・納品 → 検収（48時間以内） → 報酬受取（月末締め翌月末払い）。</p><button class="btn primary" data-apply="${job.id}">応募フォームを開く →</button>`;
         };
         bindTabs(main, update);
         update(0);
@@ -2698,12 +3051,7 @@
           document.getElementById("creator-count").textContent =
             `${filtered.length} 人のクリエイター`;
           document.getElementById("creator-results").innerHTML = filtered.length
-            ? filtered
-                .map(
-                  (creator) =>
-                    `<article class="card"><div class="card-body"><div style="display:flex;align-items:center;gap:14px"><span class="avatar" style="width:60px;height:60px">${creator.name.slice(0, 1)}</span><div><h3 style="margin:0">${creator.name}</h3><span class="small muted">${creator.role}</span></div></div><p style="height:22px;margin:15px 0 8px;color:#2563eb;font-size:11px">${creator.badge ? "✦ 認定レビュークリエイター" : "クリエイター"}</p><span class="tag">${creator.genre}</span><span class="tag">${creator.skill}</span><p class="small muted" style="margin-top:16px">制作実績 ${creator.works}件 ・ ★ ${creator.rating}<br>フォロワー ${creator.followers.toLocaleString()}人</p><div class="card-bottom"><span><strong>${yen(creator.price)}</strong><span class="small muted">〜${creator.role === roles[3] ? "/月" : "/件"}</span></span><button class="text-link" data-creator="${creators.indexOf(creator)}">詳細を見る →</button></div></div></article>`,
-                )
-                .join("")
+            ? filtered.map(creatorCard).join("")
             : '<div class="empty">条件に合うクリエイターがいません。条件を変更してください。</div>';
         };
         main
@@ -3192,7 +3540,7 @@
           const creator = creators[Number(button.dataset.creator)];
           openModal(
             `${creator.name} / クリエイター`,
-            `<div style="display:flex;gap:15px;align-items:center;margin:15px 0"><span class="avatar" style="width:65px;height:65px">${creator.name.slice(0, 1)}</span><div><strong>${creator.role}</strong><div class="small" style="color:#2563eb">${creator.badge ? "✦ 認定レビュークリエイター" : "クリエイター"}</div></div></div><p>${creator.bio}</p><div class="panel small">得意ジャンル：${creator.genre}<br>スキル：${creator.skill}<br>制作実績：${creator.works}件<br>フォロワー：${creator.followers.toLocaleString()}人<br>評価：★ ${creator.rating} / 5<br>料金目安：${yen(creator.price)}〜 ${creator.role === roles[3] ? "/月" : "/件"}</div><p class="small muted" style="margin-top:18px">※架空のクリエイターです。実際の依頼はできません。</p><button class="btn primary" data-register="company" style="width:100%">無料で案件を掲載 →</button>`,
+            `<div style="display:flex;gap:15px;align-items:center;margin:15px 0"><span class="avatar" style="width:65px;height:65px">${creator.name.slice(0, 1)}</span><div><strong>${creator.role}</strong><div class="small" style="color:#2563eb">${creator.badge ? "✦ 認定レビュークリエイター" : "クリエイター"}</div></div></div><p>${creator.bio}</p><div class="panel small">得意ジャンル：${creator.genre}<br>スキル：${creator.skill}<br>対応SNS：${creator.sns.join(" / ")}<br>制作実績：${creator.works}件<br>フォロワー：${creator.followers.toLocaleString()}人<br>評価：★ ${creator.rating} / 5<br>料金目安：${yen(creator.price)}〜 ${creator.role === roles[3] ? "/月" : "/件"}</div><p class="small muted" style="margin-top:18px">※架空のクリエイターです。実際の依頼はできません。</p><button class="btn primary" data-register="company" style="width:100%">無料で案件を掲載 →</button>`,
           );
         }
       });
