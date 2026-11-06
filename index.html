@@ -1161,6 +1161,343 @@
           scroll-behavior: auto !important;
         }
       }
+      /* Form dialogs are scoped so the rest of the site keeps its styling. */
+      dialog.form-dialog {
+        width: min(var(--dialog-width), calc(100% - 48px));
+        max-width: none;
+        max-height: min(720px, 90dvh);
+        padding: 0;
+        border-radius: 20px;
+        overflow: auto;
+        overscroll-behavior: contain;
+        box-shadow: 0 24px 80px rgba(15, 23, 42, 0.22);
+      }
+      dialog.form-dialog::backdrop {
+        background: rgba(15, 23, 42, 0.65);
+        backdrop-filter: blur(5px);
+      }
+      .form-dialog[data-kind="register"] {
+        --dialog-width: 880px;
+      }
+      .form-dialog[data-kind="apply"] {
+        --dialog-width: 760px;
+      }
+      .form-dialog[data-kind="contact"] {
+        --dialog-width: 640px;
+      }
+      .form-dialog .dialog-close {
+        position: sticky;
+        top: 16px;
+        float: right;
+        margin: 16px 16px -52px 0;
+        z-index: 3;
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        padding: 0;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.85);
+        color: #475569;
+        font-size: 23px;
+      }
+      .form-dialog .dialog-close:hover {
+        background: #e2e8f0;
+      }
+      .dialog-layout {
+        display: grid;
+        grid-template-columns: 38% minmax(0, 62%);
+      }
+      .dialog-brand-panel {
+        padding: 36px 28px;
+        background: linear-gradient(
+          145deg,
+          #14253d 0%,
+          #1d3b66 65%,
+          #2563eb 160%
+        );
+        color: #dbeafe;
+        position: relative;
+        overflow: hidden;
+      }
+      .dialog-brand-panel::after {
+        content: "";
+        position: absolute;
+        width: 330px;
+        height: 330px;
+        border: 50px solid rgba(255, 255, 255, 0.06);
+        border-radius: 50%;
+        right: -180px;
+        bottom: -135px;
+        pointer-events: none;
+      }
+      .dialog-brand-panel .brand {
+        color: white;
+        font-size: 21px;
+      }
+      .dialog-brand-panel .brand b {
+        color: #60a5fa;
+      }
+      .dialog-brand-panel h3 {
+        color: white;
+        font-size: 25px;
+        margin: 54px 0 24px;
+        line-height: 1.7;
+      }
+      .dialog-benefits {
+        list-style: none;
+        padding: 0;
+        font-size: 13px;
+        display: grid;
+        gap: 16px;
+      }
+      .dialog-benefits li::before {
+        content: "✓";
+        color: #60a5fa;
+        margin-right: 8px;
+      }
+      .dialog-project-meta {
+        margin-top: 28px;
+        display: grid;
+        gap: 16px;
+      }
+      .dialog-project-meta dt {
+        color: #bfdbfe;
+        font-size: 11px;
+      }
+      .dialog-project-meta dd {
+        color: white;
+        margin: 3px 0 0;
+        font-size: 14px;
+        overflow-wrap: anywhere;
+      }
+      .dialog-project-meta .project-reward {
+        font-size: 26px;
+        font-weight: 800;
+      }
+      .dialog-form-panel {
+        padding: 40px 36px 32px;
+        min-width: 0;
+      }
+      .dialog-layout.contact-layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .contact-layout .dialog-form-panel {
+        padding: 40px 48px;
+      }
+      .dialog-mobile-brand {
+        display: none;
+      }
+      .dialog-steps {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        list-style: none;
+        padding: 0;
+        margin: 0 32px 26px 0;
+        color: #94a3b8;
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .dialog-steps li + li::before {
+        content: "→";
+        margin-right: 12px;
+        color: #cbd5e1;
+      }
+      .dialog-steps [aria-current="step"] {
+        color: #2563eb;
+      }
+      .form-dialog h2 {
+        font-size: 24px;
+        margin-bottom: 8px;
+      }
+      .dialog-description {
+        font-size: 13px;
+        color: #64748b;
+        margin-bottom: 20px;
+      }
+      .dialog-segments {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4px;
+        background: #f1f5f9;
+        padding: 4px;
+        border-radius: 11px;
+        margin-bottom: 22px;
+      }
+      .dialog-segments button {
+        min-height: 40px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #64748b;
+      }
+      .dialog-segments button[aria-pressed="true"] {
+        background: #2563eb;
+        color: white;
+      }
+      .form-dialog .form-fields {
+        gap: 18px;
+      }
+      .form-dialog label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #334155;
+      }
+      .form-dialog input,
+      .form-dialog textarea {
+        height: 48px;
+        min-height: 48px;
+        margin-top: 7px;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        color: #14253d;
+        font-size: 14px;
+        padding: 11px 14px;
+      }
+      .form-dialog textarea {
+        height: 112px;
+      }
+      .form-dialog input:focus,
+      .form-dialog textarea:focus {
+        outline: none;
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+      }
+      .form-dialog .error {
+        color: #dc2626;
+        font-size: 12px;
+        min-height: 0;
+        font-weight: 400;
+      }
+      .form-dialog .error:not(:empty) {
+        margin-top: 5px;
+      }
+      .form-dialog [aria-invalid="true"] {
+        border-color: #dc2626;
+      }
+      .form-dialog .btn {
+        height: 48px;
+        border-radius: 10px;
+        width: 100%;
+      }
+      .form-dialog .btn.primary {
+        background: #2563eb;
+        box-shadow: none;
+      }
+      .form-dialog .btn.primary:hover {
+        background: #1d4ed8;
+        transform: none;
+      }
+      .password-control {
+        position: relative;
+        display: block;
+      }
+      .password-control input {
+        padding-right: 62px;
+      }
+      .password-toggle {
+        position: absolute;
+        right: 6px;
+        top: 11px;
+        min-width: 48px;
+        height: 40px;
+        color: #2563eb;
+        font-size: 12px;
+        border-radius: 7px;
+      }
+      .dialog-demo {
+        padding: 12px 14px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 9px;
+        color: #64748b;
+        font-size: 11px;
+        margin: 20px 0 0;
+      }
+      .dialog-terms,
+      .dialog-login {
+        font-size: 11px;
+        color: #64748b;
+        text-align: center;
+        margin: 16px 0 0;
+      }
+      .dialog-terms a,
+      .dialog-login button {
+        color: #2563eb;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+      .dialog-login button {
+        min-height: 36px;
+        padding: 0 4px;
+      }
+      .confirmation-list {
+        margin: 24px 0;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 4px 18px;
+      }
+      .confirmation-list > div {
+        padding: 13px 0;
+        border-bottom: 1px solid #e2e8f0;
+      }
+      .confirmation-list > div:last-child {
+        border-bottom: 0;
+      }
+      .confirmation-list dt {
+        font-size: 12px;
+        color: #64748b;
+      }
+      .confirmation-list dd {
+        margin: 4px 0 0;
+        font-size: 14px;
+        color: #14253d;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      .dialog-confirm-actions {
+        display: grid;
+        gap: 12px;
+      }
+      .form-dialog .success {
+        padding: 24px 0 10px;
+      }
+      @media (max-width: 767px) {
+        dialog.form-dialog {
+          width: calc(100% - 24px);
+          max-height: min(720px, 90dvh);
+          border-radius: 16px;
+        }
+        .dialog-layout {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .dialog-brand-panel {
+          display: none;
+        }
+        .dialog-mobile-brand {
+          display: flex;
+          margin: 0 30px 25px 0;
+        }
+        .dialog-mobile-brand .brand {
+          font-size: 21px;
+        }
+        .dialog-form-panel,
+        .contact-layout .dialog-form-panel {
+          padding: 26px 24px;
+        }
+        .dialog-steps {
+          gap: 8px;
+          margin-right: 0;
+        }
+        .dialog-steps li + li::before {
+          margin-right: 8px;
+        }
+        .form-dialog h2 {
+          font-size: 22px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -2366,7 +2703,9 @@
       }
       let modalTrigger;
       function openModal(title, content) {
-        modalTrigger = document.activeElement;
+        if (!modal.open) modalTrigger = document.activeElement;
+        modal.className = "";
+        delete modal.dataset.kind;
         modal.innerHTML = `<div class="modal-top"><h2 id="modal-title" style="font-size:24px">${title}</h2><button class="close" data-close aria-label="ダイアログを閉じる">×</button></div>${content}`;
         modal.showModal();
         document.body.style.overflow = "hidden";
@@ -2387,102 +2726,310 @@
             modal.close();
         }
       });
+      function modalLogo(dark = false) {
+        return `
+          <span class="brand">
+            <svg viewBox="0 0 64 64" width="30" height="30" role="img" aria-label="ReviewMatchのロゴ">
+              <rect x="6" y="6" width="52" height="52" rx="14" fill="${dark ? "#FFFFFF" : "#14253D"}"/>
+              <path d="M24 32H40" stroke="${dark ? "#14253D" : "#FFFFFF"}" stroke-width="5" stroke-linecap="round"/>
+              <circle cx="21" cy="32" r="7" fill="${dark ? "#14253D" : "#FFFFFF"}"/>
+              <circle cx="43" cy="32" r="7" fill="${dark ? "#60A5FA" : "#2563EB"}" stroke="${dark ? "#14253D" : "#FFFFFF"}" stroke-width="2"/>
+            </svg>
+            <span>Review<b>Match</b></span>
+          </span>`;
+      }
+      function escapeHTML(value) {
+        return String(value).replace(
+          /[&<>"']/g,
+          (character) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[character],
+        );
+      }
       function formField(id, label, type = "text", extra = "") {
-        return `<label>${label}<input id="${id}" name="${id}" type="${type}" required ${extra} aria-describedby="${id}-error"><span class="error" id="${id}-error" aria-live="polite"></span></label>`;
+        const input = `<input id="${id}" name="${id}" type="${type}" required ${extra} aria-describedby="${id}-error">`;
+        return `
+          <label for="${id}">${label}</label>
+          ${type === "password" ? `<div class="password-control">${input}<button type="button" class="password-toggle" aria-label="パスワードを表示" aria-pressed="false">表示</button></div>` : input}
+          <span class="error" id="${id}-error" aria-live="polite"></span>`;
       }
       function showForm(kind, audience = "creator", jobId) {
         const register = kind === "register";
         const apply = kind === "apply";
-        const title = register
-          ? `${audience === "company" ? "企業" : "クリエイター"}として無料登録`
-          : apply
-            ? "案件に応募する"
-            : "お問い合わせ";
-        let fields = formField(
-          "form-name",
-          register && audience === "company" ? "担当者名" : "お名前",
-          "text",
-          'autocomplete="name" maxlength="80"',
-        );
-        if (register && audience === "company")
-          fields += formField(
-            "form-company",
-            "企業名",
-            "text",
-            'autocomplete="organization" maxlength="120"',
-          );
-        fields += formField(
-          "form-email",
-          "メールアドレス",
-          "email",
-          'autocomplete="email"',
-        );
-        if (register)
-          fields += formField(
-            "form-password",
-            "パスワード（8文字以上）",
-            "password",
-            'minlength="8" autocomplete="new-password"',
-          );
-        if (apply)
-          fields += formField(
-            "form-url",
-            "制作実績URL",
-            "url",
-            'placeholder="https://…"',
-          );
-        if (!register)
-          fields += `<label>${apply ? "自己PR・応募メッセージ" : "お問い合わせ内容"}<textarea id="form-message" name="message" minlength="10" required aria-describedby="form-message-error"></textarea><span class="error" id="form-message-error" aria-live="polite"></span></label>`;
-        openModal(
-          title,
-          `<p class="small muted">${apply ? jobs.find((job) => job.id === jobId).title : register ? "あなたの次の一歩を、ここから。" : "サービスについてのご質問をお聞かせください。"}</p><p class="small muted">デモフォームです。入力内容は送信・保存されません。実際のパスワードは入力しないでください。</p><form id="demo-form" class="form-fields" novalidate>${fields}<button class="btn primary" type="submit">${register ? "無料で登録する" : apply ? "応募内容を送信する" : "お問い合わせを送信する"} →</button></form>`,
-        );
-        const form = document.getElementById("demo-form");
-        const validate = (field) => {
-          let message = "";
-          if (!field.value.trim()) message = "入力してください。";
-          else if (
-            field.type === "email" &&
-            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(field.value)
-          )
-            message = "正しいメールアドレスを入力してください。";
-          else if (field.type === "password" && field.value.length < 8)
-            message = "8文字以上で入力してください。";
-          else if (field.type === "url") {
-            try {
-              if (!["https:", "http:"].includes(new URL(field.value).protocol))
-                message = "httpまたはhttpsのURLを入力してください。";
-            } catch {
-              message = "正しいURLを入力してください。";
-            }
-          } else if (
-            field.tagName === "TEXTAREA" &&
-            field.value.trim().length < 10
-          )
-            message = "10文字以上で入力してください。";
-          field.setAttribute("aria-invalid", String(Boolean(message)));
-          document.getElementById(`${field.id}-error`).textContent = message;
-          return !message;
-        };
-        const inputs = [...form.querySelectorAll("input, textarea")];
-        inputs.forEach((field) => {
-          field.addEventListener("input", () => validate(field));
-          field.addEventListener("blur", () => validate(field));
-        });
-        form.addEventListener("submit", (event) => {
-          event.preventDefault();
-          const valid = inputs.map(validate).every(Boolean);
-          if (!valid) {
-            form.querySelector('[aria-invalid="true"]').focus();
+        const job = apply ? jobs.find((item) => item.id === jobId) : null;
+        const values = {};
+        let stage = 0;
+        const demoNote =
+          "デモフォームです。入力内容は送信・保存されません。" +
+          (register ? "実際のパスワードは入力しないでください。" : "");
+        const titleForStage = () =>
+          stage === 2
+            ? register
+              ? "登録完了"
+              : apply
+                ? "応募完了（デモ）"
+                : "お問い合わせ完了（デモ）"
+            : stage === 1
+              ? "入力内容の確認"
+              : register
+                ? "ReviewMatchに無料登録"
+                : apply
+                  ? "案件に応募する"
+                  : "お問い合わせ";
+        openModal(titleForStage(), "");
+        modal.className = "form-dialog";
+        modal.dataset.kind = kind;
+
+        function fieldDefinitions() {
+          const fields = [
+            {
+              id: "form-name",
+              label: register && audience === "company" ? "担当者名" : "お名前",
+              type: "text",
+              extra: 'autocomplete="name" maxlength="80"',
+            },
+          ];
+          if (register && audience === "company")
+            fields.unshift({
+              id: "form-company",
+              label: "会社名",
+              type: "text",
+              extra: 'autocomplete="organization" maxlength="120"',
+            });
+          fields.push({
+            id: "form-email",
+            label: "メールアドレス",
+            type: "email",
+            extra: 'autocomplete="email"',
+          });
+          if (register)
+            fields.push({
+              id: "form-password",
+              label: "パスワード（8文字以上）",
+              type: "password",
+              extra: 'minlength="8" autocomplete="new-password"',
+            });
+          if (apply)
+            fields.push({
+              id: "form-url",
+              label: "制作実績URL",
+              type: "url",
+              extra: 'placeholder="https://…"',
+            });
+          if (!register)
+            fields.push({
+              id: "form-message",
+              label: apply ? "自己PR・応募メッセージ" : "お問い合わせ内容",
+              type: "textarea",
+            });
+          return fields;
+        }
+        function saveInputs() {
+          modal
+            .querySelectorAll("#demo-form input, #demo-form textarea")
+            .forEach((field) => (values[field.id] = field.value));
+        }
+        function brandPanel() {
+          if (kind === "contact") return "";
+          const creator = audience === "creator";
+          const heading = apply
+            ? job.title
+            : creator
+              ? "あなたのスキルを、次の仕事へ。"
+              : "商品の魅力を、もっと多くの人へ。";
+          const benefits = creator
+            ? [
+                "登録・利用は無料",
+                "フォロワー0人から参加可能",
+                "レビュー・SNS案件に特化",
+              ]
+            : ["無料プランあり", "制作スキルで人材を検索", "案件管理を効率化"];
+          return `
+            <aside class="dialog-brand-panel" aria-label="${apply ? "応募する案件" : "ReviewMatchの特徴"}">
+              ${modalLogo(true)}
+              <h3>${heading}</h3>
+              ${
+                apply
+                  ? `<dl class="dialog-project-meta">
+                <div><dt>報酬</dt><dd class="project-reward">${yen(job.budget)}<small>${job.monthly ? " / 月" : " / 件"}</small></dd></div>
+                <div><dt>募集締切</dt><dd>${job.deadline}</dd></div>
+                <div><dt>企業名</dt><dd>${job.company}</dd></div>
+              </dl>`
+                  : `<ul class="dialog-benefits">${benefits.map((text) => `<li>${text}</li>`).join("")}</ul>`
+              }
+            </aside>`;
+        }
+        function render() {
+          const fields = fieldDefinitions();
+          const title = titleForStage();
+          let content;
+          if (stage === 0) {
+            content = `
+              <p class="dialog-description">${register ? "つくる力と、ブランドが出会う場所へ。" : apply ? "あなたの得意と制作実績を教えてください。" : "サービスについて、お気軽にご相談ください。"}</p>
+              ${
+                register
+                  ? `<div class="dialog-segments" role="group" aria-label="登録するアカウントの種類">
+                <button type="button" data-audience="company" aria-pressed="${audience === "company"}">企業</button>
+                <button type="button" data-audience="creator" aria-pressed="${audience === "creator"}">クリエイター</button>
+              </div>`
+                  : ""
+              }
+              <form id="demo-form" class="form-fields" novalidate>
+                ${fields
+                  .map(
+                    (field) =>
+                      `<div class="dialog-field">${
+                        field.type === "textarea"
+                          ? `<label for="${field.id}">${field.label}</label><textarea id="${field.id}" name="message" minlength="10" required aria-describedby="${field.id}-error"></textarea><span class="error" id="${field.id}-error" aria-live="polite"></span>`
+                          : formField(
+                              field.id,
+                              field.label,
+                              field.type,
+                              field.extra || "",
+                            )
+                      }</div>`,
+                  )
+                  .join("")}
+                <button class="btn primary" type="submit">入力内容を確認する <span aria-hidden="true">→</span></button>
+              </form>
+              ${
+                register
+                  ? `<p class="dialog-terms"><a href="#faq">利用規約</a>・<a href="#faq">プライバシーポリシー</a>に同意のうえ登録します</p>
+                <p class="dialog-login" aria-live="polite">すでにアカウントをお持ちですか？ <button type="button" data-demo-login>ログイン</button></p>`
+                  : ""
+              }`;
+          } else if (stage === 1) {
+            content = `
+              <p class="dialog-description">内容をご確認のうえ、${register ? "登録" : apply ? "応募" : "送信"}してください。</p>
+              <dl class="confirmation-list">
+                ${register ? `<div><dt>アカウントの種類</dt><dd>${audience === "company" ? "企業" : "クリエイター"}</dd></div>` : ""}
+                ${fields.map((field) => `<div><dt>${field.label}</dt><dd>${field.type === "password" ? "••••••••" : escapeHTML(values[field.id] || "")}</dd></div>`).join("")}
+              </dl>
+              <div class="dialog-confirm-actions">
+                <button class="btn primary" type="button" data-confirm>${register ? "この内容で登録する" : apply ? "この内容で応募する" : "この内容で送信する"}</button>
+                <button class="btn" type="button" data-edit>戻って修正する</button>
+              </div>`;
+          } else {
+            content = `
+              <div class="success" role="status">
+                <div class="success-mark" aria-hidden="true">✓</div>
+                <h3>${register ? "ご登録ありがとうございます！" : "入力内容を確認しました。"}</h3>
+                <p class="muted small">${register ? (audience === "company" ? "実際のサービスでは、約3〜5営業日の企業審査へ進みます。" : "実際のサービスでは、無料の基礎研修とスキルチェックへ進みます。") : "これはデモの完了画面です。"}<br>データの送信・保存は行っていません。</p>
+                <button class="btn primary" type="button" data-close>閉じる</button>
+              </div>`;
+          }
+          modal.innerHTML = `
+            <button class="dialog-close" type="button" data-close aria-label="ダイアログを閉じる">×</button>
+            <div class="dialog-layout ${kind === "contact" ? "contact-layout" : ""}">
+              ${brandPanel()}
+              <section class="dialog-form-panel" aria-labelledby="modal-title">
+                <div class="dialog-mobile-brand">${modalLogo()}</div>
+                <ol class="dialog-steps" aria-label="手続きのステップ">
+                  ${["1. 入力", "2. 確認", "完了"].map((label, index) => `<li ${index === stage ? 'aria-current="step"' : ""}>${label}</li>`).join("")}
+                </ol>
+                <h2 id="modal-title" tabindex="-1">${title}</h2>
+                ${content}
+                <p class="dialog-demo">${demoNote}</p>
+              </section>
+            </div>`;
+          modal.scrollTop = 0;
+          modal.querySelector("#modal-title").focus();
+          if (stage !== 0) {
+            modal
+              .querySelector("[data-edit]")
+              ?.addEventListener("click", () => {
+                stage = 0;
+                render();
+              });
+            modal
+              .querySelector("[data-confirm]")
+              ?.addEventListener("click", () => {
+                stage = 2;
+                render();
+              });
             return;
           }
-          modal.querySelector("#modal-title").textContent = register
-            ? "登録完了"
-            : apply
-              ? "応募完了（デモ）"
-              : "お問い合わせ完了（デモ）";
-          form.outerHTML = `<div class="success" role="status"><div class="success-mark">✓</div><h3>${register ? "ご登録ありがとうございます！" : "入力内容を確認しました。"}</h3><p class="muted small">${register ? (audience === "company" ? "実際のサービスでは、約3〜5営業日の企業審査へ進みます。" : "実際のサービスでは、無料の基礎研修とスキルチェックへ進みます。") : "これはデモの完了画面です。"}<br>データの送信・保存は行っていません。</p><button class="btn primary" data-close>閉じる</button></div>`;
-        });
+          fields.forEach((field) => {
+            document.getElementById(field.id).value = values[field.id] || "";
+          });
+          modal.querySelectorAll("[data-audience]").forEach((button) =>
+            button.addEventListener("click", () => {
+              saveInputs();
+              audience = button.dataset.audience;
+              render();
+              modal.querySelector(`[data-audience="${audience}"]`).focus();
+            }),
+          );
+          modal
+            .querySelector("[data-demo-login]")
+            ?.addEventListener("click", (event) => {
+              event.currentTarget.parentElement.textContent =
+                "デモのためログイン機能はありません。";
+            });
+          modal
+            .querySelector(".password-toggle")
+            ?.addEventListener("click", (event) => {
+              const password = document.getElementById("form-password");
+              const visible = password.type === "password";
+              password.type = visible ? "text" : "password";
+              event.currentTarget.textContent = visible ? "非表示" : "表示";
+              event.currentTarget.setAttribute("aria-pressed", String(visible));
+              event.currentTarget.setAttribute(
+                "aria-label",
+                `パスワードを${visible ? "非表示" : "表示"}`,
+              );
+            });
+          const form = document.getElementById("demo-form");
+          const inputs = [...form.querySelectorAll("input, textarea")];
+          const validate = (field) => {
+            let message = "";
+            if (!field.value.trim()) message = "入力してください。";
+            else if (
+              field.type === "email" &&
+              !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(field.value)
+            )
+              message = "正しいメールアドレスを入力してください。";
+            else if (field.id === "form-password" && field.value.length < 8)
+              message = "8文字以上で入力してください。";
+            else if (field.type === "url") {
+              try {
+                if (
+                  !["https:", "http:"].includes(new URL(field.value).protocol)
+                )
+                  message = "httpまたはhttpsのURLを入力してください。";
+              } catch {
+                message = "正しいURLを入力してください。";
+              }
+            } else if (
+              field.tagName === "TEXTAREA" &&
+              field.value.trim().length < 10
+            )
+              message = "10文字以上で入力してください。";
+            field.setAttribute("aria-invalid", String(Boolean(message)));
+            document.getElementById(`${field.id}-error`).textContent = message;
+            return !message;
+          };
+          inputs.forEach((field) => {
+            field.addEventListener("input", () => validate(field));
+            field.addEventListener("blur", () => validate(field));
+          });
+          form.addEventListener("submit", (event) => {
+            event.preventDefault();
+            if (!inputs.map(validate).every(Boolean)) {
+              form.querySelector('[aria-invalid="true"]').focus();
+              return;
+            }
+            saveInputs();
+            stage = 1;
+            render();
+          });
+        }
+        render();
       }
       document.addEventListener("click", (event) => {
         const button = event.target.closest("button");
