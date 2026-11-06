@@ -1805,6 +1805,221 @@
       .footer-bottom {
         font-size: 12px;
       }
+      /* Consistent interaction feedback and accessible control targets. */
+      :root {
+        --muted: #526174;
+      }
+      a,
+      button,
+      input,
+      select,
+      textarea,
+      .card {
+        transition:
+          background-color 180ms ease,
+          color 180ms ease,
+          border-color 180ms ease,
+          box-shadow 180ms ease,
+          transform 180ms ease;
+      }
+      button,
+      .text-link,
+      nav a,
+      footer a:not(.brand) {
+        min-height: 44px;
+      }
+      .text-link,
+      nav a,
+      footer a:not(.brand) {
+        display: inline-flex;
+        align-items: center;
+      }
+      nav a {
+        padding-block: 12px;
+      }
+      button:hover,
+      .btn:hover {
+        transform: none;
+      }
+      .btn:hover {
+        background-color: #eaf0f8;
+      }
+      .btn.primary:hover,
+      .form-dialog .btn.primary:hover {
+        background-color: #1d4ed8;
+      }
+      .btn.navy:hover {
+        background-color: #233f62;
+      }
+      .btn.white:hover {
+        background-color: #eff6ff;
+      }
+      .card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(20, 37, 61, 0.1);
+      }
+      .tabs button,
+      .dialog-segments button {
+        min-height: 44px;
+      }
+      .tabs button:hover,
+      .dialog-segments button:hover {
+        background-color: #dbeafe;
+        color: #1d4ed8;
+      }
+      .tabs button[aria-selected="true"],
+      .dialog-segments button[aria-pressed="true"] {
+        background-color: #2563eb;
+        color: #ffffff;
+        box-shadow: none;
+      }
+      :is(a, button, input, select, textarea, summary):focus-visible {
+        outline: 3px solid #2563eb;
+        outline-offset: 3px;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+      }
+      .form-dialog :is(input, textarea):focus-visible {
+        outline: 3px solid #2563eb;
+        outline-offset: 3px;
+      }
+      button:disabled {
+        cursor: wait;
+        opacity: 0.75;
+      }
+      .form-dialog .password-toggle,
+      .dialog-login button {
+        min-height: 44px;
+      }
+      .form-dialog .password-toggle {
+        top: 9px;
+      }
+      .form-dialog .dialog-close {
+        width: 44px;
+        min-width: 44px;
+        height: 44px;
+        min-height: 44px;
+        margin: 12px 12px -56px 0;
+        top: 12px;
+        background: transparent;
+        isolation: isolate;
+      }
+      .form-dialog .dialog-close::before {
+        content: "";
+        position: absolute;
+        inset: 4px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.85);
+        z-index: -1;
+        transition: background-color 180ms ease;
+      }
+      .form-dialog .dialog-close:hover {
+        background: transparent;
+      }
+      .form-dialog .dialog-close:hover::before {
+        background: #e2e8f0;
+      }
+      .dialog-steps {
+        color: #64748b;
+      }
+      .checks,
+      .metric p,
+      .hero-copy {
+        color: #526174;
+      }
+      .fee-note {
+        margin-top: 18px;
+      }
+      main,
+      .container,
+      .grid > *,
+      .filters > *,
+      .tabs,
+      .result-bar > * {
+        min-width: 0;
+      }
+      .job-card-title,
+      .creator-role,
+      .job-company,
+      .dialog-form-panel,
+      .confirmation-list {
+        overflow-wrap: anywhere;
+      }
+      .tabs {
+        flex-wrap: wrap;
+      }
+      .result-bar {
+        flex-wrap: wrap;
+      }
+      input,
+      select,
+      textarea {
+        max-width: 100%;
+      }
+      @media (max-width: 360px) {
+        .header-inner .brand {
+          font-size: 18px;
+          gap: 5px;
+        }
+        .header-inner .brand-mark {
+          width: 30px;
+          height: 30px;
+          flex-shrink: 0;
+        }
+        .demo-badge {
+          font-size: 9px;
+          padding-inline: 6px;
+        }
+        .header-inner {
+          gap: 6px;
+        }
+        .simulator,
+        .sim-result,
+        .panel {
+          padding: 18px;
+        }
+        .dialog-form-panel,
+        .contact-layout .dialog-form-panel {
+          padding-inline: 18px;
+        }
+        .hero-examples li {
+          border-radius: 12px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          transition: none !important;
+          scroll-behavior: auto !important;
+        }
+      }
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+        border: 0;
+      }
+      .brand,
+      summary {
+        min-height: 44px;
+      }
+      input::placeholder,
+      textarea::placeholder {
+        color: #64748b;
+        opacity: 1;
+      }
+      .art-label {
+        color: #526174;
+      }
+      .float-creator > div:nth-child(2) {
+        color: #526174 !important;
+      }
     </style>
   </head>
   <body>
@@ -2161,7 +2376,7 @@
             <details>
               <summary>企業向けの料金プランは？</summary>
               <p>
-                フリーは月額0円・掲載1件/月、スタンダードは月額9,800円（税込）・掲載10件/月、プロは月額29,800円（税込）・掲載無制限。全プラン登録後30日間無料です。成約手数料・オプション料金は別途必要です。
+                フリーは月額0円・掲載1件/月、スタンダードは月額9,800円（税込）・掲載10件/月、プロは月額29,800円（税込）・掲載無制限。全プラン登録後30日間無料です。成約手数料・オプション料金は別途必要です。商品の発送料は企業負担です。
               </p>
             </details>
             <details>
@@ -2656,6 +2871,10 @@
           bio: "デスク周りの道具が好きです。使って感じたことを率直に、丁寧に届けます。",
         },
       ];
+      const feeSummary =
+        "成約手数料は制作案件10%・SNS運用支援15%（いずれも企業負担）。商品提供のみの案件は500円/件、優先掲載は2,000円/件です。";
+      const feeNote =
+        "プラン料金は税込、成約手数料・オプション料金は別途です。手数料と商品の発送料は企業負担です。";
       const faqData = {
         company: [
           [
@@ -2664,12 +2883,9 @@
           ],
           [
             "どんな費用がかかりますか？",
-            "月額はフリー0円、スタンダード9,800円、プロ29,800円（税込）。全プラン登録後30日間無料トライアルです。成約手数料は別途発生します。",
+            "月額はフリー0円、スタンダード9,800円、プロ29,800円（税込）。全プラン登録後30日間無料トライアルです。プラン料金は税込、成約手数料・オプション料金は別途です。手数料と商品の発送料は企業負担です。",
           ],
-          [
-            "成約手数料はいくらですか？",
-            "金銭報酬案件は報酬の10％を企業が負担します。商品提供のみは500円/件、SNS運用支援は報酬の15％です。優先掲載は2,000円/件です。",
-          ],
+          ["成約手数料はいくらですか？", feeSummary + feeNote],
           [
             "納品確認と支払いのタイミングは？",
             "納品後48時間以内に検収してください。決済は月末締め翌月末払いです。",
@@ -2680,7 +2896,7 @@
           ],
           [
             "無料トライアルに手数料は含まれますか？",
-            "30日間は月額プラン料金が無料です。成約手数料や優先掲載のオプション料金は別途必要です。",
+            "30日間は月額プラン料金が無料です。プラン料金は税込、成約手数料・オプション料金は別途です。手数料と商品の発送料は企業負担です。",
           ],
         ],
         creator: [
@@ -2730,7 +2946,7 @@
           ],
           ["選定・発注", "条件が合意できたクリエイターへ正式に発注します。"],
           ["納品確認", "納品から48時間以内に内容を検収します。"],
-          ["決済", "月末締め翌月末払いでお支払い。掲載から決済まで一元管理。"],
+          ["決済", "月末締め翌月末払いでお支払い。" + feeSummary + feeNote],
         ],
         creator: [
           ["無料登録", "名前・メールアドレスなどを登録。利用は完全無料です。"],
@@ -2888,7 +3104,7 @@
             "つくる力と、ブランドをつなぐ。",
             "レビュー制作からSNS運用まで。目的に合うパートナーと出会えます。",
           ) +
-          `<section class="section"><div class="container">${tabs("利用者別サービス", ["企業の方", "クリエイターの方"])}<div id="service-content"></div></div></section><section class="section soft"><div class="container"><span class="eyebrow">PRICING</span><h2>目的に合わせて、選べる3つのプラン。</h2><p class="muted">全プラン登録後30日間無料。クリエイターは完全無料です。</p>${renderPlans()}<p class="small muted" style="margin-top:20px">成約手数料・オプション料金は別途。<a class="text-link" href="#pricing">料金の詳細とシミュレーター →</a></p></div></section>`;
+          `<section class="section"><div class="container">${tabs("利用者別サービス", ["企業の方", "クリエイターの方"])}<div id="service-content"></div></div></section><section class="section soft"><div class="container"><span class="eyebrow">PRICING</span><h2>目的に合わせて、選べる3つのプラン。</h2><p class="muted">全プラン登録後30日間無料。クリエイターは完全無料です。</p>${renderPlans()}<p class="small muted" style="margin-top:20px">${feeSummary}<br>${feeNote}<br><a class="text-link" href="#pricing">料金の詳細とシミュレーター →</a></p></div></section>`;
         const update = (index) => {
           const audience = index === 0 ? "company" : "creator";
           document.getElementById("service-content").innerHTML =
@@ -2904,7 +3120,7 @@
             "あなたに合う案件を、見つけよう。",
             "レビュー動画・UGC・SNS運用。得意なことから、次の一歩へ。",
           ) +
-          `<section class="section"><div class="container"><form class="filters" id="job-filters"><label>キーワード<input id="keyword" type="search" placeholder="商品名・企業名など"></label><label>職種<select id="job-role">${options(roles, "すべての職種")}</select></label><label>報酬の下限<input id="min-budget" type="number" min="0" step="1000" placeholder="0 円"></label><label>報酬の上限<input id="max-budget" type="number" min="0" step="1000" placeholder="上限なし"></label></form><div id="active-filters" class="active-filters" role="group" aria-label="適用中の絞り込み条件"></div><p class="small muted">SNS運用の報酬は月額です。金額は1件あたり・月額それぞれの表示額で比較します。</p><div class="result-bar"><strong id="job-count" aria-live="polite"></strong><select id="sort" aria-label="案件の並び順"><option value="new">新着順</option><option value="reward">報酬の高い順</option><option value="deadline">締切が近い順</option></select></div><div class="grid" id="job-results"></div></div></section>`;
+          `<section class="section"><div class="container"><form class="filters" id="job-filters"><label for="keyword">キーワード<input id="keyword" type="search" placeholder="商品名・企業名など"></label><label for="job-role">職種<select id="job-role">${options(roles, "すべての職種")}</select></label><label for="min-budget">報酬の下限<input id="min-budget" type="number" min="0" step="1000" placeholder="0 円"></label><label for="max-budget">報酬の上限<input id="max-budget" type="number" min="0" step="1000" placeholder="上限なし"></label></form><div id="active-filters" class="active-filters" role="group" aria-label="適用中の絞り込み条件"></div><p class="small muted">SNS運用の報酬は月額です。金額は1件あたり・月額それぞれの表示額で比較します。</p><div class="result-bar"><strong id="job-count" aria-live="polite"></strong><label class="visually-hidden" for="sort">案件の並び順</label><select id="sort" aria-label="案件の並び順"><option value="new">新着順</option><option value="reward">報酬の高い順</option><option value="deadline">締切が近い順</option></select></div><div class="grid" id="job-results"></div></div></section>`;
         const update = () => {
           const keyword = document
             .getElementById("keyword")
@@ -3039,7 +3255,7 @@
             "いい商品を、もっと伝える人たち。",
             "フォロワー数より、つくる力。あなたのブランドに合うパートナーを。",
           ) +
-          `<section class="section"><div class="container"><div class="filters" style="grid-template-columns:1fr 1fr"><label>職種<select id="creator-role">${options(roles, "すべての職種")}</select></label><label>スキル<select id="creator-skill">${options(["撮影", "編集", "企画"], "すべてのスキル")}</select></label></div><p id="creator-count" aria-live="polite"></p><div id="creator-results" class="grid"></div></div></section>`;
+          `<section class="section"><div class="container"><div class="filters" style="grid-template-columns:1fr 1fr"><label for="creator-role">職種<select id="creator-role">${options(roles, "すべての職種")}</select></label><label for="creator-skill">スキル<select id="creator-skill">${options(["撮影", "編集", "企画"], "すべてのスキル")}</select></label></div><p id="creator-count" aria-live="polite"></p><div id="creator-results" class="grid"></div></div></section>`;
         const update = () => {
           const role = document.getElementById("creator-role").value;
           const skill = document.getElementById("creator-skill").value;
@@ -3066,7 +3282,7 @@
             "出会いを広げる、シンプルな料金。",
             "企業は全プラン30日間無料トライアル。クリエイターは完全無料。",
           ) +
-          `<section class="section"><div class="container">${renderPlans()}<div class="panel" style="margin-top:25px"><h3>成約手数料・オプション</h3><p class="small muted" style="margin-bottom:0">金銭報酬案件：報酬の10％（企業負担） ／ 商品提供のみ：500円/件<br>SNS運用支援：報酬の15％ ／ 優先掲載：2,000円/件（スタンダード・プロ）<br>※トライアル中も成約手数料・オプション料金は別途発生します。</p></div><h2 style="margin-top:65px">料金シミュレーター</h2><p class="muted">月の掲載数から、最適なプランと費用の目安をチェック。</p><div class="simulator"><div class="sim-fields"><label>月の掲載案件数<input type="number" id="sim-count" min="1" max="10000" value="5" required></label><label>比較するプラン<select id="sim-plan">${plans.map((plan, index) => `<option value="${index}" ${index === 1 ? "selected" : ""}>${plan.name}</option>`).join("")}</select></label><label>優先掲載の件数<input type="number" id="sim-priority" min="0" max="10000" value="0" required></label><p class="small muted" id="sim-warning" role="status"></p></div><div class="sim-result" aria-live="polite" id="sim-result"></div></div></div></section>`;
+          `<section class="section"><div class="container">${renderPlans()}<div class="panel" style="margin-top:25px"><h3>成約手数料・オプション</h3><p class="small muted" style="margin-bottom:0">${feeSummary}<br>${feeNote}<br>優先掲載はスタンダード・プロで利用可能。トライアル中も成約手数料・オプション料金は発生します。</p></div><h2 style="margin-top:65px">料金シミュレーター</h2><p class="muted">月の掲載数から、最適なプランと費用の目安をチェック。</p><div class="simulator"><div class="sim-fields"><label for="sim-count">月の掲載案件数<input type="number" id="sim-count" min="1" max="10000" value="5" required></label><label for="sim-plan">比較するプラン<select id="sim-plan">${plans.map((plan, index) => `<option value="${index}" ${index === 1 ? "selected" : ""}>${plan.name}</option>`).join("")}</select></label><label for="sim-priority">優先掲載の件数<input type="number" id="sim-priority" min="0" max="10000" value="0" required></label><p class="small muted" id="sim-warning" role="status"></p></div><div class="sim-result" aria-live="polite" id="sim-result"></div></div></div></section>`;
         const update = () => {
           const countInput = document.getElementById("sim-count");
           const priorityInput = document.getElementById("sim-priority");
@@ -3087,7 +3303,7 @@
             warning.textContent =
               "掲載数は1〜10,000の整数、優先掲載は掲載数以下の0以上の整数で入力してください。";
             document.getElementById("sim-result").innerHTML =
-              "<p>入力内容をご確認ください。</p>";
+              `<p>入力内容をご確認ください。</p><p class="small muted">${feeSummary}<br>${feeNote}</p>`;
             return;
           }
           const recommended = plans.findIndex(
@@ -3100,7 +3316,7 @@
             ? "※30日間の無料期間終了後の通常月額の目安です。"
             : `${plan.name}では指定の掲載条件に対応できません。おすすめプランをご確認ください。`;
           document.getElementById("sim-result").innerHTML =
-            `<span class="eyebrow">MONTHLY ESTIMATE</span><p style="margin-bottom:6px">${plan.name}の月額目安</p><div class="money" style="font-size:36px">${valid ? yen(plan.price + priority * 2000) : "利用条件外"}</div><p class="small muted">${valid ? `月額 ${yen(plan.price)} ＋ 優先掲載 ${yen(priority * 2000)}<br>成約手数料・クリエイター報酬は別途` : "掲載上限またはオプション条件を超えています。"}</p><hr style="border:0;border-top:1px solid #d7e3f7;margin:20px 0"><strong style="color:#2563eb">おすすめ：${plans[recommended].name}</strong><p class="small">条件に合う最安プラン：${yen(plans[recommended].price + priority * 2000)} / 月</p><p class="small muted" style="margin:0">成約1件・報酬10,000円の場合<br>制作案件：手数料1,000円（合計11,000円）<br>SNS運用：手数料1,500円（合計11,500円）<br>商品提供のみ：手数料500円/件</p>`;
+            `<span class="eyebrow">MONTHLY ESTIMATE</span><p style="margin-bottom:6px">${plan.name}の月額目安</p><div class="money" style="font-size:36px">${valid ? yen(plan.price + priority * 2000) : "利用条件外"}</div><p class="small muted">${valid ? `月額 ${yen(plan.price)}（税込） ＋ 優先掲載 ${yen(priority * 2000)}<br>成約手数料・クリエイター報酬は別途` : "掲載上限またはオプション条件を超えています。"}</p><hr style="border:0;border-top:1px solid #d7e3f7;margin:20px 0"><strong style="color:#2563eb">おすすめ：${plans[recommended].name}</strong><p class="small">条件に合う最安プラン：${yen(plans[recommended].price + priority * 2000)} / 月（プラン料金は税込）</p><p class="small muted" style="margin:0">成約1件・報酬10,000円の場合<br>制作案件：企業負担の手数料1,000円（報酬との合計11,000円）<br>SNS運用支援：企業負担の手数料1,500円（報酬との合計11,500円）</p><p class="small muted fee-note">${feeSummary}<br>${feeNote}</p>`;
         };
         main
           .querySelectorAll("input, select")
@@ -3198,7 +3414,9 @@
           .forEach((section) => observer.observe(section));
       }
       let modalTrigger;
+      let submissionTimer;
       function openModal(title, content) {
+        clearTimeout(submissionTimer);
         if (!modal.open) modalTrigger = document.activeElement;
         modal.className = "";
         delete modal.dataset.kind;
@@ -3207,6 +3425,7 @@
         document.body.style.overflow = "hidden";
       }
       modal.addEventListener("close", () => {
+        clearTimeout(submissionTimer);
         document.body.style.overflow = "";
         modalTrigger?.focus();
       });
@@ -3444,9 +3663,20 @@
               });
             modal
               .querySelector("[data-confirm]")
-              ?.addEventListener("click", () => {
-                stage = 2;
-                render();
+              ?.addEventListener("click", (event) => {
+                const button = event.currentTarget;
+                if (button.disabled) return;
+                button.disabled = true;
+                button.textContent = "送信中…";
+                button.setAttribute("aria-live", "polite");
+                modal.querySelector("[data-edit]").disabled = true;
+                modal
+                  .querySelector(".dialog-form-panel")
+                  .setAttribute("aria-busy", "true");
+                submissionTimer = setTimeout(() => {
+                  stage = 2;
+                  render();
+                }, 600);
               });
             return;
           }
