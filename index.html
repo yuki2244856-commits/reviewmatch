@@ -2034,6 +2034,106 @@
           white-space: nowrap;
         }
       }
+
+      .account-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .account-name {
+        max-width: 110px;
+        overflow-wrap: anywhere;
+      }
+      .account-page > .btn {
+        margin-bottom: 24px;
+      }
+      .account-page > .panel,
+      .account-page > h2,
+      .account-page > .account-metrics {
+        margin-bottom: 24px;
+      }
+      .account-page .panel,
+      .account-page p {
+        overflow-wrap: anywhere;
+        min-width: 0;
+      }
+      .account-metrics {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+      }
+      .account-metrics strong {
+        color: #2563eb;
+        font-size: 28px;
+      }
+      .account-page .form-fields {
+        display: grid;
+        gap: 16px;
+        max-width: 680px;
+      }
+      .account-page input,
+      .account-page textarea {
+        box-sizing: border-box;
+        display: block;
+        width: 100%;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 12px;
+        font: inherit;
+        min-width: 0;
+      }
+      .account-page label {
+        display: block;
+        margin-bottom: 6px;
+      }
+      .demo-accounts {
+        margin-top: 24px;
+        padding-top: 20px;
+        border-top: 1px solid #e2e8f0;
+      }
+      .demo-accounts button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        padding: 10px;
+        margin-top: 8px;
+        border: 1px solid #dbeafe;
+        border-radius: 8px;
+        background: #eff6ff;
+        color: #14253d;
+        overflow-wrap: anywhere;
+        font-size: 12px;
+      }
+      @media (min-width: 821px) {
+        nav {
+          gap: 12px;
+        }
+        nav a {
+          font-size: 12px;
+        }
+        .account-actions .btn {
+          padding: 8px 10px;
+          font-size: 12px;
+        }
+      }
+      @media (max-width: 820px) {
+        .account-actions {
+          width: 100%;
+        }
+      }
+      @media (max-width: 520px) {
+        .account-page h2 {
+          font-size: clamp(20px, 5vw, 25px);
+          text-wrap: balance;
+        }
+        .account-metrics {
+          grid-template-columns: 1fr;
+        }
+        .account-name {
+          max-width: 100%;
+        }
+      }
     </style>
   </head>
   <body>
@@ -2085,9 +2185,7 @@
           <a href="#pricing">料金プラン</a>
           <a href="#flow">ご利用の流れ</a>
           <a href="#faq">FAQ</a>
-          <button class="btn primary" data-register="creator">
-            無料ではじめる <span>↗</span>
-          </button>
+          <div id="account-actions" class="account-actions"></div>
         </nav>
       </div>
     </header>
@@ -2485,7 +2583,7 @@
     <script>
       "use strict";
 
-      // All sample data remains in memory. No storage or external submission is used.
+      // Seed data for the browser-local prototype. No external submission is used.
       const roles = [
         "ショート動画クリエイター",
         "YouTubeレビュー動画クリエイター",
@@ -2493,7 +2591,7 @@
         "SNS運用者",
         "UGCクリエイター",
       ];
-      const jobs = [
+      const seedJobs = [
         {
           id: 1,
           sns: ["TikTok", "Instagram"],
@@ -2753,7 +2851,7 @@
           rating: 4.7,
         },
       ];
-      const creators = [
+      const seedCreators = [
         {
           name: "美咲",
           sns: ["Instagram", "TikTok"],
@@ -2885,6 +2983,333 @@
           bio: "デスク周りの道具が好きです。使って感じたことを率直に、丁寧に届けます。",
         },
       ];
+      // All persistence is isolated here; replace this adapter for a future backend.
+      const RMStore = (() => {
+        const key = "reviewmatch_store_v1";
+        const version = 1;
+        const collections = [
+          "users",
+          "companyProfiles",
+          "creatorProfiles",
+          "jobs",
+          "applications",
+          "contracts",
+          "conversations",
+          "messages",
+          "payments",
+          "subscriptions",
+          "payouts",
+          "reviews",
+          "notifications",
+        ];
+        let state;
+        const copy = (value) => JSON.parse(JSON.stringify(value));
+        const normalizeEmail = (email) => email.trim().toLowerCase();
+
+        // Demo only: this simple hash is NOT secure password storage.
+        // Production authentication must run on a trusted backend with a password KDF.
+        function hashPassword(password) {
+          let hash = 2166136261;
+          for (const character of password) {
+            hash ^= character.codePointAt(0);
+            hash = Math.imul(hash, 16777619);
+          }
+          return `demo-fnv1a-${(hash >>> 0).toString(16)}`;
+        }
+
+        function seed() {
+          const data = Object.fromEntries(
+            collections.map((name) => [name, []]),
+          );
+          data.version = version;
+          data.session = null;
+          data.users = [
+            ["admin", "admin", "approved", "管理者", "admin123"],
+            ["company", "company", "approved", "企業担当者", "demo1234"],
+            [
+              "creator",
+              "creator",
+              "approved",
+              seedCreators[0].name,
+              "demo1234",
+            ],
+            ["pending", "creator", "pending", "審査中クリエイター", "demo1234"],
+          ].map(([id, role, status, displayName, password]) => ({
+            id,
+            role,
+            status,
+            displayName,
+            email: `${id}@reviewmatch.demo`,
+            passwordHash: hashPassword(password),
+          }));
+          data.companyProfiles = [
+            {
+              id: "company-profile",
+              userId: "company",
+              companyName: "サンプルEC株式会社",
+              contactName: "企業担当者",
+              industry: "EC・通販",
+              description: "商品の魅力を伝えるEC企業です。",
+            },
+          ];
+          data.creatorProfiles = seedCreators.map((profile, index) => ({
+            ...copy(profile),
+            id: `creator-profile-${index + 1}`,
+            userId: index === 0 ? "creator" : null,
+          }));
+          data.creatorProfiles.push({
+            id: "pending-profile",
+            userId: "pending",
+            name: "審査中クリエイター",
+            role: roles[0],
+            genre: "",
+            sns: [],
+            skill: "",
+            price: 0,
+            badge: false,
+            bio: "",
+            works: 0,
+            followers: 0,
+            rating: 0,
+          });
+          // Keep original sample companies; they are not owned by the demo company.
+          data.jobs = seedJobs.map((job) => ({
+            ...copy(job),
+            companyId: null,
+          }));
+          data.subscriptions = [
+            {
+              id: "company-subscription",
+              userId: "company",
+              plan: "スタンダード",
+              nextRenewalDate: null,
+            },
+          ];
+          return data;
+        }
+
+        function save(next) {
+          // Commit memory only after storage succeeds, avoiding partial UI updates.
+          const snapshot = copy(next);
+          try {
+            localStorage.setItem(key, JSON.stringify(snapshot));
+          } catch {
+            throw new Error(
+              "保存できませんでした。ブラウザの保存設定・空き容量を確認してください。",
+            );
+          }
+          state = snapshot;
+          return copy(state);
+        }
+
+        function load() {
+          if (state) return copy(state);
+          let raw;
+          try {
+            raw = localStorage.getItem(key);
+          } catch {
+            throw new Error(
+              "デモデータを読み込めません。ブラウザの保存設定を確認してください。",
+            );
+          }
+          if (!raw) return save(seed());
+          try {
+            const parsed = JSON.parse(raw);
+            if (
+              parsed.version !== version ||
+              !collections.every((name) => Array.isArray(parsed[name]))
+            ) {
+              throw new Error();
+            }
+            state = parsed;
+            return copy(state);
+          } catch {
+            // Never silently overwrite an unreadable or newer store.
+            throw new Error(
+              "保存データの形式を読み込めません。デモデータをリセットしてください。",
+            );
+          }
+        }
+
+        function transact(change) {
+          const next = load();
+          const result = change(next);
+          save(next);
+          return copy(result ?? null);
+        }
+
+        function getCollection(name) {
+          if (!collections.includes(name))
+            throw new Error("不明なコレクションです。");
+          return load()[name];
+        }
+
+        function add(name, record) {
+          getCollection(name);
+          return transact((next) => {
+            if (
+              !record.id ||
+              next[name].some((item) => item.id === record.id)
+            ) {
+              throw new Error("IDが未指定または重複しています。");
+            }
+            next[name].push(copy(record));
+            return record;
+          });
+        }
+
+        function update(name, id, changes) {
+          getCollection(name);
+          return transact((next) => {
+            const record = next[name].find((item) => item.id === id);
+            if (!record) throw new Error("データが見つかりません。");
+            Object.assign(record, copy(changes), { id });
+            return record;
+          });
+        }
+
+        function currentUser() {
+          const data = load();
+          return (
+            data.users.find((user) => user.id === data.session?.userId) || null
+          );
+        }
+
+        function login(email, password) {
+          return transact((next) => {
+            const user = next.users.find(
+              (item) =>
+                item.email === normalizeEmail(email) &&
+                item.passwordHash === hashPassword(password),
+            );
+            if (!user)
+              throw new Error("メールアドレスまたはパスワードが一致しません。");
+            next.session = { userId: user.id };
+            return user;
+          });
+        }
+
+        function register(values, role) {
+          return transact((next) => {
+            const email = normalizeEmail(values["form-email"]);
+            if (next.users.some((user) => user.email === email)) {
+              throw new Error("このメールアドレスはすでに登録されています。");
+            }
+            if (
+              !["company", "creator"].includes(role) ||
+              values["form-password"].length < 8
+            ) {
+              throw new Error("登録内容を確認してください。");
+            }
+            const id = crypto.randomUUID();
+            const name = values["form-name"].trim();
+            const user = {
+              id,
+              email,
+              role,
+              status: "pending",
+              displayName: name,
+              passwordHash: hashPassword(values["form-password"]),
+            };
+            next.users.push(user);
+            if (role === "company") {
+              next.companyProfiles.push({
+                id: crypto.randomUUID(),
+                userId: id,
+                companyName: values["form-company"].trim(),
+                contactName: name,
+                industry: "",
+                description: "",
+              });
+              next.subscriptions.push({
+                id: crypto.randomUUID(),
+                userId: id,
+                plan: "フリー",
+                nextRenewalDate: null,
+              });
+            } else {
+              next.creatorProfiles.push({
+                id: crypto.randomUUID(),
+                userId: id,
+                name,
+                role: roles[0],
+                genre: "",
+                sns: [],
+                skill: "",
+                price: 0,
+                badge: false,
+                bio: "",
+                works: 0,
+                followers: 0,
+                rating: 0,
+              });
+            }
+            next.session = { userId: id };
+            return user;
+          });
+        }
+
+        function saveProfile(values) {
+          return transact((next) => {
+            const user = next.users.find(
+              (item) => item.id === next.session?.userId,
+            );
+            if (!user || user.role === "admin")
+              throw new Error("ログインしてください。");
+            const company = user.role === "company";
+            const profile = next[
+              company ? "companyProfiles" : "creatorProfiles"
+            ].find((item) => item.userId === user.id);
+            const allowed = company
+              ? ["companyName", "contactName", "industry", "description"]
+              : ["name", "role", "genre", "sns", "skill", "price"];
+            allowed.forEach((field) => {
+              profile[field] = values[field];
+            });
+            user.displayName = company ? profile.contactName : profile.name;
+            return profile;
+          });
+        }
+
+        return {
+          load,
+          save,
+          getCollection,
+          add,
+          update,
+          currentUser,
+          login,
+          register,
+          saveProfile,
+          reset: () => save(seed()),
+          logout: () =>
+            transact((next) => {
+              next.session = null;
+            }),
+        };
+      })();
+
+      let storeError = "";
+      let jobs = [];
+      let creators = [];
+      function refreshData() {
+        jobs = RMStore.getCollection("jobs");
+        creators = RMStore.getCollection("creatorProfiles").filter(
+          (profile) => {
+            if (!profile.userId) return true;
+            return RMStore.getCollection("users").some(
+              (user) =>
+                user.id === profile.userId && user.status === "approved",
+            );
+          },
+        );
+      }
+      try {
+        refreshData();
+      } catch (error) {
+        storeError = error.message;
+      }
+
       const feeSummary =
         "成約手数料は制作案件10%・SNS運用支援15%（いずれも企業負担）。商品提供のみの案件は500円/件、優先掲載は2,000円/件です。";
       const feeNote =
@@ -3074,11 +3499,11 @@
         return `
           <article class="card creator-card">
             <div class="card-body">
-              <div class="creator-identity"><span class="avatar">${creator.name.slice(0, 1)}</span><h3>${creator.name}</h3></div>
-              <p class="creator-role">${creator.role}</p>
+              <div class="creator-identity"><span class="avatar">${escapeHTML(creator.name.slice(0, 1))}</span><h3>${escapeHTML(creator.name)}</h3></div>
+              <p class="creator-role">${escapeHTML(creator.role)}</p>
               <p class="creator-certification ${creator.badge ? "certified" : ""}">${creator.badge ? "✦ 認定レビュークリエイター" : "認定バッジなし"}</p>
-              <div class="creator-tags"><span class="tag">${creator.genre}</span><span class="tag">${creator.skill}</span></div>
-              <p class="creator-sns">対応SNS：${creator.sns.join(" / ")}</p>
+              <div class="creator-tags"><span class="tag">${escapeHTML(creator.genre)}</span><span class="tag">${escapeHTML(creator.skill)}</span></div>
+              <p class="creator-sns">対応SNS：${escapeHTML(creator.sns.join(" / "))}</p>
               <dl class="creator-stats"><div><dt>制作実績</dt><dd>${creator.works}<small>件</small></dd></div><div><dt>評価</dt><dd>★ ${creator.rating}<small> / 5</small></dd></div></dl>
               <div class="card-bottom"><span><strong>${yen(creator.price)}</strong><span class="small muted">〜${creator.role === roles[3] ? "/月" : "/件"}</span></span><button class="text-link" data-creator="${creators.indexOf(creator)}">詳細を見る →</button></div>
             </div>
@@ -3368,7 +3793,15 @@
       }
       function route() {
         const routeName = location.hash.slice(1) || "home";
-        if (routeName === "home") {
+        if (storeError) {
+          main.innerHTML = `<section class="section"><div class="container panel">
+            <h1>デモデータを読み込めません</h1><p role="alert">${escapeHTML(storeError)}</p>
+            <button class="btn" data-reset-demo>デモデータをリセット</button>
+          </div></section>`;
+          return;
+        }
+        if (routeName === "mypage") renderMyPage();
+        else if (routeName === "home") {
           main.innerHTML = homeHTML;
           document.getElementById("featured-jobs").innerHTML = jobs
             .slice(0, 3)
@@ -3399,6 +3832,7 @@
         if (modal.open) modal.close();
         window.scrollTo({ top: 0, behavior: "instant" });
         const pageTitles = {
+          mypage: "マイページ",
           home: "商品レビュー動画・UGC制作のマッチングサービス",
           service: "サービス紹介",
           jobs: "案件一覧",
@@ -3487,15 +3921,327 @@
           ${type === "password" ? `<div class="password-control">${input}<button type="button" class="password-toggle" aria-label="パスワードを表示" aria-pressed="false">表示</button></div>` : input}
           <span class="error" id="${id}-error" aria-live="polite"></span>`;
       }
+      function updateHeader() {
+        const actions = document.getElementById("account-actions");
+        const user = storeError ? null : RMStore.currentUser();
+        actions.innerHTML = user
+          ? `<span class="account-name">${escapeHTML(user.displayName)}</span>
+             <a class="btn" href="#mypage">マイページ</a>
+             <button class="btn" data-logout>ログアウト</button>`
+          : `<button class="btn" data-login>ログイン</button>
+             <button class="btn primary" data-register="creator">無料ではじめる <span>↗</span></button>`;
+      }
+
+      function showLogin() {
+        openModal("ログイン", "");
+        modal.className = "form-dialog";
+        modal.innerHTML = `
+          <button class="dialog-close" data-close aria-label="ダイアログを閉じる">×</button>
+          <section class="dialog-form-panel" aria-labelledby="modal-title">
+            ${modalLogo()}
+            <h2 id="modal-title" tabindex="-1">ログイン</h2>
+            <p class="dialog-description">ReviewMatchへようこそ。</p>
+            <form id="login-form" class="form-fields">
+              <div class="dialog-field">${formField("login-email", "メールアドレス", "email", 'autocomplete="username"')}</div>
+              <div class="dialog-field">${formField("login-password", "パスワード", "password", 'autocomplete="current-password"')}</div>
+              <p id="login-error" class="error" role="alert"></p>
+              <button class="btn primary" type="submit">ログイン</button>
+            </form>
+            <p class="dialog-login">アカウントをお持ちでない方は <button data-register="creator">無料登録</button></p>
+            <aside class="demo-accounts" aria-label="デモ用アカウント">
+              <h3>デモ用アカウント</h3>
+              <p class="small muted">クリックすると入力できます。このブラウザ内だけで動くデモです。</p>
+              ${[
+                ["管理者", "admin", "admin123"],
+                ["企業・スタンダード", "company", "demo1234"],
+                ["認定クリエイター", "creator", "demo1234"],
+                ["審査中クリエイター", "pending", "demo1234"],
+              ]
+                .map(
+                  ([label, account, password]) => `
+                <button type="button" data-demo-account="${account}" data-demo-password="${password}">
+                  <strong>${label}</strong><br>${account}@reviewmatch.demo / ${password}
+                </button>
+              `,
+                )
+                .join("")}
+            </aside>
+          </section>`;
+        modal.querySelector("#modal-title").focus();
+        modal.querySelectorAll("[data-demo-account]").forEach((button) => {
+          button.addEventListener("click", () => {
+            document.getElementById("login-email").value =
+              `${button.dataset.demoAccount}@reviewmatch.demo`;
+            document.getElementById("login-password").value =
+              button.dataset.demoPassword;
+          });
+        });
+        modal
+          .querySelector(".password-toggle")
+          .addEventListener("click", (event) => {
+            const input = document.getElementById("login-password");
+            const visible = input.type === "password";
+            input.type = visible ? "text" : "password";
+            event.currentTarget.textContent = visible ? "非表示" : "表示";
+            event.currentTarget.setAttribute("aria-pressed", String(visible));
+            event.currentTarget.setAttribute(
+              "aria-label",
+              visible ? "パスワードを非表示" : "パスワードを表示",
+            );
+          });
+        document
+          .getElementById("login-form")
+          .addEventListener("submit", (event) => {
+            event.preventDefault();
+            try {
+              RMStore.login(
+                document.getElementById("login-email").value,
+                document.getElementById("login-password").value,
+              );
+              goToMyPage();
+            } catch (error) {
+              document.getElementById("login-error").textContent =
+                error.message;
+            }
+          });
+      }
+
+      function goToMyPage() {
+        refreshData();
+        updateHeader();
+        modal.close();
+        if (location.hash === "#mypage") route();
+        else location.hash = "mypage";
+      }
+
+      function requireApproval() {
+        const user = RMStore.currentUser();
+        if (user && user.status !== "approved") {
+          openModal(
+            "審査ステータス",
+            '<p role="status">審査完了後に利用できます</p>',
+          );
+          return false;
+        }
+        return true;
+      }
+
+      function resetDemo() {
+        if (
+          !window.confirm(
+            "登録・編集したデータを削除して、デモデータを初期状態に戻しますか？",
+          )
+        )
+          return;
+        try {
+          RMStore.reset();
+          storeError = "";
+          refreshData();
+          updateHeader();
+          route();
+        } catch (error) {
+          openModal(
+            "保存エラー",
+            `<p role="alert">${escapeHTML(error.message)}</p>`,
+          );
+        }
+      }
+
+      function renderMyPage() {
+        const user = RMStore.currentUser();
+        if (!user) {
+          main.innerHTML = `<section class="section"><div class="container">
+            ${head("MY PAGE", "マイページ", "ログインしてご利用ください。")}
+            <button class="btn primary" data-login>ログイン</button>
+          </div></section>`;
+          return;
+        }
+        const company = user.role === "company";
+        const admin = user.role === "admin";
+        const profile = admin
+          ? null
+          : RMStore.getCollection(
+              company ? "companyProfiles" : "creatorProfiles",
+            ).find((item) => item.userId === user.id);
+        const subscription = RMStore.getCollection("subscriptions").find(
+          (item) => item.userId === user.id,
+        );
+        const ownJobs = jobs.filter((job) => job.companyId === user.id);
+        const applications = RMStore.getCollection("applications").filter(
+          (item) =>
+            company
+              ? ownJobs.some((job) => job.id === item.jobId)
+              : item.creatorId === user.id,
+        );
+        const contracts = RMStore.getCollection("contracts").filter((item) =>
+          company ? item.companyId === user.id : item.creatorId === user.id,
+        );
+        const metrics = company
+          ? [
+              ["自社の掲載案件数", `${ownJobs.length}件`],
+              ["応募数", `${applications.length}件`],
+              ["契約数", `${contracts.length}件`],
+            ]
+          : [
+              ["応募数", `${applications.length}件`],
+              ["契約数", `${contracts.length}件`],
+              ["確定報酬残高", "0円"],
+            ];
+        const fields = company
+          ? [
+              ["companyName", "会社名"],
+              ["contactName", "担当者"],
+              ["industry", "業種"],
+              ["description", "会社概要"],
+            ]
+          : [
+              ["name", "表示名"],
+              ["role", "職種"],
+              ["genre", "得意ジャンル"],
+              ["sns", "対応SNS（カンマ区切り）"],
+              ["skill", "スキル"],
+              ["price", "料金目安（円）"],
+            ];
+        main.innerHTML = `
+          <section class="section"><div class="container account-page">
+            ${head("MY PAGE", "マイページ", `${escapeHTML(user.displayName)}さんのアカウント`)}
+            <div class="panel">
+              <h2>アカウント情報</h2>
+              <p>審査ステータス：<strong>${{ pending: "審査中", approved: "承認済", rejected: "差戻し", returned: "差戻し" }[user.status] || "審査中"}</strong></p>
+              <p>メール：${escapeHTML(user.email)}</p>
+              ${
+                company
+                  ? `<p>現在のプラン：${escapeHTML(subscription?.plan || "フリー")}</p>
+                <p>次回更新日：${escapeHTML(subscription?.nextRenewalDate || "未定（デモ）")}</p>`
+                  : ""
+              }
+              ${!company && !admin ? `<p>${profile.badge ? "✦ 認定クリエイター" : "認定バッジなし"}</p>` : ""}
+            </div>
+            ${
+              admin
+                ? `<div class="panel"><h2>管理者ダッシュボード</h2><p>管理者画面は次のステップで実装予定</p></div>`
+                : `
+              <h2>${company ? "企業" : "クリエイター"}ダッシュボード</h2>
+              <div class="account-metrics">${metrics
+                .map(
+                  ([label, value]) => `
+                <div class="panel"><p>${label}</p><strong>${value}</strong></div>
+              `,
+                )
+                .join("")}</div>
+              <div class="panel">
+                <h2>プロフィール表示・編集</h2>
+                <form id="profile-form" class="form-fields">
+                  ${fields
+                    .map(
+                      ([key, label]) => `
+                    <div class="dialog-field">
+                      <label for="profile-${key}">${label}</label>
+                      ${
+                        key === "description"
+                          ? `<textarea id="profile-${key}" name="${key}" maxlength="2000">${escapeHTML(profile[key] || "")}</textarea>`
+                          : `<input id="profile-${key}" name="${key}" type="${key === "price" ? "number" : "text"}"
+                            value="${escapeHTML(Array.isArray(profile[key]) ? profile[key].join(", ") : String(profile[key] ?? ""))}"
+                            ${["companyName", "contactName", "name", "role", "price"].includes(key) ? "required" : ""}
+                            ${key === "price" ? 'min="0" max="100000000" step="1"' : 'maxlength="200"'}>`
+                      }
+                    </div>
+                  `,
+                    )
+                    .join("")}
+                  <p id="profile-feedback" role="status" aria-live="polite"></p>
+                  <button type="submit" class="btn primary">プロフィールを保存</button>
+                </form>
+              </div>
+              ${company ? '<button class="btn primary" data-register="company">無料で案件を掲載 →</button>' : '<a class="btn primary" href="#jobs">案件を探す →</a>'}
+            `
+            }
+            <div class="panel"><h2>デモデータ</h2>
+              <p class="muted">登録情報はこのブラウザ内に保存されます。実際の個人情報やパスワードを入力しないでください。</p>
+              <button class="btn" data-reset-demo>デモデータをリセット</button>
+            </div>
+          </div></section>`;
+        document
+          .getElementById("profile-form")
+          ?.addEventListener("submit", (event) => {
+            event.preventDefault();
+            const values = Object.fromEntries(
+              new FormData(event.currentTarget),
+            );
+            Object.keys(values).forEach((key) => {
+              values[key] = values[key].trim();
+            });
+            if (
+              Object.values(values).some(
+                (value, index) =>
+                  [
+                    "companyName",
+                    "contactName",
+                    "name",
+                    "role",
+                    "price",
+                  ].includes(Object.keys(values)[index]) && !value,
+              )
+            ) {
+              document.getElementById("profile-feedback").textContent =
+                "必須項目を入力してください。";
+              return;
+            }
+            if (!company) {
+              values.sns = values.sns
+                .split(/[,、]/)
+                .map((value) => value.trim())
+                .filter(Boolean);
+              values.price = Number(values.price);
+            }
+            try {
+              RMStore.saveProfile(values);
+              refreshData();
+              updateHeader();
+              renderMyPage();
+              document.getElementById("profile-feedback").textContent =
+                "プロフィールを保存しました。";
+            } catch (error) {
+              document.getElementById("profile-feedback").textContent =
+                error.message;
+            }
+          });
+      }
+
       function showForm(kind, audience = "creator", jobId) {
+        if (storeError) {
+          openModal(
+            "デモデータの読み込みエラー",
+            `<p role="alert">${escapeHTML(storeError)}</p>
+            <button class="btn" data-reset-demo>デモデータをリセット</button>`,
+          );
+          return;
+        }
+        if (
+          (kind === "apply" ||
+            (kind === "register" && audience === "company")) &&
+          !requireApproval()
+        )
+          return;
+        if (kind === "register" && RMStore.currentUser()) {
+          if (audience === "creator") {
+            goToMyPage();
+            return;
+          }
+          openModal(
+            "案件掲載",
+            "<p>案件掲載機能は今後のステップで実装予定です。</p>",
+          );
+          return;
+        }
         const register = kind === "register";
         const apply = kind === "apply";
         const job = apply ? jobs.find((item) => item.id === jobId) : null;
         const values = {};
         let stage = 0;
-        const demoNote =
-          "デモフォームです。入力内容は送信・保存されません。" +
-          (register ? "実際のパスワードは入力しないでください。" : "");
+        const demoNote = register
+          ? "デモ用の登録です。このブラウザ内に保存されます。実際の個人情報やパスワードは入力しないでください。"
+          : "デモフォームです。入力内容は送信・保存されません。";
         const titleForStage = () =>
           stage === 2
             ? register
@@ -3639,6 +4385,7 @@
                 ${register ? `<div><dt>アカウントの種類</dt><dd>${audience === "company" ? "企業" : "クリエイター"}</dd></div>` : ""}
                 ${fields.map((field) => `<div><dt>${field.label}</dt><dd>${field.type === "password" ? "••••••••" : escapeHTML(values[field.id] || "")}</dd></div>`).join("")}
               </dl>
+              <p id="register-error" class="error" role="alert"></p>
               <div class="dialog-confirm-actions">
                 <button class="btn primary" type="button" data-confirm>${register ? "この内容で登録する" : apply ? "この内容で応募する" : "この内容で送信する"}</button>
                 <button class="btn" type="button" data-edit>戻って修正する</button>
@@ -3648,8 +4395,16 @@
               <div class="success" role="status">
                 <div class="success-mark" aria-hidden="true">✓</div>
                 <h3>${register ? "ご登録ありがとうございます！" : "入力内容を確認しました。"}</h3>
-                <p class="muted small">${register ? (audience === "company" ? "実際のサービスでは、約3〜5営業日の企業審査へ進みます。" : "実際のサービスでは、無料の基礎研修とスキルチェックへ進みます。") : "これはデモの完了画面です。"}<br>データの送信・保存は行っていません。</p>
-                <button class="btn primary" type="button" data-close>閉じる</button>
+                <p class="muted small">${
+                  register
+                    ? "登録情報を保存しました。現在は審査中です。プロフィールを編集して審査完了をお待ちください。"
+                    : "これはデモの完了画面です。データの送信・保存は行っていません。"
+                }</p>
+                ${
+                  register
+                    ? '<button class="btn primary" type="button" data-mypage>マイページへ進む</button>'
+                    : '<button class="btn primary" type="button" data-close>閉じる</button>'
+                }
               </div>`;
           }
           modal.innerHTML = `
@@ -3680,6 +4435,20 @@
               ?.addEventListener("click", (event) => {
                 const button = event.currentTarget;
                 if (button.disabled) return;
+                if (register) {
+                  try {
+                    RMStore.register(values, audience);
+                    refreshData();
+                    updateHeader();
+                    delete values["form-password"];
+                    stage = 2;
+                    render();
+                  } catch (error) {
+                    document.getElementById("register-error").textContent =
+                      error.message;
+                  }
+                  return;
+                }
                 button.disabled = true;
                 button.textContent = "送信中…";
                 button.setAttribute("aria-live", "polite");
@@ -3707,10 +4476,7 @@
           );
           modal
             .querySelector("[data-demo-login]")
-            ?.addEventListener("click", (event) => {
-              event.currentTarget.parentElement.textContent =
-                "デモのためログイン機能はありません。";
-            });
+            ?.addEventListener("click", showLogin);
           modal
             .querySelector(".password-toggle")
             ?.addEventListener("click", (event) => {
@@ -3774,7 +4540,21 @@
       document.addEventListener("click", (event) => {
         const button = event.target.closest("button");
         if (!button) return;
-        if (button.hasAttribute("data-close")) modal.close();
+        if (button.hasAttribute("data-login")) showLogin();
+        else if (button.hasAttribute("data-mypage")) goToMyPage();
+        else if (button.hasAttribute("data-reset-demo")) resetDemo();
+        else if (button.hasAttribute("data-logout")) {
+          try {
+            RMStore.logout();
+            updateHeader();
+            route();
+          } catch (error) {
+            openModal(
+              "保存エラー",
+              `<p role="alert">${escapeHTML(error.message)}</p>`,
+            );
+          }
+        } else if (button.hasAttribute("data-close")) modal.close();
         else if (button.hasAttribute("data-register"))
           showForm("register", button.dataset.register);
         else if (button.hasAttribute("data-apply"))
@@ -3783,8 +4563,8 @@
         else if (button.hasAttribute("data-creator")) {
           const creator = creators[Number(button.dataset.creator)];
           openModal(
-            `${creator.name} / クリエイター`,
-            `<div style="display:flex;gap:15px;align-items:center;margin:15px 0"><span class="avatar" style="width:65px;height:65px">${creator.name.slice(0, 1)}</span><div><strong>${creator.role}</strong><div class="small" style="color:#2563eb">${creator.badge ? "✦ 認定レビュークリエイター" : "クリエイター"}</div></div></div><p>${creator.bio}</p><div class="panel small">得意ジャンル：${creator.genre}<br>スキル：${creator.skill}<br>対応SNS：${creator.sns.join(" / ")}<br>制作実績：${creator.works}件<br>フォロワー：${creator.followers.toLocaleString()}人<br>評価：★ ${creator.rating} / 5<br>料金目安：${yen(creator.price)}〜 ${creator.role === roles[3] ? "/月" : "/件"}</div><p class="small muted" style="margin-top:18px">※架空のクリエイターです。実際の依頼はできません。</p><button class="btn primary" data-register="company" style="width:100%">無料で案件を掲載 →</button>`,
+            `${escapeHTML(creator.name)} / クリエイター`,
+            `<div style="display:flex;gap:15px;align-items:center;margin:15px 0"><span class="avatar" style="width:65px;height:65px">${escapeHTML(creator.name.slice(0, 1))}</span><div><strong>${escapeHTML(creator.role)}</strong><div class="small" style="color:#2563eb">${creator.badge ? "✦ 認定レビュークリエイター" : "クリエイター"}</div></div></div><p>${escapeHTML(creator.bio)}</p><div class="panel small">得意ジャンル：${escapeHTML(creator.genre)}<br>スキル：${escapeHTML(creator.skill)}<br>対応SNS：${escapeHTML(creator.sns.join(" / "))}<br>制作実績：${creator.works}件<br>フォロワー：${creator.followers.toLocaleString()}人<br>評価：★ ${creator.rating} / 5<br>料金目安：${yen(creator.price)}〜 ${creator.role === roles[3] ? "/月" : "/件"}</div><p class="small muted" style="margin-top:18px">※架空のクリエイターです。実際の依頼はできません。</p><button class="btn primary" data-register="company" style="width:100%">無料で案件を掲載 →</button>`,
           );
         }
       });
@@ -3802,6 +4582,7 @@
           event.currentTarget.setAttribute("aria-expanded", String(open));
         });
       window.addEventListener("hashchange", route);
+      updateHeader();
       route();
     </script>
   </body>
