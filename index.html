@@ -1498,6 +1498,102 @@
           font-size: 22px;
         }
       }
+      .demo-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 8px;
+        border: 1px solid #e2e8f0;
+        border-radius: 999px;
+        background: #f8fafc;
+        color: #64748b;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: normal;
+        white-space: nowrap;
+      }
+      .hero .hero-heading {
+        font-size: clamp(30px, 3.1vw, 43px);
+      }
+      .hero-examples {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        list-style: none;
+        padding: 0;
+        margin: 18px 0;
+      }
+      .hero-examples li {
+        padding: 4px 10px;
+        border: 1px solid #dbeafe;
+        border-radius: 999px;
+        color: #475569;
+        background: #f8faff;
+        font-size: 11px;
+      }
+      .job-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+      }
+      .job-tags .tag {
+        margin: 0;
+      }
+      .sample-tag {
+        color: #64748b;
+        background: #f1f5f9;
+      }
+      .trust-section {
+        padding-top: 0;
+      }
+      .trust-cards {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 20px;
+        margin-top: 28px;
+      }
+      .trust-card {
+        padding: 24px;
+        border: 1px solid #e2e8f0;
+        border-radius: 13px;
+        background: #f8fafc;
+      }
+      .trust-card .eyebrow {
+        font-size: 10px;
+        letter-spacing: 1px;
+      }
+      .trust-card h3 {
+        font-size: 16px;
+      }
+      .trust-card p {
+        font-size: 13px;
+        color: #64748b;
+        margin-bottom: 0;
+      }
+      /* The programmatic heading focus announces the current step without an input-like ring. */
+      .form-dialog #modal-title:focus {
+        outline: none;
+      }
+      @media (max-width: 1080px) {
+        .header-inner {
+          gap: 10px;
+        }
+        .header-inner .brand {
+          gap: 6px;
+        }
+      }
+      @media (max-width: 820px) {
+        .trust-cards {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      @media (max-width: 520px) {
+        .trust-cards {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .hero .hero-heading {
+          font-size: 30px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -1531,6 +1627,7 @@
             />
           </svg>
           <span>Review<b>Match</b></span>
+          <span class="demo-badge">デモサイト</span>
         </a>
         <button
           class="menu-button"
@@ -1562,18 +1659,27 @@
               <span class="pill"
                 ><span>●</span> つくる力が、ブランドの可能性になる。</span
               >
-              <h1>商品の魅力を、<br /><span>届ける人</span>とつなぐ。</h1>
+              <h1 class="hero-heading">
+                レビュー制作も、<br />SNS運用も。<br /><span
+                  >企業とクリエイター</span
+                >をつなぐ。
+              </h1>
               <p class="hero-copy">
                 その「好き」と「得意」が、商品の新しい価値になる。<br />レビュー動画・UGC制作から、SNS運用まで。<br />企業とクリエイターの、いい出会いをReviewMatchで。
               </p>
               <div class="actions">
                 <button class="btn primary" data-register="company">
-                  企業として依頼する <span>↗</span>
+                  無料で案件を掲載 <span>↗</span>
                 </button>
                 <button class="btn" data-register="creator">
-                  クリエイターとしてはじめる <span>→</span>
+                  無料で仕事を探す <span>→</span>
                 </button>
               </div>
+              <ul class="hero-examples" aria-label="ReviewMatchの利用例">
+                <li>新商品のレビュー動画を依頼</li>
+                <li>UGCで商品の使い方を発信</li>
+                <li>SNS運用を継続依頼</li>
+              </ul>
               <div class="checks">
                 <span>✓ 企業は30日間無料トライアル</span
                 ><span>✓ クリエイターはずっと無料</span>
@@ -1782,8 +1888,50 @@
                 まずは一本のレビューから。実績を重ねて継続案件へ。
               </p>
               <button class="text-link" data-register="creator">
-                無料でクリエイター登録する →
+                無料で仕事を探す →
               </button>
+            </article>
+          </div>
+        </div>
+      </section>
+      <section class="section trust-section" aria-labelledby="trust-heading">
+        <div class="container">
+          <span class="eyebrow">BUILT FOR A BETTER MATCH</span>
+          <h2 id="trust-heading">安心して使える理由</h2>
+          <p class="muted">
+            企業とクリエイターが、条件を確かめて進められる仕組み。
+          </p>
+          <p class="small muted">
+            以下はサービス仕様の説明です。このデモサイトでは、審査・契約・支払いは実行されません。
+          </p>
+          <div class="trust-cards">
+            <article class="trust-card">
+              <span class="eyebrow">01 / SKILLS FIRST</span>
+              <h3>フォロワー0人でも参加可能</h3>
+              <p>
+                フォロワー数ではなく、制作スキルと実績で評価。得意な表現や制作内容から、相性のよい相手を探せます。
+              </p>
+            </article>
+            <article class="trust-card">
+              <span class="eyebrow">02 / PROJECT REVIEW</span>
+              <h3>掲載前に、案件内容を審査</h3>
+              <p>
+                AIによる一次審査と、人間による二次審査で、運営が掲載前の案件内容を確認する仕組みです。
+              </p>
+            </article>
+            <article class="trust-card">
+              <span class="eyebrow">03 / CLEAR PAYMENT</span>
+              <h3>報酬と条件を、事前に明示</h3>
+              <p>
+                報酬・納期・利用条件を確認して契約。納品後48時間以内に検収し、月末締め翌月末払いで報酬を支払います。
+              </p>
+            </article>
+            <article class="trust-card">
+              <span class="eyebrow">04 / PR DISCLOSURE</span>
+              <h3>PR表記を必須に</h3>
+              <p>
+                ステマ規制への対応として、広告・商品提供に伴うコンテンツにはPR表記を必須とし、表記をチェックする仕組みです。
+              </p>
             </article>
           </div>
         </div>
@@ -1824,9 +1972,9 @@
             <p>あなたの次の一歩を、ReviewMatchではじめませんか。</p>
             <div class="actions" style="justify-content: center">
               <button class="btn primary" data-register="company">
-                企業として無料ではじめる ↗</button
+                無料で案件を掲載 ↗</button
               ><button class="btn white" data-register="creator">
-                クリエイター登録はこちら →
+                無料で仕事を探す →
               </button>
             </div>
           </div>
@@ -2404,10 +2552,10 @@
         return `<div class="product-art ${type}"><svg viewBox="0 0 160 125" role="img" aria-label="${type === "camp" ? "アウトドアランタン" : type === "keyboard" ? "キーボード" : type === "headphone" ? "ヘッドホン" : "生活家電"}のイラスト">${drawing}</svg></div>`;
       }
       function jobCard(job) {
-        return `<article class="card"><a href="#job/${job.id}" aria-label="${job.title}の詳細">${productArt(job.art)}<div class="card-body"><span class="tag">${job.role}</span><span class="tag">商品提供あり</span><h3>${job.title}</h3><p class="muted small" style="margin-bottom:15px">${job.company}</p><div class="money">${yen(job.budget)}<small> ${job.monthly ? "/ 月" : "/ 件"}</small></div><div class="card-bottom"><span class="small muted">募集締切 ${job.deadline.replaceAll("-", ".")}</span><span class="arrow" aria-hidden="true">→</span></div></div></a></article>`;
+        return `<article class="card"><a href="#job/${job.id}" aria-label="${job.title}の詳細">${productArt(job.art)}<div class="card-body"><div class="job-tags"><span class="tag">${job.role}</span><span class="tag">商品提供あり</span><span class="tag sample-tag">サンプル</span></div><h3>${job.title}</h3><p class="muted small" style="margin-bottom:15px">${job.company}</p><div class="money">${yen(job.budget)}<small> ${job.monthly ? "/ 月" : "/ 件"}</small></div><div class="card-bottom"><span class="small muted">募集締切 ${job.deadline.replaceAll("-", ".")}</span><span class="arrow" aria-hidden="true">→</span></div></div></a></article>`;
       }
       function renderPlans() {
-        return `<div class="plans">${plans.map((plan, i) => `<article class="plan ${i === 1 ? "recommended" : ""}"><span class="plan-badge">${i === 1 ? "いちばん人気のプラン" : i === 0 ? "まずは試してみたい方へ" : "継続的な制作・運用に"}</span><h3 style="margin:12px 0">${plan.name}</h3><div class="money">${yen(plan.price)}<small> / 月（税込）</small></div><ul>${plan.features.map((feature) => `<li>${feature}</li>`).join("")}</ul><button class="btn ${i === 1 ? "primary" : ""}" data-register="company">30日間無料で試す →</button></article>`).join("")}</div>`;
+        return `<div class="plans">${plans.map((plan, i) => `<article class="plan ${i === 1 ? "recommended" : ""}"><span class="plan-badge">${i === 1 ? "いちばん人気のプラン" : i === 0 ? "まずは試してみたい方へ" : "継続的な制作・運用に"}</span><h3 style="margin:12px 0">${plan.name}</h3><div class="money">${yen(plan.price)}<small> / 月（税込）</small></div><ul>${plan.features.map((feature) => `<li>${feature}</li>`).join("")}</ul><button class="btn ${i === 1 ? "primary" : ""}" data-register="company">無料で案件を掲載 →</button></article>`).join("")}</div>`;
       }
       function bindTabs(container, callback) {
         container.querySelectorAll("[data-tab]").forEach((button) => {
@@ -2444,7 +2592,7 @@
         const update = (index) => {
           const audience = index === 0 ? "company" : "creator";
           document.getElementById("service-content").innerHTML =
-            `<div style="text-align:center;margin-bottom:40px"><h2>${index === 0 ? "商品の魅力を伝える、頼れるパートナー。" : "フォロワー0人から、スキルで選ばれる。"}</h2><p class="muted">${index === 0 ? "制作実績を見ながら比較。単発のUGCから継続的なSNS運用支援まで依頼できます。" : "無料の基礎研修とスキルチェックでスタート。認定制度で強みを伝え、制作からSNS運用へ。"}</p><button class="btn primary" data-register="${audience}">無料で登録する →</button></div><h2 style="text-align:center">ご利用の流れ</h2>${renderFlowContent(audience)}<h2 style="text-align:center;margin-top:55px">よくある質問</h2><div class="faq">${faqHTML(audience, 3)}</div>`;
+            `<div style="text-align:center;margin-bottom:40px"><h2>${index === 0 ? "商品の魅力を伝える、頼れるパートナー。" : "フォロワー0人から、スキルで選ばれる。"}</h2><p class="muted">${index === 0 ? "制作実績を見ながら比較。単発のUGCから継続的なSNS運用支援まで依頼できます。" : "無料の基礎研修とスキルチェックでスタート。認定制度で強みを伝え、制作からSNS運用へ。"}</p><button class="btn primary" data-register="${audience}">${index === 0 ? "無料で案件を掲載" : "無料で仕事を探す"} →</button></div><h2 style="text-align:center">ご利用の流れ</h2>${renderFlowContent(audience)}<h2 style="text-align:center;margin-top:55px">よくある質問</h2><div class="faq">${faqHTML(audience, 3)}</div>`;
         };
         bindTabs(main, update);
         update(0);
@@ -3044,7 +3192,7 @@
           const creator = creators[Number(button.dataset.creator)];
           openModal(
             `${creator.name} / クリエイター`,
-            `<div style="display:flex;gap:15px;align-items:center;margin:15px 0"><span class="avatar" style="width:65px;height:65px">${creator.name.slice(0, 1)}</span><div><strong>${creator.role}</strong><div class="small" style="color:#2563eb">${creator.badge ? "✦ 認定レビュークリエイター" : "クリエイター"}</div></div></div><p>${creator.bio}</p><div class="panel small">得意ジャンル：${creator.genre}<br>スキル：${creator.skill}<br>制作実績：${creator.works}件<br>フォロワー：${creator.followers.toLocaleString()}人<br>評価：★ ${creator.rating} / 5<br>料金目安：${yen(creator.price)}〜 ${creator.role === roles[3] ? "/月" : "/件"}</div><p class="small muted" style="margin-top:18px">※架空のクリエイターです。実際の依頼はできません。</p><button class="btn primary" data-register="company" style="width:100%">企業登録して、クリエイターとつながる →</button>`,
+            `<div style="display:flex;gap:15px;align-items:center;margin:15px 0"><span class="avatar" style="width:65px;height:65px">${creator.name.slice(0, 1)}</span><div><strong>${creator.role}</strong><div class="small" style="color:#2563eb">${creator.badge ? "✦ 認定レビュークリエイター" : "クリエイター"}</div></div></div><p>${creator.bio}</p><div class="panel small">得意ジャンル：${creator.genre}<br>スキル：${creator.skill}<br>制作実績：${creator.works}件<br>フォロワー：${creator.followers.toLocaleString()}人<br>評価：★ ${creator.rating} / 5<br>料金目安：${yen(creator.price)}〜 ${creator.role === roles[3] ? "/月" : "/件"}</div><p class="small muted" style="margin-top:18px">※架空のクリエイターです。実際の依頼はできません。</p><button class="btn primary" data-register="company" style="width:100%">無料で案件を掲載 →</button>`,
           );
         }
       });
