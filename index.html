@@ -1128,6 +1128,30 @@
           padding: 24px;
         }
       }
+      @media (max-width: 480px) {
+        .hero-art .float-creator {
+          width: 258px;
+          top: 48px;
+          left: 4px;
+          padding: 14px;
+          transform: none;
+        }
+        .hero-creator-profile .avatar {
+          width: 36px;
+          height: 36px;
+          font-size: 16px;
+        }
+        .hero-creator-name,
+        .hero-creator-badge {
+          display: block;
+          white-space: nowrap;
+        }
+        .hero-art .float-project {
+          right: 4px;
+          bottom: 6px;
+          transform: none;
+        }
+      }
       @media (prefers-reduced-motion: reduce) {
         *,
         *::before,
@@ -1282,13 +1306,19 @@
                 <div class="phone-lines"></div>
               </div>
               <div class="float-card float-creator">
-                <div style="display: flex; gap: 10px; align-items: center">
+                <div
+                  class="hero-creator-profile"
+                  style="display: flex; gap: 10px; align-items: center"
+                >
                   <span class="avatar">美</span>
                   <div>
-                    <strong style="font-size: 12px"
+                    <strong class="hero-creator-name" style="font-size: 12px"
                       >美咲 / UGCクリエイター</strong
                     >
-                    <div style="font-size: 9px; color: #2563eb">
+                    <div
+                      class="hero-creator-badge"
+                      style="font-size: 9px; color: #2563eb"
+                    >
                       ✦ 認定レビュークリエイター
                     </div>
                   </div>
