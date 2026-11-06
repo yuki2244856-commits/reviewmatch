@@ -2020,6 +2020,20 @@
       .float-creator > div:nth-child(2) {
         color: #526174 !important;
       }
+      .hero-heading .hero-heading-phrase {
+        white-space: nowrap;
+        color: inherit;
+      }
+      @media (min-width: 481px) {
+        .hero-art .float-creator {
+          width: 280px;
+        }
+        .hero-creator-name,
+        .hero-creator-badge {
+          display: block;
+          white-space: nowrap;
+        }
+      }
     </style>
   </head>
   <body>
@@ -2088,7 +2102,7 @@
               <h1 class="hero-heading">
                 レビュー制作も、<br />SNS運用も。<br /><span
                   >企業とクリエイター</span
-                >をつなぐ。
+                ><span class="hero-heading-phrase">をつなぐ。</span>
               </h1>
               <p class="hero-copy">
                 その「好き」と「得意」が、商品の新しい価値になる。<br />レビュー動画・UGC制作から、SNS運用まで。<br />企業とクリエイターの、いい出会いをReviewMatchで。
