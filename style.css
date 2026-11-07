@@ -2324,3 +2324,35 @@
           gap: 4px;
         }
       }
+
+      /* Legal disclosure: wrap long Japanese text and email addresses on mobile. */
+      .legal-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        border: 1px solid var(--line);
+      }
+      .legal-table th,
+      .legal-table td {
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+        overflow-wrap: anywhere;
+      }
+      .legal-table th {
+        width: 28%;
+        background: #f6f9fe;
+        color: var(--navy);
+        font-weight: 700;
+      }
+      @media (max-width: 640px) {
+        .legal-table th,
+        .legal-table td {
+          padding: 14px 12px;
+          font-size: 14px;
+        }
+        .legal-table th {
+          width: 34%;
+        }
+      }

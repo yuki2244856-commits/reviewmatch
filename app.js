@@ -2412,6 +2412,8 @@
       }
       function route() {
         const routeName = currentPage;
+        // The legal disclosure is static HTML and remains available without demo data.
+        if (routeName === "tokusho") return;
         if (storeError) {
           main.innerHTML = `<section class="section"><div class="container panel">
             <h1>デモデータを読み込めません</h1><p role="alert">${escapeHTML(storeError)}</p>
@@ -4275,7 +4277,7 @@
       async function bootstrap() {
         if (initializing) return;
         initializing = true;
-        main.innerHTML =
+        if (currentPage !== "tokusho") main.innerHTML =
           '<section class="section"><div class="container panel" role="status">データを読み込んでいます…</div></section>';
         try {
           await RMStore.initialize();
@@ -4294,6 +4296,7 @@
             showPlanChange();
         } catch (error) {
           showConnectionError(error);
+          if (currentPage === "tokusho") return;
           main.innerHTML =
             '<section class="section"><div class="container panel"><p role="alert">データを取得できませんでした。接続を確認して再試行してください。</p><button class="btn" id="retry-supabase">再試行</button></div></section>';
           document
