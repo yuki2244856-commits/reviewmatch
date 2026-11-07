@@ -2,9 +2,11 @@
   "name": "reviewmatch",
   "private": true,
   "scripts": {
-    "test": "playwright test"
+    "test": "playwright test",
+    "test:migrations": "node supabase/tests/held-ledger.mjs"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.15",
     "@playwright/test": "^1.56.1",
     "@supabase/supabase-js": "^2.99.0"
   }

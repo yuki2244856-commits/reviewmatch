@@ -1,0 +1,148 @@
+import {
+  HELD_PROJECT_PAYMENTS_ENABLED,
+  heldPayoutRequest,
+} from "../_shared/held-payouts.ts";
+import { assertReviewMatchAccount } from "../_shared/billing-config.ts";
+import { checked, required, services } from "../_shared/stripe.ts";
+
+Deno.serve(async (req: Request) => {
+  // Hard source-code gate, not an environment switch. No deployment/activation in this task.
+  if (!HELD_PROJECT_PAYMENTS_ENABLED)
+    return Response.json(
+      { error: "Held payouts disabled: local report-only starter" },
+      { status: 409 },
+    );
+  if (req.method !== "POST")
+    return new Response("Method not allowed", { status: 405 });
+  if (
+    req.headers.get("authorization") !==
+    `Bearer ${required("PAYOUT_WORKER_TOKEN")}`
+  )
+    return new Response("Unauthorized", { status: 401 });
+  const { stripe, db } = services();
+  let batchId: string | undefined;
+  try {
+    await assertReviewMatchAccount(stripe);
+    const { accountId } = await req.json();
+    if (typeof accountId !== "string")
+      throw new Error("Missing creator account");
+    const creator = checked(
+      await db
+        .from("stripe_accounts")
+        .select("*")
+        .eq("account_id", accountId)
+        .single(),
+    );
+    if (!creator || creator.api_generation !== "v2")
+      throw new Error("Mapped v2 creator required");
+    const account = await stripe.v2.core.accounts.retrieve(accountId, {
+      include: ["configuration.merchant"],
+    });
+    if (
+      account.closed ||
+      account.livemode ||
+      account.configuration?.merchant?.capabilities?.card_payments?.status !==
+        "active" ||
+      account.configuration?.merchant?.capabilities?.stripe_balance?.payouts
+        ?.status !== "active"
+    )
+      throw new Error("Creator unavailable");
+    const schedule = await stripe.balanceSettings.retrieve(
+      {},
+      { stripeAccount: accountId },
+    );
+    if (schedule.payments?.payouts?.schedule?.interval !== "manual")
+      throw new Error("Manual payout schedule required");
+    const balance = await stripe.balance.retrieve(
+      {},
+      { stripeAccount: accountId },
+    );
+    const available =
+      balance.available.find((b) => b.currency === "jpy")?.amount ?? 0;
+    // Fetching a Stripe balance is NOT reconciliation. Never refresh funds_reconciled_at here.
+    checked(
+      await db
+        .from("stripe_accounts")
+        .update({
+          reconciled_available_jpy: Math.min(
+            available,
+            creator.reconciled_available_jpy,
+          ),
+        })
+        .eq("account_id", accountId),
+    );
+    const now = new Date().toISOString();
+    checked(await db.rpc("auto_approve_held_orders", { p_now: now }));
+    const batch = checked(
+      await db.rpc("reserve_held_payout", {
+        p_account_id: accountId,
+        p_now: now,
+      }),
+    );
+    batchId = batch.id;
+    if (batch.state === "submitted" || batch.state === "paid")
+      return Response.json({ state: batch.state, batch_id: batch.id });
+    if (
+      batch.state !== "reserved" ||
+      Date.now() - Date.parse(batch.created_at) >= 23 * 3600000
+    )
+      throw new Error("Reconciliation required before retry");
+    const allocations = checked(
+      await db
+        .from("stripe_payout_allocations")
+        .select("order_id")
+        .eq("batch_id", batch.id),
+    );
+    if (!allocations?.length) throw new Error("Missing reserved allocations");
+    const orders = checked(
+      await db
+        .from("stripe_held_orders")
+        .select("*")
+        .in(
+          "id",
+          allocations.map((a: { order_id: string }) => a.order_id),
+        ),
+    );
+    if (!orders?.length) throw new Error("Missing reserved orders");
+    const request = heldPayoutRequest({
+      accountId,
+      batchId: batch.id,
+      now,
+      controlsVerifiedUntil:
+        creator.exclusive_payout_controls_verified_until ?? "",
+      payoutInterval: "manual",
+      reconciled: true,
+      availableJpy: available,
+      reservedJpy: batch.reserve_jpy,
+      allocations: orders.map((o) => ({
+        id: o.id,
+        approvedAt: o.approved_at,
+        chargedAt: o.paid_at,
+        availableAt: o.available_at,
+        holdingDeadline: o.holding_deadline,
+        netJpy: o.net_jpy,
+        blocked: o.state !== "payout_reserved",
+      })),
+    });
+    if (request.params.amount !== batch.amount_jpy)
+      throw new Error("Allocation amount mismatch");
+    const payout = await stripe.payouts.create(request.params, request.options);
+    checked(
+      await db
+        .from("stripe_payout_batches")
+        .update({ state: "submitted", stripe_payout_id: payout.id })
+        .eq("id", batch.id),
+    );
+    // Bank completion is recorded only by the verified payout webhook.
+    return Response.json({ batch_id: batch.id, state: "submitted" });
+  } catch {
+    if (batchId)
+      await db
+        .from("stripe_payout_batches")
+        .update({ state: "uncertain" })
+        .eq("id", batchId);
+    return new Response("Payout blocked; reconcile before retry", {
+      status: 503,
+    });
+  }
+});

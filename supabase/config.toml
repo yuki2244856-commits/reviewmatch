@@ -1,0 +1,19 @@
+[functions.stripe-api]
+# JWTs are validated using auth.getUser inside the function.
+verify_jwt = false
+
+[functions.stripe-webhook]
+# Stripe signs the raw request with Stripe-Signature; it does not send a Supabase JWT.
+verify_jwt = false
+
+[functions.stripe-connect-webhook]
+# Accounts v2 thin-event notifications have a separate Stripe signing secret.
+verify_jwt = false
+
+[functions.stripe-payout-worker]
+# Hard-disabled local starter. Future worker requires a server-only scheduler token.
+verify_jwt = false
+
+[functions.stripe-payout-webhook]
+# Connected-account v1 payout snapshots; separate from platform Billing and v2 thin events.
+verify_jwt = false
