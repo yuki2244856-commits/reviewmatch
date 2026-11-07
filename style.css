@@ -62,8 +62,10 @@
         outline: 3px solid var(--light);
         outline-offset: 4px;
       }
-      .container {
+      /* Outrank Tailwind CDN container width and breakpoint max-width rules. */
+      body .container {
         width: min(1180px, calc(100% - 48px));
+        max-width: 1180px;
         margin: auto;
       }
       .brand {
@@ -986,7 +988,7 @@
         }
       }
       @media (max-width: 520px) {
-        .container {
+        body .container {
           width: calc(100% - 36px);
         }
         .hero h1 {
@@ -2244,5 +2246,81 @@
         }
         .chat-conversation {
           padding: 14px;
+        }
+      }
+
+      /* Keep every desktop header item on one line within its fixed height. */
+      @media (min-width: 821px) {
+        .header-inner {
+          padding-inline: 16px;
+        }
+        .header-inner .brand,
+        .header-inner nav,
+        .header-inner .account-actions {
+          flex-shrink: 0;
+          flex-wrap: nowrap;
+        }
+        .header-inner nav a,
+        .header-inner .account-actions {
+          white-space: nowrap;
+        }
+      }
+      /* Keep desktop navigation within the shared container on tablets. */
+      @media (min-width: 821px) and (max-width: 1280px) {
+        .header-inner {
+          gap: 12px;
+        }
+        .header-inner nav {
+          gap: 10px;
+        }
+        .header-inner .account-name {
+          display: none;
+        }
+        .header-inner .account-actions {
+          flex-wrap: nowrap;
+          gap: 6px;
+        }
+        .header-inner .account-actions .btn {
+          padding-inline: 8px;
+          gap: 8px;
+          white-space: nowrap;
+        }
+      }
+      @media (min-width: 961px) and (max-width: 1080px) {
+        .header-inner nav {
+          gap: 6px;
+        }
+        .header-inner .account-actions .btn {
+          padding-inline: 6px;
+        }
+      }
+      @media (min-width: 821px) and (max-width: 960px) {
+        .header-inner {
+          gap: 8px;
+        }
+        .header-inner .brand {
+          font-size: 16px;
+          gap: 4px;
+        }
+        .header-inner .brand-mark {
+          width: 28px;
+          height: 28px;
+        }
+        .header-inner .demo-badge {
+          display: none;
+        }
+        .header-inner nav {
+          gap: 2px;
+        }
+        .header-inner .account-actions {
+          gap: 4px;
+        }
+        .header-inner nav a {
+          font-size: 11px;
+        }
+        .header-inner .account-actions .btn {
+          padding-inline: 4px;
+          font-size: 11px;
+          gap: 4px;
         }
       }
