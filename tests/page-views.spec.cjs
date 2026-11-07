@@ -15,6 +15,10 @@ async function mockProduction(context, calls, mode = "ok") {
     await route.fulfill({ path: path.join(__dirname, "..", filename) });
   });
   await context.route("**/rest/v1/page_views**", async (route) => {
+    expect(route.request().headers().prefer || "").not.toContain(
+      "return=representation",
+    );
+    expect(new URL(route.request().url()).searchParams.has("select")).toBe(false);
     calls.push({
       method: route.request().method(),
       body: route.request().postDataJSON(),
@@ -87,7 +91,17 @@ for (const url of [
   test(`guard skips ${url}`, async ({ page, context, api }) => {
     const calls = [];
     await mockProduction(context, calls);
+    if (url.endsWith("admin.html")) {
+      // Keep the admin page open instead of following its guest redirect.
+      await context.addInitScript((session) => {
+        localStorage.setItem(
+          "sb-kcgxyqfwwhcvjhizootc-auth-token",
+          JSON.stringify(session),
+        );
+      }, api.session(api.ids.admin));
+    }
     await ready(page, url);
+    await expect(page).toHaveURL(url.startsWith("https:") ? url : /index\.html$/);
     await page.evaluate(() => RMStore.initialize());
     expect(calls).toHaveLength(0);
     expect(
