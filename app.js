@@ -1,0 +1,3800 @@
+      "use strict";
+
+      // Seed data for the browser-local prototype. No external submission is used.
+      const roles = [
+        "ショート動画クリエイター",
+        "YouTubeレビュー動画クリエイター",
+        "動画編集者",
+        "SNS運用者",
+        "UGCクリエイター",
+      ];
+      const seedJobs = [
+        {
+          id: 1,
+          sns: ["TikTok", "Instagram"],
+          summary:
+            "装着感や音質を、日常の使用シーンとともに伝える縦型レビュー動画を制作します。",
+          productSupport: "商品提供あり",
+          title: "ワイヤレスヘッドホンの「いい音」を届けるレビュー動画",
+          company: "株式会社オトノハ",
+          role: roles[0],
+          budget: 15000,
+          category: "ガジェット・PC周辺機器",
+          art: "headphone",
+          deadline: "2026-12-20",
+          detail:
+            "新発売のワイヤレスヘッドホンを実際に使い、装着感・音質・日常での使いやすさを伝える縦型動画を制作してください。\n納品物：30〜60秒の縦型動画1本（MP4）。修正は2回まで。商品は無償提供します。",
+          condition:
+            "縦型動画の撮影・編集ができる方。顔出しは任意です。フォロワー数の条件はありません。",
+          industry: "オーディオ機器",
+          location: "東京都渋谷区",
+          reviews: 24,
+          rating: 4.9,
+        },
+        {
+          id: 2,
+          sns: ["Instagram", "TikTok"],
+          summary:
+            "キャンプで使うランタンの明るさと携帯性を、動画と写真で紹介します。",
+          productSupport: "商品提供あり",
+          title: "週末キャンプを彩る、LEDランタンのUGC制作",
+          company: "合同会社FIELD NOTE",
+          role: roles[4],
+          budget: 12000,
+          category: "アウトドア用品",
+          art: "camp",
+          deadline: "2026-12-15",
+          detail:
+            "キャンプサイトでの使用シーンを中心に、ランタンの明るさや携帯性を紹介する動画をお願いします。\n納品物：縦型動画1本＋写真3枚。商品を提供し、修正は1回までです。",
+          condition:
+            "実際のアウトドア環境で撮影できる方。自然な生活者視点を大切にできる方。",
+          industry: "アウトドア用品",
+          location: "長野県松本市",
+          reviews: 18,
+          rating: 4.8,
+        },
+        {
+          id: 3,
+          sns: ["YouTube"],
+          summary:
+            "打鍵音やデスクへの馴染み方が伝わる、5〜8分のレビュー動画を制作します。",
+          productSupport: "商品提供あり",
+          title: "毎日のデスクを快適に。メカニカルキーボード紹介",
+          company: "株式会社DESKLY",
+          role: roles[1],
+          budget: 25000,
+          category: "ガジェット・PC周辺機器",
+          art: "keyboard",
+          deadline: "2026-12-25",
+          detail:
+            "打鍵音やデスクへの馴染み方が伝わるYouTube用レビュー動画を制作してください。\n納品物：5〜8分の横型動画1本。商品提供あり。修正は2回まで。",
+          condition: "YouTube向け動画の制作経験がある方。音声収録ができる方。",
+          industry: "PC周辺機器",
+          location: "大阪府大阪市",
+          reviews: 31,
+          rating: 4.7,
+        },
+        {
+          id: 4,
+          sns: ["TikTok", "Instagram"],
+          summary:
+            "デスクや寝室での加湿器の使い心地を、30秒の生活シーンにまとめます。",
+          productSupport: "商品提供あり",
+          title: "コンパクト加湿器のある暮らしをショート動画に",
+          company: "株式会社暮らしの余白",
+          role: roles[0],
+          budget: 8000,
+          category: "生活家電・日用品",
+          art: "home",
+          deadline: "2026-12-18",
+          detail:
+            "デスクや寝室で使用する加湿器の魅力を、生活シーンとともに紹介してください。\n納品物：30秒動画1本。修正1回まで。",
+          condition: "室内で明るく清潔感のある撮影ができる方。",
+          industry: "生活家電",
+          location: "東京都目黒区",
+          reviews: 12,
+          rating: 4.8,
+        },
+        {
+          id: 5,
+          sns: ["Instagram"],
+          summary:
+            "アウトドアブランドの月4投稿を企画・制作し、運用の振り返りを行います。",
+          productSupport: "商品提供なし",
+          title: "アウトドアブランドのInstagram運用パートナー",
+          company: "株式会社TRAIL WORKS",
+          role: roles[3],
+          budget: 30000,
+          category: "アウトドア用品",
+          art: "camp",
+          deadline: "2026-12-28",
+          monthly: true,
+          detail:
+            "Instagramの投稿企画・制作・月次振り返りをお願いします。\n月4投稿と簡易レポート1本。初月はお試し契約、その後は双方合意で継続します。",
+          condition:
+            "SNS投稿の企画経験がある方。月1回のオンライン打合せが可能な方。",
+          industry: "アウトドア用品",
+          location: "山梨県甲府市",
+          reviews: 15,
+          rating: 4.6,
+        },
+        {
+          id: 6,
+          sns: ["YouTube"],
+          summary:
+            "支給素材から、テロップやBGMを使った3分のレビュー動画を編集します。",
+          productSupport: "商品提供なし",
+          title: "ロボット掃除機のレビュー素材を見やすく編集",
+          company: "株式会社CLEAN BASE",
+          role: roles[2],
+          budget: 18000,
+          category: "生活家電・日用品",
+          art: "home",
+          deadline: "2026-12-12",
+          detail:
+            "支給された撮影素材を使い、3分程度のレビュー動画を編集してください。\nテロップ・BGM・色調整を含みます。修正は2回まで。",
+          condition:
+            "動画編集ソフトの使用経験がある方。編集実績を提出できる方。",
+          industry: "生活家電",
+          location: "神奈川県横浜市",
+          reviews: 22,
+          rating: 4.9,
+        },
+        {
+          id: 7,
+          sns: ["Instagram", "TikTok"],
+          summary:
+            "在宅ワークで役立つUSB-Cハブの使い方を、30秒の縦型動画にします。",
+          productSupport: "商品提供あり",
+          title: "USB-Cハブの便利な使い方を伝えるUGC",
+          company: "合同会社PORT LAB",
+          role: roles[4],
+          budget: 5000,
+          category: "ガジェット・PC周辺機器",
+          art: "keyboard",
+          deadline: "2026-12-22",
+          detail:
+            "在宅ワークでの使用例を中心に縦型動画1本を制作。\n30秒程度、修正1回まで。商品提供あり。",
+          condition: "USB-C対応のPCをお持ちの方。手元のみの撮影も歓迎。",
+          industry: "PC周辺機器",
+          location: "東京都千代田区",
+          reviews: 8,
+          rating: 4.5,
+        },
+        {
+          id: 8,
+          sns: ["TikTok", "Instagram"],
+          summary:
+            "外出先やデスクで使うマグボトルの便利さを、短い動画で紹介します。",
+          productSupport: "商品提供あり",
+          title: "軽量マグボトルの使い心地をショートレビュー",
+          company: "株式会社まいにち道具",
+          role: roles[0],
+          budget: 3000,
+          category: "生活家電・日用品",
+          art: "home",
+          deadline: "2026-12-30",
+          detail:
+            "外出やデスクでの使用感を15〜30秒で紹介してください。\n動画1本、修正1回まで。商品提供あり。",
+          condition: "スマートフォンで撮影できる方。初めての制作案件も歓迎。",
+          industry: "日用品",
+          location: "愛知県名古屋市",
+          reviews: 14,
+          rating: 4.7,
+        },
+        {
+          id: 9,
+          sns: ["YouTube"],
+          summary:
+            "ソロキャンプ用テントの設営手順と居住性を、5分程度でレビューします。",
+          productSupport: "商品貸与あり",
+          title: "ソロキャンプ用テントの設営レビュー動画",
+          company: "株式会社SOL CAMP",
+          role: roles[1],
+          budget: 28000,
+          category: "アウトドア用品",
+          art: "camp",
+          deadline: "2027-01-05",
+          detail:
+            "設営手順と居住性を5分程度で紹介してください。\n横型動画1本とサムネイル1枚。商品貸与、修正2回まで。",
+          condition: "キャンプ経験があり、安全な撮影場所を確保できる方。",
+          industry: "アウトドア用品",
+          location: "静岡県浜松市",
+          reviews: 19,
+          rating: 4.8,
+        },
+        {
+          id: 10,
+          sns: ["Instagram", "YouTube"],
+          summary:
+            "モニターライトの支給素材を、縦型・横型の紹介動画に編集します。",
+          productSupport: "商品提供なし",
+          title: "モニターライトの紹介動画をテンポよく編集",
+          company: "株式会社LUMA DESK",
+          role: roles[2],
+          budget: 10000,
+          category: "ガジェット・PC周辺機器",
+          art: "keyboard",
+          deadline: "2026-12-16",
+          detail:
+            "支給素材から60秒の紹介動画を制作してください。\n縦型と横型の2サイズで納品。修正1回まで。",
+          condition: "テロップや効果音を適切に使える方。",
+          industry: "照明・PC周辺機器",
+          location: "福岡県福岡市",
+          reviews: 9,
+          rating: 4.6,
+        },
+        {
+          id: 11,
+          sns: ["Instagram"],
+          summary:
+            "暮らしの家電ブランドの月4投稿と、運用レポートを制作します。",
+          productSupport: "商品提供なし",
+          title: "暮らしの家電ブランドのSNS運用サポート",
+          company: "株式会社HOMELY",
+          role: roles[3],
+          budget: 25000,
+          category: "生活家電・日用品",
+          art: "home",
+          deadline: "2027-01-08",
+          monthly: true,
+          detail:
+            "家電ブランドの投稿企画と月4投稿の制作をお願いします。\n毎月レポート提出。初回1か月契約で継続相談可能です。",
+          condition: "SNS運用またはレビュー動画制作の経験がある方。",
+          industry: "生活家電",
+          location: "京都府京都市",
+          reviews: 27,
+          rating: 4.9,
+        },
+        {
+          id: 12,
+          sns: ["Instagram", "TikTok"],
+          summary:
+            "折りたたみチェアの持ち運びや使用感を、自然な屋外シーンで伝えます。",
+          productSupport: "商品提供あり",
+          title: "折りたたみチェアの魅力が伝わるUGC募集",
+          company: "合同会社GREEN PATH",
+          role: roles[4],
+          budget: 7000,
+          category: "アウトドア用品",
+          art: "camp",
+          deadline: "2027-01-10",
+          detail:
+            "持ち運びから使用シーンまで、自然な視点で紹介してください。\n30秒動画1本＋写真2枚。商品提供あり、修正1回まで。",
+          condition: "屋外での撮影ができる方。フォロワー数不問。",
+          industry: "アウトドア用品",
+          location: "北海道札幌市",
+          reviews: 11,
+          rating: 4.7,
+        },
+      ];
+      const seedCreators = [
+        {
+          name: "美咲",
+          sns: ["Instagram", "TikTok"],
+          role: roles[4],
+          genre: "ガジェット",
+          skill: "撮影",
+          works: 48,
+          followers: 820,
+          rating: 4.9,
+          price: 12000,
+          badge: true,
+          bio: "暮らしに馴染む自然なUGCが得意です。商品の良さを、使う人の目線で伝えます。",
+        },
+        {
+          name: "大輝",
+          sns: ["YouTube"],
+          role: roles[1],
+          genre: "PC周辺機器",
+          skill: "編集",
+          works: 65,
+          followers: 2400,
+          rating: 4.8,
+          price: 25000,
+          badge: true,
+          bio: "使い勝手とデザインの両面から丁寧にレビューします。デスク環境の撮影が得意です。",
+        },
+        {
+          name: "葵",
+          sns: ["TikTok", "Instagram"],
+          role: roles[0],
+          genre: "生活家電",
+          skill: "撮影",
+          works: 32,
+          followers: 340,
+          rating: 4.9,
+          price: 8000,
+          badge: true,
+          bio: "短い時間でも印象に残る構成を大切にしています。手元撮影や生活シーンに対応します。",
+        },
+        {
+          name: "悠太",
+          sns: ["Instagram"],
+          role: roles[3],
+          genre: "アウトドア",
+          skill: "企画",
+          works: 24,
+          followers: 1200,
+          rating: 4.7,
+          price: 30000,
+          badge: true,
+          bio: "アウトドアブランドの投稿企画からレポートまで、一貫してお手伝いします。",
+        },
+        {
+          name: "紬",
+          sns: ["YouTube", "Instagram"],
+          role: roles[2],
+          genre: "生活家電",
+          skill: "編集",
+          works: 51,
+          followers: 0,
+          rating: 4.8,
+          price: 15000,
+          badge: true,
+          bio: "伝わりやすいテロップと、心地よいテンポの編集が得意です。",
+        },
+        {
+          name: "蓮",
+          sns: ["Instagram", "TikTok"],
+          role: roles[4],
+          genre: "アウトドア",
+          skill: "撮影",
+          works: 18,
+          followers: 210,
+          rating: 4.6,
+          price: 7000,
+          badge: false,
+          bio: "週末キャンプでの実際の使用シーンを、自然光で撮影しています。",
+        },
+        {
+          name: "結衣",
+          sns: ["TikTok", "Instagram"],
+          role: roles[0],
+          genre: "日用品",
+          skill: "企画",
+          works: 16,
+          followers: 90,
+          rating: 4.8,
+          price: 5000,
+          badge: true,
+          bio: "日々の小さな便利さを見つけて、親しみやすい動画に仕上げます。",
+        },
+        {
+          name: "颯太",
+          sns: ["YouTube"],
+          role: roles[1],
+          genre: "ガジェット",
+          skill: "編集",
+          works: 37,
+          followers: 1800,
+          rating: 4.9,
+          price: 28000,
+          badge: true,
+          bio: "音や質感まで伝わるレビューを目指しています。比較検証もお任せください。",
+        },
+        {
+          name: "真央",
+          sns: ["Instagram"],
+          role: roles[3],
+          genre: "生活家電",
+          skill: "企画",
+          works: 29,
+          followers: 650,
+          rating: 4.7,
+          price: 25000,
+          badge: false,
+          bio: "ブランドの世界観を大切に、投稿の企画と運用改善を支援します。",
+        },
+        {
+          name: "晴",
+          sns: ["Instagram", "TikTok"],
+          role: roles[4],
+          genre: "PC周辺機器",
+          skill: "撮影",
+          works: 8,
+          followers: 0,
+          rating: 4.5,
+          price: 3000,
+          badge: false,
+          bio: "デスク周りの道具が好きです。使って感じたことを率直に、丁寧に届けます。",
+        },
+      ];
+      // All persistence is isolated here; replace this adapter for a future backend.
+      const RMStore = (() => {
+        const key = "reviewmatch_store_v1";
+        const version = 1;
+        const storage = (() => {
+          const memory = new Map();
+          let persistent = null;
+
+          function useMemory() {
+            persistent = null;
+            document.getElementById("storage-notice").hidden = false;
+          }
+
+          // Accessing the localStorage property itself can throw in WebViews.
+          try {
+            const candidate = window.localStorage;
+            const probeKey = `${key}_probe_${crypto.randomUUID()}`;
+            try {
+              candidate.setItem(probeKey, probeKey);
+              if (candidate.getItem(probeKey) !== probeKey) {
+                throw new Error("Storage probe failed");
+              }
+            } finally {
+              candidate.removeItem(probeKey);
+            }
+            persistent = candidate;
+          } catch {
+            useMemory();
+          }
+
+          return {
+            available: () => persistent !== null,
+            getItem(name) {
+              if (persistent) {
+                try {
+                  const value = persistent.getItem(name);
+                  if (value === null) memory.delete(name);
+                  else memory.set(name, value);
+                  return value;
+                } catch {
+                  useMemory();
+                }
+              }
+              return memory.get(name) ?? null;
+            },
+            setItem(name, value) {
+              if (persistent) {
+                try {
+                  persistent.setItem(name, value);
+                } catch {
+                  useMemory();
+                }
+              }
+              // Mirror successful reads/writes for failures later in the session.
+              memory.set(name, value);
+            },
+            removeItem(name) {
+              if (persistent) {
+                try {
+                  persistent.removeItem(name);
+                } catch {
+                  useMemory();
+                }
+              }
+              memory.delete(name);
+            },
+          };
+        })();
+        const collections = [
+          "users",
+          "companyProfiles",
+          "creatorProfiles",
+          "jobs",
+          "applications",
+          "contracts",
+          "conversations",
+          "messages",
+          "payments",
+          "subscriptions",
+          "payouts",
+          "reviews",
+          "notifications",
+        ];
+        let state;
+        const copy = (value) => JSON.parse(JSON.stringify(value));
+        const normalizeEmail = (email) => email.trim().toLowerCase();
+
+        // Demo only: this simple hash is NOT secure password storage.
+        // Production authentication must run on a trusted backend with a password KDF.
+        function hashPassword(password) {
+          let hash = 2166136261;
+          for (const character of password) {
+            hash ^= character.codePointAt(0);
+            hash = Math.imul(hash, 16777619);
+          }
+          return `demo-fnv1a-${(hash >>> 0).toString(16)}`;
+        }
+
+        function seed() {
+          const data = Object.fromEntries(
+            collections.map((name) => [name, []]),
+          );
+          data.version = version;
+          data.session = null;
+          data.users = [
+            ["admin", "admin", "approved", "管理者", "admin123"],
+            ["company", "company", "approved", "企業担当者", "demo1234"],
+            [
+              "creator",
+              "creator",
+              "approved",
+              seedCreators[0].name,
+              "demo1234",
+            ],
+            ["pending", "creator", "pending", "審査中クリエイター", "demo1234"],
+          ].map(([id, role, status, displayName, password]) => ({
+            id,
+            role,
+            status,
+            displayName,
+            email: `${id}@reviewmatch.demo`,
+            passwordHash: hashPassword(password),
+          }));
+          data.companyProfiles = [
+            {
+              id: "company-profile",
+              userId: "company",
+              companyName: "サンプルEC株式会社",
+              contactName: "企業担当者",
+              industry: "EC・通販",
+              description: "商品の魅力を伝えるEC企業です。",
+            },
+          ];
+          data.creatorProfiles = seedCreators.map((profile, index) => ({
+            ...copy(profile),
+            id: `creator-profile-${index + 1}`,
+            userId: index === 0 ? "creator" : null,
+          }));
+          data.creatorProfiles.push({
+            id: "pending-profile",
+            userId: "pending",
+            name: "審査中クリエイター",
+            role: roles[0],
+            genre: "",
+            sns: [],
+            skill: "",
+            price: 0,
+            badge: false,
+            bio: "",
+            works: 0,
+            followers: 0,
+            rating: 0,
+          });
+          // Keep original sample companies; they are not owned by the demo company.
+          data.jobs = seedJobs.map((job) => ({
+            ...copy(job),
+            companyId: null,
+            status: "掲載中",
+          }));
+          data.subscriptions = [
+            {
+              id: "company-subscription",
+              userId: "company",
+              plan: "スタンダード",
+              nextRenewalDate: null,
+            },
+          ];
+          return data;
+        }
+
+        function save(next) {
+          const snapshot = copy(next);
+          storage.setItem(key, JSON.stringify(snapshot));
+          state = snapshot;
+          return copy(state);
+        }
+
+        function load() {
+          if (state) return copy(state);
+          const raw = storage.getItem(key);
+          if (!raw) return save(seed());
+          try {
+            const parsed = JSON.parse(raw);
+            if (
+              parsed.version !== version ||
+              !collections.every((name) => Array.isArray(parsed[name]))
+            ) {
+              throw new Error();
+            }
+            // Fill only missing fields; preserve Step 1 registrations and edits.
+            parsed.jobs.forEach((job) => {
+              job.status ??= job.companyId ? "審査中" : "掲載中";
+            });
+            parsed.users.forEach((user) => {
+              user.createdAt ??= null;
+              user.reviewNote ??= "";
+            });
+            state = parsed;
+            return copy(state);
+          } catch {
+            // Never silently overwrite an unreadable or newer store.
+            throw new Error(
+              "保存データの形式を読み込めません。デモデータをリセットしてください。",
+            );
+          }
+        }
+
+        function transact(change) {
+          const next = load();
+          const result = change(next);
+          save(next);
+          return copy(result ?? null);
+        }
+
+        function getCollection(name) {
+          if (!collections.includes(name))
+            throw new Error("不明なコレクションです。");
+          return load()[name];
+        }
+
+        function add(name, record) {
+          getCollection(name);
+          return transact((next) => {
+            if (
+              !record.id ||
+              next[name].some((item) => item.id === record.id)
+            ) {
+              throw new Error("IDが未指定または重複しています。");
+            }
+            next[name].push(copy(record));
+            return record;
+          });
+        }
+
+        function update(name, id, changes) {
+          getCollection(name);
+          return transact((next) => {
+            const record = next[name].find((item) => item.id === id);
+            if (!record) throw new Error("データが見つかりません。");
+            Object.assign(record, copy(changes), { id });
+            return record;
+          });
+        }
+
+        function currentUser() {
+          const data = load();
+          return (
+            data.users.find((user) => user.id === data.session?.userId) || null
+          );
+        }
+
+        function login(email, password) {
+          return transact((next) => {
+            const user = next.users.find(
+              (item) =>
+                item.email === normalizeEmail(email) &&
+                item.passwordHash === hashPassword(password),
+            );
+            if (!user)
+              throw new Error("メールアドレスまたはパスワードが一致しません。");
+            next.session = { userId: user.id };
+            return user;
+          });
+        }
+
+        function register(values, role) {
+          return transact((next) => {
+            const email = normalizeEmail(values["form-email"]);
+            if (next.users.some((user) => user.email === email)) {
+              throw new Error("このメールアドレスはすでに登録されています。");
+            }
+            if (
+              !["company", "creator"].includes(role) ||
+              values["form-password"].length < 8
+            ) {
+              throw new Error("登録内容を確認してください。");
+            }
+            const id = crypto.randomUUID();
+            const name = values["form-name"].trim();
+            const user = {
+              id,
+              email,
+              role,
+              status: "pending",
+              createdAt: new Date().toISOString(),
+              reviewNote: "",
+              displayName: name,
+              passwordHash: hashPassword(values["form-password"]),
+            };
+            next.users.push(user);
+            if (role === "company") {
+              next.companyProfiles.push({
+                id: crypto.randomUUID(),
+                userId: id,
+                companyName: values["form-company"].trim(),
+                contactName: name,
+                industry: "",
+                description: "",
+              });
+              next.subscriptions.push({
+                id: crypto.randomUUID(),
+                userId: id,
+                plan: "フリー",
+                nextRenewalDate: null,
+              });
+            } else {
+              next.creatorProfiles.push({
+                id: crypto.randomUUID(),
+                userId: id,
+                name,
+                role: roles[0],
+                genre: "",
+                sns: [],
+                skill: "",
+                price: 0,
+                badge: false,
+                bio: "",
+                works: 0,
+                followers: 0,
+                rating: 0,
+              });
+            }
+            next.session = { userId: id };
+            return user;
+          });
+        }
+
+        function saveProfile(values) {
+          return transact((next) => {
+            const user = next.users.find(
+              (item) => item.id === next.session?.userId,
+            );
+            if (!user || user.role === "admin")
+              throw new Error("ログインしてください。");
+            const company = user.role === "company";
+            const profile = next[
+              company ? "companyProfiles" : "creatorProfiles"
+            ].find((item) => item.userId === user.id);
+            const allowed = company
+              ? ["companyName", "contactName", "industry", "description"]
+              : ["name", "role", "genre", "sns", "skill", "price"];
+            allowed.forEach((field) => {
+              profile[field] = values[field];
+            });
+            user.displayName = company ? profile.contactName : profile.name;
+            return profile;
+          });
+        }
+
+        function requireAdmin() {
+          if (currentUser()?.role !== "admin") {
+            throw new Error("管理者権限が必要です");
+          }
+        }
+
+        function reviewUser(id, status, reviewNote = "") {
+          requireAdmin();
+          if (!["approved", "rejected", "suspended"].includes(status)) {
+            throw new Error("審査ステータスを確認してください。");
+          }
+          const target = getCollection("users").find((user) => user.id === id);
+          if (!target || target.role === "admin") {
+            throw new Error("このユーザーは操作できません。");
+          }
+          return update("users", id, { status, reviewNote: reviewNote.trim() });
+        }
+
+        function toggleBadge(userId) {
+          requireAdmin();
+          const profile = getCollection("creatorProfiles").find(
+            (item) => item.userId === userId,
+          );
+          if (!profile) throw new Error("プロフィールが見つかりません。");
+          return update("creatorProfiles", profile.id, {
+            badge: !profile.badge,
+          });
+        }
+
+        function publishJob(id, status) {
+          requireAdmin();
+          if (!["掲載中", "非公開"].includes(status)) {
+            throw new Error("案件ステータスを確認してください。");
+          }
+          return update("jobs", id, { status });
+        }
+
+        function createJob(values) {
+          return transact((next) => {
+            const user = next.users.find(
+              (item) => item.id === next.session?.userId,
+            );
+            if (user?.role !== "company" || user.status !== "approved") {
+              throw new Error("承認済み企業アカウントが必要です。");
+            }
+            const budget = Number(values.budget);
+            const sns = values.sns || [];
+            if (
+              !values.title?.trim() ||
+              !values.detail?.trim() ||
+              !values.condition?.trim() ||
+              !roles.includes(values.role) ||
+              !jobCategories.includes(values.category) ||
+              !values.budget ||
+              !Number.isSafeInteger(budget) ||
+              budget < 0 ||
+              budget > 100000000 ||
+              !/^\d{4}-\d{2}-\d{2}$/.test(values.deadline || "") ||
+              !Number.isFinite(Date.parse(values.deadline)) ||
+              !sns.length ||
+              sns.some((name) => !jobSNS.includes(name)) ||
+              !["商品提供あり", "商品提供なし"].includes(values.productSupport)
+            ) {
+              throw new Error(
+                "必須項目・報酬・募集締切・対応SNSを確認してください。",
+              );
+            }
+            const company = next.companyProfiles.find(
+              (item) => item.userId === user.id,
+            );
+            const job = {
+              id:
+                Math.max(0, ...next.jobs.map((item) => Number(item.id) || 0)) +
+                1,
+              companyId: user.id,
+              company: company.companyName,
+              title: values.title.trim(),
+              role: values.role,
+              category: values.category,
+              budget,
+              deadline: values.deadline,
+              sns,
+              productSupport: values.productSupport,
+              detail: values.detail.trim(),
+              summary: values.detail.trim().slice(0, 120),
+              condition: values.condition.trim(),
+              status: "審査中",
+              createdAt: new Date().toISOString(),
+              monthly: values.role === roles[3],
+              art: "appliance",
+              industry: company.industry || "未登録",
+              location: "オンライン対応",
+              rating: 0,
+              reviews: 0,
+            };
+            next.jobs.push(job);
+            return job;
+          });
+        }
+
+        function participant(data, conversationId) {
+          const user = data.users.find(
+            (item) => item.id === data.session?.userId,
+          );
+          const conversation = data.conversations.find(
+            (item) => item.id === conversationId,
+          );
+          if (
+            !user ||
+            !conversation ||
+            ![conversation.creatorId, conversation.companyId].includes(user.id)
+          ) {
+            throw new Error("この会話を利用できません。");
+          }
+          return { user, conversation };
+        }
+
+        function appendMessage(
+          data,
+          conversation,
+          senderId,
+          type,
+          body,
+          contractId = null,
+        ) {
+          const message = {
+            id: crypto.randomUUID(),
+            conversationId: conversation.id,
+            senderId,
+            type,
+            body,
+            contractId,
+            createdAt: new Date().toISOString(),
+            readBy: senderId ? [senderId] : [],
+          };
+          data.messages.push(message);
+          conversation.updatedAt = message.createdAt;
+          return message;
+        }
+
+        function notify(data, userId, type, conversationId) {
+          if (!userId) return;
+          data.notifications.push({
+            id: crypto.randomUUID(),
+            userId,
+            type,
+            conversationId,
+            createdAt: new Date().toISOString(),
+          });
+        }
+
+        function applyToJob(jobId, message, portfolioUrl) {
+          return transact((data) => {
+            const user = data.users.find(
+              (item) => item.id === data.session?.userId,
+            );
+            const job = data.jobs.find(
+              (item) => item.id === jobId && item.status === "掲載中",
+            );
+            if (
+              user?.role !== "creator" ||
+              user.status !== "approved" ||
+              !job
+            ) {
+              throw new Error(
+                "承認済みクリエイターとして公開案件に応募してください。",
+              );
+            }
+            if (
+              data.applications.some(
+                (item) => item.jobId === jobId && item.creatorId === user.id,
+              )
+            ) {
+              throw new Error("すでに応募済みです。");
+            }
+            if (!message?.trim() || !/^https?:\/\//i.test(portfolioUrl || "")) {
+              throw new Error("応募メッセージと実績URLを確認してください。");
+            }
+            const application = {
+              id: crypto.randomUUID(),
+              jobId,
+              creatorId: user.id,
+              companyId: job.companyId ?? null,
+              message: message.trim(),
+              portfolioUrl,
+              status: "応募",
+              createdAt: new Date().toISOString(),
+            };
+            const conversation = {
+              id: crypto.randomUUID(),
+              applicationId: application.id,
+              jobId,
+              creatorId: user.id,
+              companyId: application.companyId,
+              createdAt: application.createdAt,
+              updatedAt: application.createdAt,
+            };
+            data.applications.push(application);
+            data.conversations.push(conversation);
+            appendMessage(
+              data,
+              conversation,
+              user.id,
+              "text",
+              application.message,
+            );
+            appendMessage(
+              data,
+              conversation,
+              null,
+              "system",
+              "応募が送信されました",
+            );
+            notify(
+              data,
+              conversation.companyId,
+              "application",
+              conversation.id,
+            );
+            return conversation;
+          });
+        }
+
+        function getConversationsForUser() {
+          const user = currentUser();
+          if (!user) return [];
+          return getCollection("conversations")
+            .filter((item) =>
+              user.role === "company"
+                ? item.companyId === user.id
+                : user.role === "creator" && item.creatorId === user.id,
+            )
+            .sort((a, b) =>
+              (b.updatedAt || b.createdAt).localeCompare(
+                a.updatedAt || a.createdAt,
+              ),
+            );
+        }
+
+        function sendMessage(conversationId, body) {
+          return transact((data) => {
+            const { user, conversation } = participant(data, conversationId);
+            if (!body?.trim() || body.length > 5000)
+              throw new Error("本文は1〜5000文字で入力してください。");
+            appendMessage(data, conversation, user.id, "text", body.trim());
+            notify(
+              data,
+              user.id === conversation.creatorId
+                ? conversation.companyId
+                : conversation.creatorId,
+              "message",
+              conversationId,
+            );
+          });
+        }
+
+        function markConversationRead(conversationId) {
+          const data = load();
+          const { user } = participant(data, conversationId);
+          if (
+            !data.messages.some(
+              (item) =>
+                item.conversationId === conversationId &&
+                !(item.readBy || []).includes(user.id),
+            )
+          )
+            return;
+          return transact((next) => {
+            next.messages
+              .filter((item) => item.conversationId === conversationId)
+              .forEach((item) => {
+                item.readBy = [...new Set([...(item.readBy || []), user.id])];
+              });
+          });
+        }
+
+        function proposeContract(conversationId, values) {
+          return transact((data) => {
+            const { user, conversation } = participant(data, conversationId);
+            if (
+              user.role !== "company" ||
+              user.id !== conversation.companyId ||
+              user.status !== "approved"
+            ) {
+              throw new Error("案件のオーナー企業のみ提示できます。");
+            }
+            if (
+              data.contracts.some(
+                (item) =>
+                  item.conversationId === conversationId &&
+                  [
+                    "提示中",
+                    "契約成立",
+                    "支払済（預かり中）",
+                    "納品済（検収中）",
+                    "修正依頼中",
+                    "完了",
+                  ].includes(item.status),
+              )
+            ) {
+              throw new Error("有効な契約があります。");
+            }
+            const amount = Number(values.amount);
+            if (
+              values.amount === "" ||
+              !Number.isSafeInteger(amount) ||
+              amount < 0 ||
+              amount > 100000000 ||
+              !/^\d{4}-\d{2}-\d{2}$/.test(values.deadline || "") ||
+              !Number.isFinite(Date.parse(values.deadline)) ||
+              new Date(values.deadline).toISOString().slice(0, 10) !==
+                values.deadline ||
+              !values.deliverable?.trim() ||
+              values.deliverable.length > 3000
+            ) {
+              throw new Error("金額・納期・成果物を確認してください。");
+            }
+            const now = new Date().toISOString();
+            const contract = {
+              id: crypto.randomUUID(),
+              applicationId: conversation.applicationId,
+              conversationId,
+              jobId: conversation.jobId,
+              companyId: user.id,
+              creatorId: conversation.creatorId,
+              amount,
+              deadline: values.deadline,
+              deliverable: values.deliverable.trim(),
+              status: "提示中",
+              createdAt: now,
+              updatedAt: now,
+            };
+            data.contracts.push(contract);
+            appendMessage(
+              data,
+              conversation,
+              user.id,
+              "contract",
+              "契約が提示されました",
+              contract.id,
+            );
+            notify(data, conversation.creatorId, "contract", conversationId);
+            return contract;
+          });
+        }
+
+        function respondToContract(contractId, accept) {
+          return transact((data) => {
+            const contract = data.contracts.find(
+              (item) => item.id === contractId,
+            );
+            if (!contract) throw new Error("契約が見つかりません。");
+            const { user, conversation } = participant(
+              data,
+              contract.conversationId,
+            );
+            if (
+              user.role !== "creator" ||
+              user.id !== contract.creatorId ||
+              contract.status !== "提示中"
+            ) {
+              throw new Error("この契約には回答できません。");
+            }
+            contract.status = accept ? "契約成立" : "辞退";
+            contract.updatedAt = new Date().toISOString();
+            if (accept)
+              data.applications.find(
+                (item) => item.id === contract.applicationId,
+              ).status = "契約成立";
+            appendMessage(
+              data,
+              conversation,
+              null,
+              "system",
+              accept ? "契約が成立しました" : "契約が辞退されました",
+            );
+            notify(data, conversation.companyId, "contract", conversation.id);
+          });
+        }
+
+        function calcFee(job, amount) {
+          return amount === 0
+            ? 500
+            : Math.round(
+                amount *
+                  (String(job?.role || "").includes("SNS運用") ? 0.15 : 0.1),
+              );
+        }
+
+        function contractActor(data, id, role, statuses) {
+          const contract = data.contracts.find((item) => item.id === id);
+          if (!contract) throw new Error("契約が見つかりません。");
+          const { user, conversation } = participant(
+            data,
+            contract.conversationId,
+          );
+          if (
+            user.role !== role ||
+            user.status !== "approved" ||
+            contract[`${role}Id`] !== user.id ||
+            !statuses.includes(contract.status)
+          ) {
+            throw new Error("この契約では操作できません。");
+          }
+          return { contract, conversation };
+        }
+
+        function payContract(id, priority = false) {
+          return transact((data) => {
+            const { contract, conversation } = contractActor(
+              data,
+              id,
+              "company",
+              ["契約成立"],
+            );
+            if (data.payments.some((item) => item.contractId === id))
+              throw new Error("決済済みです。");
+            const fee = calcFee(
+              data.jobs.find((item) => item.id === contract.jobId),
+              contract.amount,
+            );
+            const priorityFee = priority ? 2000 : 0;
+            data.payments.push({
+              id: crypto.randomUUID(),
+              kind: "案件",
+              contractId: id,
+              companyId: contract.companyId,
+              creatorId: contract.creatorId,
+              amount: contract.amount,
+              fee,
+              priorityFee,
+              total: contract.amount + fee + priorityFee,
+              status: "預かり中",
+              createdAt: new Date().toISOString(),
+            });
+            contract.status = "支払済（預かり中）";
+            appendMessage(
+              data,
+              conversation,
+              null,
+              "system",
+              "お支払いが完了しました（預かり中）",
+            );
+          });
+        }
+
+        function deliverContract(id, url, message) {
+          return transact((data) => {
+            const { contract, conversation } = contractActor(
+              data,
+              id,
+              "creator",
+              ["支払済（預かり中）", "修正依頼中"],
+            );
+            let parsed;
+            try {
+              parsed = new URL(url);
+            } catch {
+              throw new Error("納品URLを確認してください。");
+            }
+            if (
+              !["http:", "https:"].includes(parsed.protocol) ||
+              url.length > 2000 ||
+              !message.trim() ||
+              message.length > 5000
+            )
+              throw new Error("納品内容を確認してください。");
+            Object.assign(contract, {
+              deliveryUrl: url.trim(),
+              deliveryMessage: message.trim(),
+              deliveredAt: new Date().toISOString(),
+              status: "納品済（検収中）",
+            });
+            appendMessage(
+              data,
+              conversation,
+              null,
+              "system",
+              `納品されました\n${contract.deliveryUrl}\n${contract.deliveryMessage}`,
+            );
+          });
+        }
+
+        function completeDelivery(data, contract, automatic = false) {
+          const payment = data.payments.find(
+            (item) =>
+              item.contractId === contract.id && item.status === "預かり中",
+          );
+          if (
+            !payment ||
+            data.payouts.some((item) => item.contractId === contract.id)
+          )
+            throw new Error("決済状態を確認してください。");
+          const now = new Date();
+          const month = new Intl.DateTimeFormat("sv-SE", {
+            timeZone: "Asia/Tokyo",
+            year: "numeric",
+            month: "2-digit",
+          }).format(now);
+          const [year, monthNumber] = month.split("-").map(Number);
+          const payoutDate = new Date(Date.UTC(year, monthNumber + 1, 0))
+            .toISOString()
+            .slice(0, 10);
+          contract.status = "完了";
+          contract.completedAt = now.toISOString();
+          payment.status = "支払確定";
+          data.payouts.push({
+            id: crypto.randomUUID(),
+            creatorId: contract.creatorId,
+            contractId: contract.id,
+            amount: contract.amount,
+            status: "未払い",
+            closingMonth: month,
+            payoutDate,
+            createdAt: now.toISOString(),
+          });
+          appendMessage(
+            data,
+            data.conversations.find(
+              (item) => item.id === contract.conversationId,
+            ),
+            null,
+            "system",
+            automatic
+              ? "48時間経過により自動承認されました。契約完了（報酬確定）"
+              : "検収が承認されました。契約完了（報酬確定）",
+          );
+        }
+
+        function reviewDelivery(id, approve, reason = "") {
+          return transact((data) => {
+            const { contract, conversation } = contractActor(
+              data,
+              id,
+              "company",
+              ["納品済（検収中）"],
+            );
+            if (approve) completeDelivery(data, contract);
+            else {
+              if (!reason.trim() || reason.length > 3000)
+                throw new Error("修正理由を入力してください（3000文字以内）。");
+              contract.status = "修正依頼中";
+              appendMessage(
+                data,
+                conversation,
+                null,
+                "system",
+                `修正依頼：${reason.trim()}`,
+              );
+            }
+          });
+        }
+
+        function runAutoApprovals() {
+          const expired = (item) =>
+            item.status === "納品済（検収中）" &&
+            Date.now() - Date.parse(item.deliveredAt) >= 48 * 60 * 60 * 1000;
+          if (!load().contracts.some(expired)) return;
+          return transact((data) =>
+            data.contracts
+              .filter(expired)
+              .forEach((item) => completeDelivery(data, item, true)),
+          );
+        }
+
+        function simulateReviewDeadline(id) {
+          return transact((data) => {
+            const { contract } = contractActor(data, id, "company", [
+              "納品済（検収中）",
+            ]);
+            contract.deliveredAt = new Date(
+              Date.parse(contract.deliveredAt) - 48 * 60 * 60 * 1000,
+            ).toISOString();
+          });
+        }
+
+        function planQuote(plan) {
+          const user = currentUser();
+          if (user?.role !== "company" || user.status !== "approved")
+            throw new Error("承認済み企業でログインしてください。");
+          const prices = { フリー: 0, スタンダード: 9800, プロ: 29800 };
+          if (!Object.hasOwn(prices, plan))
+            throw new Error("プランを確認してください。");
+          const subscription = getCollection("subscriptions").find(
+            (item) => item.userId === user.id,
+          );
+          if (subscription?.plan === plan)
+            throw new Error("現在のプランです。");
+          const trial =
+            prices[plan] > 0 &&
+            !subscription?.trialUsed &&
+            !getCollection("payments").some(
+              (item) =>
+                item.companyId === user.id &&
+                item.kind === "プラン" &&
+                ["スタンダード", "プロ"].includes(item.plan),
+            );
+          return { trial, amount: trial ? 0 : prices[plan] };
+        }
+
+        function changePlan(plan) {
+          const quote = planQuote(plan);
+          return transact((data) => {
+            const userId = data.session.userId;
+            let subscription = data.subscriptions.find(
+              (item) => item.userId === userId,
+            );
+            if (!subscription) {
+              subscription = { id: crypto.randomUUID(), userId };
+              data.subscriptions.push(subscription);
+            }
+            const renewal = new Date();
+            if (quote.trial) renewal.setDate(renewal.getDate() + 30);
+            else {
+              const day = renewal.getDate();
+              renewal.setDate(1);
+              renewal.setMonth(renewal.getMonth() + 1);
+              const lastDay = new Date(
+                renewal.getFullYear(),
+                renewal.getMonth() + 1,
+                0,
+              ).getDate();
+              renewal.setDate(Math.min(day, lastDay));
+            }
+            Object.assign(subscription, {
+              plan,
+              status: quote.trial ? "トライアル中" : "有効",
+              trialUsed: Boolean(subscription.trialUsed || quote.trial),
+              trialEndsAt: quote.trial ? renewal.toISOString() : null,
+              nextRenewalDate: plan === "フリー" ? null : renewal.toISOString(),
+            });
+            data.payments.push({
+              id: crypto.randomUUID(),
+              kind: "プラン",
+              companyId: userId,
+              plan,
+              amount: quote.amount,
+              fee: 0,
+              priorityFee: 0,
+              total: quote.amount,
+              status: quote.trial ? "完了（トライアル）" : "完了",
+              createdAt: new Date().toISOString(),
+            });
+          });
+        }
+
+        function savePayoutAccount(values) {
+          return transact((data) => {
+            const user = data.users.find(
+              (item) => item.id === data.session?.userId,
+            );
+            if (user?.role !== "creator")
+              throw new Error("クリエイターでログインしてください。");
+            if (
+              !/^\d{7}$/.test(values.number) ||
+              !["普通", "当座"].includes(values.type) ||
+              ["bank", "branch", "holder"].some(
+                (key) => !values[key]?.trim() || values[key].length > 100,
+              )
+            )
+              throw new Error(
+                "口座情報を確認してください。口座番号は7桁で入力してください。",
+              );
+            const profile = data.creatorProfiles.find(
+              (item) => item.userId === user.id,
+            );
+            profile.payoutAccount = {
+              bank: values.bank.trim(),
+              branch: values.branch.trim(),
+              type: values.type,
+              last4: values.number.slice(-4),
+              holder: values.holder.trim(),
+            };
+          });
+        }
+
+        return {
+          storageAvailable: storage.available,
+          calcFee,
+          payContract,
+          deliverContract,
+          reviewDelivery,
+          runAutoApprovals,
+          simulateReviewDeadline,
+          planQuote,
+          changePlan,
+          savePayoutAccount,
+          applyToJob,
+          getConversationsForUser,
+          sendMessage,
+          markConversationRead,
+          proposeContract,
+          respondToContract,
+          reviewUser,
+          toggleBadge,
+          publishJob,
+          createJob,
+          load,
+          save,
+          getCollection,
+          add,
+          update,
+          currentUser,
+          login,
+          register,
+          saveProfile,
+          reset: () => save(seed()),
+          logout: () =>
+            transact((next) => {
+              next.session = null;
+            }),
+        };
+      })();
+
+      let storeError = "";
+      let jobs = [];
+      let creators = [];
+      function refreshData() {
+        jobs = RMStore.getCollection("jobs").filter(
+          (job) => job.status === "掲載中",
+        );
+        creators = RMStore.getCollection("creatorProfiles").filter(
+          (profile) => {
+            if (!profile.userId) return true;
+            return RMStore.getCollection("users").some(
+              (user) =>
+                user.id === profile.userId && user.status === "approved",
+            );
+          },
+        );
+      }
+      try {
+        RMStore.runAutoApprovals();
+        refreshData();
+      } catch (error) {
+        storeError = error.message;
+      }
+
+      const feeSummary =
+        "成約手数料は制作案件10%・SNS運用支援15%（いずれも企業負担）。商品提供のみの案件は500円/件、優先掲載は2,000円/件です。";
+      const feeNote =
+        "プラン料金は税込、成約手数料・オプション料金は別途です。手数料と商品の発送料は企業負担です。";
+      const faqData = {
+        company: [
+          [
+            "掲載までにどれくらいかかりますか？",
+            "無料登録後、企業審査に約3〜5営業日かかります。審査後に案件を作成・掲載できます。",
+          ],
+          [
+            "どんな費用がかかりますか？",
+            "月額はフリー0円、スタンダード9,800円、プロ29,800円（税込）。全プラン登録後30日間無料トライアルです。プラン料金は税込、成約手数料・オプション料金は別途です。手数料と商品の発送料は企業負担です。",
+          ],
+          ["成約手数料はいくらですか？", feeSummary + feeNote],
+          [
+            "納品確認と支払いのタイミングは？",
+            "納品後48時間以内に検収してください。決済は月末締め翌月末払いです。",
+          ],
+          [
+            "制作物の利用条件はどう決めますか？",
+            "利用媒体・期間・二次利用・修正回数などをチャットで交渉し、契約確認時に双方で合意してください。",
+          ],
+          [
+            "無料トライアルに手数料は含まれますか？",
+            "30日間は月額プラン料金が無料です。プラン料金は税込、成約手数料・オプション料金は別途です。手数料と商品の発送料は企業負担です。",
+          ],
+        ],
+        creator: [
+          [
+            "フォロワーがいなくても参加できますか？",
+            "はい。フォロワー0人から参加できます。フォロワー数よりも、制作スキルや伝える力を評価します。",
+          ],
+          [
+            "クリエイターの利用料金は？",
+            "登録・研修・応募を含め、クリエイターは完全無料です。",
+          ],
+          [
+            "初心者でも応募できますか？",
+            "無料の基礎研修とスキルチェックを受けた後、応募できます。スキルが認められると認定レビュークリエイターバッジが付与されます。",
+          ],
+          [
+            "報酬はいつ受け取れますか？",
+            "検収完了後、月末締め翌月末払いで報酬を受け取ります。",
+          ],
+          [
+            "SNS運用の仕事にも挑戦できますか？",
+            "はい。レビュー制作で実績を重ね、継続的なSNS運用支援へステップアップできます。",
+          ],
+          [
+            "このサイトから実際に応募できますか？",
+            "このサイトはサンプルです。登録・応募・お問い合わせフォームはデモ表示のみで、外部送信やデータ保存は行いません。",
+          ],
+        ],
+      };
+      const flowData = {
+        company: [
+          [
+            "無料登録・企業審査",
+            "企業情報を登録。審査には約3〜5営業日かかります。",
+          ],
+          [
+            "案件作成・掲載",
+            "制作内容、報酬、納期、利用条件を設定して募集開始。",
+          ],
+          [
+            "応募者の受付・比較",
+            "制作実績や得意分野から、相性の良いクリエイターを比較します。",
+          ],
+          [
+            "チャットで条件交渉・契約確認",
+            "制作物の利用範囲、修正回数、報酬などを双方で確認。",
+          ],
+          ["選定・発注", "条件が合意できたクリエイターへ正式に発注します。"],
+          ["納品確認", "納品から48時間以内に内容を検収します。"],
+          ["決済", "月末締め翌月末払いでお支払い。" + feeSummary + feeNote],
+        ],
+        creator: [
+          ["無料登録", "名前・メールアドレスなどを登録。利用は完全無料です。"],
+          [
+            "審査・無料の基礎研修＋スキルチェック",
+            "基礎を学んでスキルをチェック。認定レビュークリエイターを目指せます。",
+          ],
+          [
+            "案件検索・応募／スカウト受信",
+            "得意分野や希望報酬から案件を選び、制作実績を添えて応募します。",
+          ],
+          [
+            "条件交渉・契約",
+            "報酬や納期、利用範囲をチャットで確認し、契約します。",
+          ],
+          [
+            "制作・納品",
+            "契約内容に沿って制作し、プラットフォーム内で納品します。",
+          ],
+          ["報酬受取", "検収完了後、月末締め翌月末払いで報酬を受け取ります。"],
+        ],
+      };
+      const plans = [
+        {
+          name: "フリー",
+          price: 0,
+          limit: 1,
+          features: [
+            "案件掲載 1件 / 月",
+            "基本の応募受付",
+            "チャット・契約・納品管理",
+          ],
+        },
+        {
+          name: "スタンダード",
+          price: 9800,
+          limit: 10,
+          features: [
+            "案件掲載 10件 / 月",
+            "応募者管理・比較機能",
+            "優先掲載オプション利用可",
+          ],
+        },
+        {
+          name: "プロ",
+          price: 29800,
+          limit: Infinity,
+          features: [
+            "案件掲載 無制限",
+            "応募者管理・比較機能",
+            "スカウト機能",
+            "分析・レポート機能",
+          ],
+        },
+      ];
+      const main = document.getElementById("main");
+      const homeHTML = main.innerHTML;
+      const modal = document.getElementById("modal");
+      const yen = (value) => "¥" + Number(value).toLocaleString("ja-JP");
+      const options = (list, all) =>
+        `<option value="">${all}</option>` +
+        list.map((item) => `<option>${item}</option>`).join("");
+      const head = (en, title, description) =>
+        `<section class="page-head"><div class="container"><span class="eyebrow">${en}</span><h1>${title}</h1><p>${description}</p></div></section>`;
+      const tabs = (name, labels) =>
+        `<div class="tabs" role="tablist" aria-label="${name}">${labels.map((label, i) => `<button role="tab" aria-selected="${i === 0}" data-tab="${i}">${label}</button>`).join("")}</div>`;
+      function productArt(type) {
+        let drawing;
+        if (type === "headphone") {
+          drawing =
+            '<path d="M38 75V58a42 42 0 0 1 84 0v17" stroke="#3d5058" stroke-width="13" fill="none"/><rect x="27" y="61" width="28" height="50" rx="13" fill="#4f6872"/><rect x="105" y="61" width="28" height="50" rx="13" fill="#4f6872"/><path d="M35 70v30M114 70v30" stroke="#8ca1a9" stroke-width="5" stroke-linecap="round"/>';
+        } else if (type === "camp") {
+          drawing =
+            '<path d="M67 36V24a13 13 0 0 1 26 0v12" stroke="#50594c" stroke-width="5" fill="none"/><path d="M52 42h56l-8 60H60z" fill="#f0d5a2"/><path d="M59 49h42l-7 45H66z" fill="#fff0c8"/><path d="M50 41h60l-9-13H59zM55 102h50v10H55z" fill="#52614d"/><path d="M69 42v59M91 42v59" stroke="#7c8163" stroke-width="3"/>';
+        } else if (type === "keyboard") {
+          drawing =
+            '<g transform="translate(12 31) rotate(-9 70 30)"><rect width="139" height="65" rx="7" fill="#85958f"/><rect x="4" y="4" width="131" height="54" rx="4" fill="#c4cfc7"/>' +
+            Array.from(
+              { length: 36 },
+              (_, i) =>
+                `<rect x="${9 + (i % 12) * 10}" y="${9 + Math.floor(i / 12) * 12}" width="8" height="9" rx="1.5" fill="${i % 7 === 0 ? "#7a8b7d" : "#f2f1e7"}"/>`,
+            ).join("") +
+            '<rect x="38" y="46" width="58" height="8" rx="2" fill="#f2f1e7"/></g>';
+        } else {
+          drawing =
+            '<ellipse cx="80" cy="111" rx="42" ry="6" fill="#ccc6bb"/><rect x="44" y="40" width="72" height="67" rx="18" fill="#faf8f1"/><ellipse cx="80" cy="41" rx="35" ry="10" fill="#dedccf"/><ellipse cx="80" cy="41" rx="17" ry="4" fill="#9da89e"/><circle cx="80" cy="83" r="4" fill="#8fa69b"/><path d="M75 26q-12-10 0-20M87 26q-10-10 0-20" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/>';
+        }
+        return `<div class="product-art ${type}"><svg viewBox="0 0 160 125" role="img" aria-label="${type === "camp" ? "アウトドアランタン" : type === "keyboard" ? "キーボード" : type === "headphone" ? "ヘッドホン" : "生活家電"}のイラスト">${drawing}</svg></div>`;
+      }
+      function jobCard(job) {
+        job = displayJob(job);
+        return `
+          <article class="card job-card">
+            <a class="job-card-link" href="#job/${job.id}" aria-label="${job.title}の詳細">
+              ${productArt(job.art)}
+              <div class="card-body">
+                <div class="job-tags"><span class="tag">${job.role}</span>${job.companyId ? "" : '<span class="tag sample-tag">サンプル</span>'}</div>
+                <h3 class="job-card-title">${job.title}</h3>
+                <p class="job-company muted">${job.company}</p>
+                <p class="job-summary muted">${job.summary}</p>
+                <div class="money">${yen(job.budget)}<small> ${job.monthly ? "/ 月" : "/ 件"}</small></div>
+                <div class="job-card-meta">
+                  <span>募集締切 ${job.deadline.replaceAll("-", ".")}</span>
+                  <span>対応SNS：${job.sns.join(" / ")}</span>
+                  <span>${job.productSupport}</span>
+                </div>
+              </div>
+            </a>
+          </article>`;
+      }
+      function creatorCard(creator) {
+        return `
+          <article class="card creator-card">
+            <div class="card-body">
+              <div class="creator-identity"><span class="avatar">${escapeHTML(creator.name.slice(0, 1))}</span><h3>${escapeHTML(creator.name)}</h3></div>
+              <p class="creator-role">${escapeHTML(creator.role)}</p>
+              <p class="creator-certification ${creator.badge ? "certified" : ""}">${creator.badge ? "✦ 認定レビュークリエイター" : "認定バッジなし"}</p>
+              <div class="creator-tags"><span class="tag">${escapeHTML(creator.genre)}</span><span class="tag">${escapeHTML(creator.skill)}</span></div>
+              <p class="creator-sns">対応SNS：${escapeHTML(creator.sns.join(" / "))}</p>
+              <dl class="creator-stats"><div><dt>制作実績</dt><dd>${creator.works}<small>件</small></dd></div><div><dt>評価</dt><dd>★ ${creator.rating}<small> / 5</small></dd></div></dl>
+              <div class="card-bottom"><span><strong>${yen(creator.price)}</strong><span class="small muted">〜${creator.role === roles[3] ? "/月" : "/件"}</span></span><button class="text-link" data-creator="${creators.indexOf(creator)}">詳細を見る →</button></div>
+            </div>
+          </article>`;
+      }
+      function renderPlans() {
+        return `<div class="plans">${plans.map((plan, i) => `<article class="plan ${i === 1 ? "recommended" : ""}"><span class="plan-badge">${i === 1 ? "いちばん人気のプラン" : i === 0 ? "まずは試してみたい方へ" : "継続的な制作・運用に"}</span><h3 style="margin:12px 0">${plan.name}</h3><div class="money">${yen(plan.price)}<small> / 月（税込）</small></div><ul>${plan.features.map((feature) => `<li>${feature}</li>`).join("")}</ul><button class="btn ${i === 1 ? "primary" : ""}" data-register="company">無料で案件を掲載 →</button></article>`).join("")}</div>`;
+      }
+      function bindTabs(container, callback) {
+        container.querySelectorAll("[data-tab]").forEach((button) => {
+          button.addEventListener("click", () => {
+            container
+              .querySelectorAll("[data-tab]")
+              .forEach((tab) =>
+                tab.setAttribute("aria-selected", String(tab === button)),
+              );
+            callback(Number(button.dataset.tab));
+          });
+        });
+      }
+      function renderFlowContent(audience) {
+        return `<div class="steps">${flowData[audience].map(([title, copy], i) => `<article class="step"><span class="step-number">${String(i + 1).padStart(2, "0")}</span><div><h3>${title}</h3><p>${copy}</p></div></article>`).join("")}</div>`;
+      }
+      function faqHTML(audience, count = 99) {
+        return faqData[audience]
+          .slice(0, count)
+          .map(
+            ([question, answer]) =>
+              `<details><summary>${question}</summary><p>${answer}</p></details>`,
+          )
+          .join("");
+      }
+      function renderService() {
+        main.innerHTML =
+          head(
+            "ABOUT REVIEWMATCH",
+            "つくる力と、ブランドをつなぐ。",
+            "レビュー制作からSNS運用まで。目的に合うパートナーと出会えます。",
+          ) +
+          `<section class="section"><div class="container">${tabs("利用者別サービス", ["企業の方", "クリエイターの方"])}<div id="service-content"></div></div></section><section class="section soft"><div class="container"><span class="eyebrow">PRICING</span><h2>目的に合わせて、選べる3つのプラン。</h2><p class="muted">全プラン登録後30日間無料。クリエイターは完全無料です。</p>${renderPlans()}<p class="small muted" style="margin-top:20px">${feeSummary}<br>${feeNote}<br><a class="text-link" href="#pricing">料金の詳細とシミュレーター →</a></p></div></section>`;
+        const update = (index) => {
+          const audience = index === 0 ? "company" : "creator";
+          document.getElementById("service-content").innerHTML =
+            `<div style="text-align:center;margin-bottom:40px"><h2>${index === 0 ? "商品の魅力を伝える、頼れるパートナー。" : "フォロワー0人から、スキルで選ばれる。"}</h2><p class="muted">${index === 0 ? "制作実績を見ながら比較。単発のUGCから継続的なSNS運用支援まで依頼できます。" : "無料の基礎研修とスキルチェックでスタート。認定制度で強みを伝え、制作からSNS運用へ。"}</p><button class="btn primary" data-register="${audience}">${index === 0 ? "無料で案件を掲載" : "無料で仕事を探す"} →</button></div><h2 style="text-align:center">ご利用の流れ</h2>${renderFlowContent(audience)}<h2 style="text-align:center;margin-top:55px">よくある質問</h2><div class="faq">${faqHTML(audience, 3)}</div>`;
+        };
+        bindTabs(main, update);
+        update(0);
+      }
+      function renderJobs() {
+        main.innerHTML =
+          head(
+            "EXPLORE PROJECTS",
+            "あなたに合う案件を、見つけよう。",
+            "レビュー動画・UGC・SNS運用。得意なことから、次の一歩へ。",
+          ) +
+          `<section class="section"><div class="container"><form class="filters" id="job-filters"><label for="keyword">キーワード<input id="keyword" type="search" placeholder="商品名・企業名など"></label><label for="job-role">職種<select id="job-role">${options(roles, "すべての職種")}</select></label><label for="min-budget">報酬の下限<input id="min-budget" type="number" min="0" step="1000" placeholder="0 円"></label><label for="max-budget">報酬の上限<input id="max-budget" type="number" min="0" step="1000" placeholder="上限なし"></label></form><div id="active-filters" class="active-filters" role="group" aria-label="適用中の絞り込み条件"></div><p class="small muted">SNS運用の報酬は月額です。金額は1件あたり・月額それぞれの表示額で比較します。</p><div class="result-bar"><strong id="job-count" aria-live="polite"></strong><label class="visually-hidden" for="sort">案件の並び順</label><select id="sort" aria-label="案件の並び順"><option value="new">新着順</option><option value="reward">報酬の高い順</option><option value="deadline">締切が近い順</option></select></div><div class="grid" id="job-results"></div></div></section>`;
+        const update = () => {
+          const keyword = document
+            .getElementById("keyword")
+            .value.trim()
+            .toLowerCase();
+          const role = document.getElementById("job-role").value;
+          const min = Number(document.getElementById("min-budget").value || 0);
+          const max = Number(
+            document.getElementById("max-budget").value === ""
+              ? Infinity
+              : document.getElementById("max-budget").value,
+          );
+          const sort = document.getElementById("sort").value;
+          const filtered = jobs.filter(
+            (job) =>
+              `${job.title} ${job.company} ${job.category}`
+                .toLowerCase()
+                .includes(keyword) &&
+              (!role || role === job.role) &&
+              job.budget >= min &&
+              job.budget <= max,
+          );
+          filtered.sort((a, b) =>
+            sort === "reward"
+              ? b.budget - a.budget
+              : sort === "deadline"
+                ? a.deadline.localeCompare(b.deadline)
+                : b.id - a.id,
+          );
+          document.getElementById("job-count").textContent =
+            `${filtered.length} 件の案件`;
+          document.getElementById("job-results").innerHTML = filtered.length
+            ? filtered.map(jobCard).join("")
+            : '<div class="empty"><p>条件に合う案件がありません。検索条件を変更してください。</p><button type="button" class="btn" data-reset-filters>条件をリセット</button></div>';
+          renderFilterChips();
+        };
+        function resetFilters() {
+          ["keyword", "job-role", "min-budget", "max-budget"].forEach(
+            (id) => (document.getElementById(id).value = ""),
+          );
+          update();
+        }
+        function renderFilterChips() {
+          const chipContainer = document.getElementById("active-filters");
+          chipContainer.replaceChildren();
+          const conditions = [
+            ["keyword", "キーワード"],
+            ["job-role", "職種"],
+            ["min-budget", "報酬の下限"],
+            ["max-budget", "報酬の上限"],
+          ];
+          conditions.forEach(([id, label]) => {
+            const value = document.getElementById(id).value.trim();
+            if (!value) return;
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "filter-chip";
+            button.textContent = `${label}：${id.includes("budget") ? yen(value) : value} ×`;
+            button.setAttribute("aria-label", `${label}「${value}」を解除`);
+            button.addEventListener("click", () => {
+              document.getElementById(id).value = "";
+              update();
+              document.getElementById(id).focus();
+            });
+            chipContainer.append(button);
+          });
+          if (chipContainer.childElementCount) {
+            const clear = document.createElement("button");
+            clear.type = "button";
+            clear.className = "text-link";
+            clear.textContent = "すべて解除";
+            clear.addEventListener("click", () => {
+              resetFilters();
+              document.getElementById("keyword").focus();
+            });
+            chipContainer.append(clear);
+          }
+        }
+        document
+          .getElementById("job-results")
+          .addEventListener("click", (event) => {
+            if (event.target.closest("[data-reset-filters]")) {
+              resetFilters();
+              document.getElementById("keyword").focus();
+            }
+          });
+        main
+          .querySelectorAll("input, select")
+          .forEach((input) => input.addEventListener("input", update));
+        document
+          .getElementById("job-filters")
+          .addEventListener("submit", (event) => event.preventDefault());
+        document
+          .getElementById("job-filters")
+          .addEventListener("reset", () => setTimeout(update, 0));
+        update();
+      }
+      function renderDetail(id) {
+        const source = jobs.find((item) => item.id === id);
+        const job = source ? displayJob(source) : null;
+        if (!job) {
+          main.innerHTML =
+            head(
+              "NOT FOUND",
+              "案件が見つかりません",
+              "案件一覧から、ほかの案件を探してみてください。",
+            ) +
+            '<div class="container section"><a class="btn primary" href="#jobs">案件一覧へ戻る</a></div>';
+          return;
+        }
+        main.innerHTML =
+          head("PROJECT DETAILS", job.title, job.company) +
+          `<section class="section"><div class="container"><a href="#jobs" class="text-link">← 案件一覧へ戻る</a><div class="detail-layout" style="margin-top:25px"><article><div class="panel">${tabs("案件の詳細", ["案件情報", "企業情報", "応募方法"])}<div class="detail-copy" id="detail-content"></div></div></article><aside><div class="panel"><span class="tag">${job.role}</span><div class="money" style="margin:20px 0">${yen(job.budget)}<small> ${job.monthly ? "/ 月" : "/ 件"}</small></div><p class="small muted">募集締切：${job.deadline}<br>カテゴリ：${job.category}<br>${job.productSupport} / オンライン対応<br>対応SNS：${job.sns.join(" / ")}</p><button class="btn primary" style="width:100%" data-apply="${job.id}">この案件に応募する →</button><p class="small muted" style="margin:12px 0 0">${job.companyId ? "※ブラウザ内のデモ案件です。" : "※サンプル案件です。"}応募は承認済みクリエイターのログイン時に、このブラウザ内へ保存されます。</p></div></aside></div><h2 style="margin-top:60px">こちらの案件もおすすめ</h2><div class="grid">${jobs
+            .filter(
+              (item) => item.id !== id && item.category === source.category,
+            )
+            .slice(0, 3)
+            .map(jobCard)
+            .join("")}</div></div></section>`;
+        const update = (index) => {
+          document.getElementById("detail-content").innerHTML =
+            index === 0
+              ? `<h2 style="font-size:var(--text-h2)">制作内容</h2><p>${job.detail}</p><h3>応募条件</h3><p>${job.condition}</p><p class="small muted">利用媒体・期間・二次利用の条件は、契約前にチャットで合意してください。</p>`
+              : index === 1
+                ? `<h2 style="font-size:var(--text-h2)">${job.company}</h2><p>業種：${job.industry}\n所在地：${job.location}\n評価：★ ${job.rating} / 5（${job.reviews}件のレビュー）</p><p>${job.companyId ? escapeHTML(RMStore.getCollection("companyProfiles").find((profile) => profile.userId === source.companyId)?.description || "会社概要は未登録です。") : "使う人の毎日を豊かにする商品づくりに取り組む、架空のサンプル企業です。"}</p>`
+                : `<h2 style="font-size:var(--text-h2)">あなたの得意を、教えてください。</h2><p>応募フォームに氏名・メール・自己PR・制作実績URLを入力してください。審査（基礎研修＋スキルチェック）通過後に応募できる想定のデモです。</p><p>条件交渉 → 契約確認 → 制作・納品 → 検収（48時間以内） → 報酬受取（月末締め翌月末払い）。</p><button class="btn primary" data-apply="${job.id}">応募フォームを開く →</button>`;
+        };
+        bindTabs(main, update);
+        update(0);
+      }
+      function renderCreators() {
+        main.innerHTML =
+          head(
+            "MEET THE CREATORS",
+            "いい商品を、もっと伝える人たち。",
+            "フォロワー数より、つくる力。あなたのブランドに合うパートナーを。",
+          ) +
+          `<section class="section"><div class="container"><div class="filters" style="grid-template-columns:1fr 1fr"><label for="creator-role">職種<select id="creator-role">${options(roles, "すべての職種")}</select></label><label for="creator-skill">スキル<select id="creator-skill">${options(["撮影", "編集", "企画"], "すべてのスキル")}</select></label></div><p id="creator-count" aria-live="polite"></p><div id="creator-results" class="grid"></div></div></section>`;
+        const update = () => {
+          const role = document.getElementById("creator-role").value;
+          const skill = document.getElementById("creator-skill").value;
+          const filtered = creators.filter(
+            (creator) =>
+              (!role || creator.role === role) &&
+              (!skill || creator.skill === skill),
+          );
+          document.getElementById("creator-count").textContent =
+            `${filtered.length} 人のクリエイター`;
+          document.getElementById("creator-results").innerHTML = filtered.length
+            ? filtered.map(creatorCard).join("")
+            : '<div class="empty">条件に合うクリエイターがいません。条件を変更してください。</div>';
+        };
+        main
+          .querySelectorAll("select")
+          .forEach((select) => select.addEventListener("change", update));
+        update();
+      }
+      function renderPricing() {
+        main.innerHTML =
+          head(
+            "SIMPLE PRICING",
+            "出会いを広げる、シンプルな料金。",
+            "企業は全プラン30日間無料トライアル。クリエイターは完全無料。",
+          ) +
+          `<section class="section"><div class="container">${renderPlans()}<div class="panel" style="margin-top:25px"><h3>成約手数料・オプション</h3><p class="small muted" style="margin-bottom:0">${feeSummary}<br>${feeNote}<br>優先掲載はスタンダード・プロで利用可能。トライアル中も成約手数料・オプション料金は発生します。</p></div><h2 style="margin-top:65px">料金シミュレーター</h2><p class="muted">月の掲載数から、最適なプランと費用の目安をチェック。</p><div class="simulator"><div class="sim-fields"><label for="sim-count">月の掲載案件数<input type="number" id="sim-count" min="1" max="10000" value="5" required></label><label for="sim-plan">比較するプラン<select id="sim-plan">${plans.map((plan, index) => `<option value="${index}" ${index === 1 ? "selected" : ""}>${plan.name}</option>`).join("")}</select></label><label for="sim-priority">優先掲載の件数<input type="number" id="sim-priority" min="0" max="10000" value="0" required></label><p class="small muted" id="sim-warning" role="status"></p></div><div class="sim-result" aria-live="polite" id="sim-result"></div></div></div></section>`;
+        const update = () => {
+          const countInput = document.getElementById("sim-count");
+          const priorityInput = document.getElementById("sim-priority");
+          const count = Number(countInput.value);
+          const priority = Number(priorityInput.value);
+          const selected = Number(document.getElementById("sim-plan").value);
+          const warning = document.getElementById("sim-warning");
+          if (
+            !Number.isInteger(count) ||
+            count < 1 ||
+            count > 10000 ||
+            !Number.isInteger(priority) ||
+            priority < 0 ||
+            priority > count ||
+            !countInput.value ||
+            !priorityInput.value
+          ) {
+            warning.textContent =
+              "掲載数は1〜10,000の整数、優先掲載は掲載数以下の0以上の整数で入力してください。";
+            document.getElementById("sim-result").innerHTML =
+              `<p>入力内容をご確認ください。</p><p class="small muted">${feeSummary}<br>${feeNote}</p>`;
+            return;
+          }
+          const recommended = plans.findIndex(
+            (plan, index) =>
+              count <= plan.limit && (priority === 0 || index > 0),
+          );
+          const plan = plans[selected];
+          const valid = count <= plan.limit && (priority === 0 || selected > 0);
+          warning.textContent = valid
+            ? "※30日間の無料期間終了後の通常月額の目安です。"
+            : `${plan.name}では指定の掲載条件に対応できません。おすすめプランをご確認ください。`;
+          document.getElementById("sim-result").innerHTML =
+            `<span class="eyebrow">MONTHLY ESTIMATE</span><p style="margin-bottom:6px">${plan.name}の月額目安</p><div class="money" style="font-size:36px">${valid ? yen(plan.price + priority * 2000) : "利用条件外"}</div><p class="small muted">${valid ? `月額 ${yen(plan.price)}（税込） ＋ 優先掲載 ${yen(priority * 2000)}<br>成約手数料・クリエイター報酬は別途` : "掲載上限またはオプション条件を超えています。"}</p><hr style="border:0;border-top:1px solid #d7e3f7;margin:20px 0"><strong style="color:#2563eb">おすすめ：${plans[recommended].name}</strong><p class="small">条件に合う最安プラン：${yen(plans[recommended].price + priority * 2000)} / 月（プラン料金は税込）</p><p class="small muted" style="margin:0">成約1件・報酬10,000円の場合<br>制作案件：企業負担の手数料1,000円（報酬との合計11,000円）<br>SNS運用支援：企業負担の手数料1,500円（報酬との合計11,500円）</p><p class="small muted fee-note">${feeSummary}<br>${feeNote}</p>`;
+          document
+            .getElementById("sim-result")
+            .insertAdjacentHTML(
+              "beforeend",
+              RMStore.currentUser()?.role === "company"
+                ? `<button class="btn primary" data-plan-change>マイページでプランを変更</button>`
+                : `<button class="btn primary" data-register="company">無料で登録する</button>`,
+            );
+        };
+        main
+          .querySelectorAll("input, select")
+          .forEach((input) => input.addEventListener("input", update));
+        update();
+      }
+      function renderFlow() {
+        main.innerHTML =
+          head(
+            "HOW IT WORKS",
+            "出会いから、その先まで。",
+            "企業もクリエイターも、安心して進められるシンプルな流れ。",
+          ) +
+          `<section class="section"><div class="container">${tabs("利用者別の流れ", ["企業の方", "クリエイターの方"])}<div id="flow-content"></div></div></section>`;
+        const update = (index) =>
+          (document.getElementById("flow-content").innerHTML =
+            renderFlowContent(index === 0 ? "company" : "creator"));
+        bindTabs(main, update);
+        update(0);
+      }
+      function renderFAQ() {
+        main.innerHTML =
+          head(
+            "FREQUENTLY ASKED QUESTIONS",
+            "よくある質問",
+            "はじめる前の疑問を、ここで解決。",
+          ) +
+          `<section class="section"><div class="container">${tabs("利用者別FAQ", ["企業の方", "クリエイターの方"])}<div class="faq" id="faq-content"></div><div style="text-align:center;margin-top:45px"><p class="muted">解決しない場合はこちら</p><button class="btn" data-contact>お問い合わせ →</button></div></div></section>`;
+        const update = (index) =>
+          (document.getElementById("faq-content").innerHTML = faqHTML(
+            index === 0 ? "company" : "creator",
+          ));
+        bindTabs(main, update);
+        update(0);
+      }
+      function route() {
+        let routeName = location.hash.slice(1) || "home";
+        if (storeError) {
+          main.innerHTML = `<section class="section"><div class="container panel">
+            <h1>デモデータを読み込めません</h1><p role="alert">${escapeHTML(storeError)}</p>
+            <button class="btn" data-reset-demo>デモデータをリセット</button>
+          </div></section>`;
+          return;
+        }
+        refreshData();
+        const adminDenied =
+          routeName === "admin" && RMStore.currentUser()?.role !== "admin";
+        if (adminDenied) {
+          history.replaceState(null, "", "#mypage");
+          routeName = "mypage";
+        }
+        if (routeName === "chat" || routeName.startsWith("chat/")) renderChat();
+        else if (routeName === "admin") renderAdmin();
+        else if (routeName === "mypage" || routeName === "mypage/create-job")
+          renderMyPage();
+        else if (routeName === "home") {
+          main.innerHTML = homeHTML;
+          document.getElementById("featured-jobs").innerHTML = jobs
+            .slice(0, 3)
+            .map(jobCard)
+            .join("");
+        } else if (routeName === "service") renderService();
+        else if (routeName === "jobs") renderJobs();
+        else if (routeName.startsWith("job/"))
+          renderDetail(Number(routeName.split("/")[1]));
+        else if (routeName === "creators") renderCreators();
+        else if (routeName === "pricing") renderPricing();
+        else if (routeName === "flow") renderFlow();
+        else if (routeName === "faq") renderFAQ();
+        else {
+          location.hash = "home";
+          return;
+        }
+        if (adminDenied) {
+          main.insertAdjacentHTML(
+            "afterbegin",
+            '<p class="container" role="alert">管理者権限が必要です</p>',
+          );
+        }
+        document.getElementById("navigation").classList.remove("open");
+        document
+          .getElementById("menu-button")
+          .setAttribute("aria-expanded", "false");
+        document.querySelectorAll("nav a").forEach((link) => {
+          link.classList.toggle("active", link.hash === "#" + routeName);
+          if (link.hash === "#" + routeName)
+            link.setAttribute("aria-current", "page");
+          else link.removeAttribute("aria-current");
+        });
+        if (modal.open) modal.close();
+        window.scrollTo({ top: 0, behavior: "instant" });
+        const pageTitles = {
+          admin: "管理者画面",
+          "mypage/create-job": "案件を作成",
+          mypage: "マイページ",
+          home: "商品レビュー動画・UGC制作のマッチングサービス",
+          service: "サービス紹介",
+          jobs: "案件一覧",
+          creators: "クリエイター一覧",
+          pricing: "料金プラン",
+          flow: "利用の流れ",
+          faq: "よくある質問",
+        };
+        document.title = `ReviewMatch（レビューマッチ）｜${pageTitles[routeName] || "案件詳細"}`;
+        revealSections();
+        if (routeName === "mypage/create-job") {
+          document.getElementById("create-job")?.scrollIntoView();
+          document
+            .getElementById("create-title")
+            ?.focus({ preventScroll: true });
+        }
+      }
+      let observer;
+      function revealSections() {
+        if (observer) observer.disconnect();
+        observer = new IntersectionObserver(
+          (entries) =>
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add("reveal");
+                observer.unobserve(entry.target);
+              }
+            }),
+          { threshold: 0.08 },
+        );
+        main
+          .querySelectorAll(".section-heading, .features, .cta")
+          .forEach((section) => observer.observe(section));
+      }
+      let modalTrigger;
+      let submissionTimer;
+      function openModal(title, content) {
+        clearTimeout(submissionTimer);
+        if (!modal.open) modalTrigger = document.activeElement;
+        modal.className = "";
+        delete modal.dataset.kind;
+        modal.innerHTML = `<div class="modal-top"><h2 id="modal-title" style="font-size:24px">${title}</h2><button class="close" data-close aria-label="ダイアログを閉じる">×</button></div>${content}`;
+        modal.showModal();
+        document.body.style.overflow = "hidden";
+      }
+      modal.addEventListener("close", () => {
+        clearTimeout(submissionTimer);
+        document.body.style.overflow = "";
+        modalTrigger?.focus();
+      });
+      modal.addEventListener("click", (event) => {
+        if (event.target === modal) {
+          const box = modal.getBoundingClientRect();
+          if (
+            event.clientX < box.left ||
+            event.clientX > box.right ||
+            event.clientY < box.top ||
+            event.clientY > box.bottom
+          )
+            modal.close();
+        }
+      });
+      function modalLogo(dark = false) {
+        return `
+          <span class="brand">
+            <svg viewBox="0 0 64 64" width="30" height="30" role="img" aria-label="ReviewMatchのロゴ">
+              <rect x="6" y="6" width="52" height="52" rx="14" fill="${dark ? "#FFFFFF" : "#14253D"}"/>
+              <path d="M24 32H40" stroke="${dark ? "#14253D" : "#FFFFFF"}" stroke-width="5" stroke-linecap="round"/>
+              <circle cx="21" cy="32" r="7" fill="${dark ? "#14253D" : "#FFFFFF"}"/>
+              <circle cx="43" cy="32" r="7" fill="${dark ? "#60A5FA" : "#2563EB"}" stroke="${dark ? "#14253D" : "#FFFFFF"}" stroke-width="2"/>
+            </svg>
+            <span>Review<b>Match</b></span>
+          </span>`;
+      }
+      function escapeHTML(value) {
+        return String(value).replace(
+          /[&<>"']/g,
+          (character) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[character],
+        );
+      }
+      function formField(id, label, type = "text", extra = "") {
+        const input = `<input id="${id}" name="${id}" type="${type}" required ${extra} aria-describedby="${id}-error">`;
+        return `
+          <label for="${id}">${label}</label>
+          ${type === "password" ? `<div class="password-control">${input}<button type="button" class="password-toggle" aria-label="パスワードを表示" aria-pressed="false">表示</button></div>` : input}
+          <span class="error" id="${id}-error" aria-live="polite"></span>`;
+      }
+      function updateHeader() {
+        const actions = document.getElementById("account-actions");
+        const user = storeError ? null : RMStore.currentUser();
+        actions.innerHTML = user
+          ? `<span class="account-name">${escapeHTML(user.displayName)}</span>
+             <a class="btn" href="#chat">チャット <span class="tag">${chatUnreadTotal()}</span></a>
+             <a class="btn" href="#mypage">マイページ</a>
+             ${user.role === "admin" ? '<a class="btn" href="#admin">管理者画面</a>' : ""}
+             <button class="btn" data-logout>ログアウト</button>`
+          : `<button class="btn" data-login>ログイン</button>
+             <button class="btn primary" data-register="creator">無料ではじめる <span>↗</span></button>`;
+      }
+
+      function showLogin() {
+        openModal("ログイン", "");
+        modal.className = "form-dialog";
+        modal.innerHTML = `
+          <button class="dialog-close" data-close aria-label="ダイアログを閉じる">×</button>
+          <section class="dialog-form-panel" aria-labelledby="modal-title">
+            ${modalLogo()}
+            <h2 id="modal-title" tabindex="-1">ログイン</h2>
+            <p class="dialog-description">ReviewMatchへようこそ。</p>
+            <form id="login-form" class="form-fields">
+              <div class="dialog-field">${formField("login-email", "メールアドレス", "email", 'autocomplete="username"')}</div>
+              <div class="dialog-field">${formField("login-password", "パスワード", "password", 'autocomplete="current-password"')}</div>
+              <p id="login-error" class="error" role="alert"></p>
+              <button class="btn primary" type="submit">ログイン</button>
+            </form>
+            <p class="dialog-login">アカウントをお持ちでない方は <button data-register="creator">無料登録</button></p>
+            <aside class="demo-accounts" aria-label="デモ用アカウント">
+              <h3>デモ用アカウント</h3>
+              <p class="small muted">クリックすると入力できます。このブラウザ内だけで動くデモです。</p>
+              ${[
+                ["管理者", "admin", "admin123"],
+                ["企業・スタンダード", "company", "demo1234"],
+                ["認定クリエイター", "creator", "demo1234"],
+                ["審査中クリエイター", "pending", "demo1234"],
+              ]
+                .map(
+                  ([label, account, password]) => `
+                <button type="button" data-demo-account="${account}" data-demo-password="${password}">
+                  <strong>${label}</strong><br>${account}@reviewmatch.demo / ${password}
+                </button>
+              `,
+                )
+                .join("")}
+            </aside>
+          </section>`;
+        modal.querySelector("#modal-title").focus();
+        modal.querySelectorAll("[data-demo-account]").forEach((button) => {
+          button.addEventListener("click", () => {
+            document.getElementById("login-email").value =
+              `${button.dataset.demoAccount}@reviewmatch.demo`;
+            document.getElementById("login-password").value =
+              button.dataset.demoPassword;
+          });
+        });
+        modal
+          .querySelector(".password-toggle")
+          .addEventListener("click", (event) => {
+            const input = document.getElementById("login-password");
+            const visible = input.type === "password";
+            input.type = visible ? "text" : "password";
+            event.currentTarget.textContent = visible ? "非表示" : "表示";
+            event.currentTarget.setAttribute("aria-pressed", String(visible));
+            event.currentTarget.setAttribute(
+              "aria-label",
+              visible ? "パスワードを非表示" : "パスワードを表示",
+            );
+          });
+        document
+          .getElementById("login-form")
+          .addEventListener("submit", (event) => {
+            event.preventDefault();
+            try {
+              RMStore.login(
+                document.getElementById("login-email").value,
+                document.getElementById("login-password").value,
+              );
+              goToMyPage();
+            } catch (error) {
+              document.getElementById("login-error").textContent =
+                error.message;
+            }
+          });
+      }
+
+      function goToMyPage() {
+        refreshData();
+        updateHeader();
+        modal.close();
+        if (location.hash === "#mypage") route();
+        else location.hash = "mypage";
+      }
+
+      function requireApproval() {
+        const user = RMStore.currentUser();
+        if (user && user.status !== "approved") {
+          openModal(
+            "審査ステータス",
+            '<p role="status">審査完了後に利用できます</p>',
+          );
+          return false;
+        }
+        return true;
+      }
+
+      function resetDemo() {
+        if (
+          !window.confirm(
+            "登録・編集したデータを削除して、デモデータを初期状態に戻しますか？",
+          )
+        )
+          return;
+        try {
+          RMStore.reset();
+          storeError = "";
+          refreshData();
+          updateHeader();
+          route();
+        } catch (error) {
+          openModal(
+            "保存エラー",
+            `<p role="alert">${escapeHTML(error.message)}</p>`,
+          );
+        }
+      }
+
+      function unreadCount(conversation, user) {
+        return RMStore.getCollection("messages").filter(
+          (item) =>
+            item.conversationId === conversation.id &&
+            item.senderId &&
+            item.senderId !== user.id &&
+            !(item.readBy || []).includes(user.id),
+        ).length;
+      }
+
+      function chatUnreadTotal() {
+        const user = RMStore.currentUser();
+        return user
+          ? RMStore.getConversationsForUser().reduce(
+              (sum, item) => sum + unreadCount(item, user),
+              0,
+            )
+          : 0;
+      }
+
+      function chatName(conversation, user) {
+        if (user.id === conversation.creatorId && !conversation.companyId) {
+          return (
+            RMStore.getCollection("jobs").find(
+              (item) => item.id === conversation.jobId,
+            )?.company || "サンプル企業"
+          );
+        }
+        const otherId =
+          user.id === conversation.creatorId
+            ? conversation.companyId
+            : conversation.creatorId;
+        return (
+          RMStore.getCollection("users").find((item) => item.id === otherId)
+            ?.displayName || "ユーザー"
+        );
+      }
+
+      function chatDate(value) {
+        return new Date(value).toLocaleString("ja-JP");
+      }
+
+      function paymentActions(contract, user) {
+        const id = escapeHTML(contract.id);
+        let actions = `<p>状態：${escapeHTML(contract.status)}</p>`;
+        if (contract.deliveryUrl) {
+          actions += `<p class="chat-body">納品URL：${escapeHTML(contract.deliveryUrl)}<br>${escapeHTML(contract.deliveryMessage)}</p>`;
+        }
+        if (contract.status === "納品済（検収中）") {
+          actions += `<p>検収期限：${escapeHTML(chatDate(new Date(Date.parse(contract.deliveredAt) + 48 * 60 * 60 * 1000).toISOString()))}</p>`;
+          if (user.id === contract.companyId) {
+            actions += `<button class="btn primary" data-payment-action="approve" data-id="${id}">検収して承認する</button>
+              <button class="btn" data-payment-action="return" data-id="${id}">差戻す（修正依頼）</button>
+              <button class="btn" data-payment-action="simulate" data-id="${id}">（デモ）48時間経過を再現</button>`;
+          }
+        }
+        if (user.id === contract.companyId && contract.status === "契約成立") {
+          actions += `<button class="btn primary" data-payment-action="pay" data-id="${id}">支払う（デモ決済）</button>`;
+        }
+        if (
+          user.id === contract.creatorId &&
+          ["支払済（預かり中）", "修正依頼中"].includes(contract.status)
+        ) {
+          actions += `<button class="btn primary" data-payment-action="deliver" data-id="${id}">納品する</button>`;
+        }
+        return `<div class="payment-actions">${actions}</div>`;
+      }
+
+      function financeHTML(user) {
+        if (user.role === "company") {
+          const contracts = RMStore.getCollection("contracts");
+          const jobs = RMStore.getCollection("jobs");
+          const payments = RMStore.getCollection("payments").filter(
+            (item) => item.companyId === user.id,
+          );
+          return `<div class="panel"><h2>支払履歴</h2>${dataTable(
+            [
+              "日付",
+              "種別",
+              "案件・プラン",
+              "報酬・月額",
+              "手数料",
+              "優先掲載",
+              "合計",
+              "ステータス",
+            ],
+            payments.map((item) => {
+              const contract = contracts.find(
+                (entry) => entry.id === item.contractId,
+              );
+              const title =
+                item.kind === "プラン"
+                  ? item.plan
+                  : jobs.find((entry) => entry.id === contract?.jobId)?.title;
+              return [
+                escapeHTML(chatDate(item.createdAt)),
+                escapeHTML(item.kind),
+                escapeHTML(title || "案件"),
+                yen(item.amount),
+                yen(item.fee || 0),
+                yen(item.priorityFee || 0),
+                yen(item.total),
+                escapeHTML(item.status),
+              ];
+            }),
+            "支払履歴",
+          )}</div>`;
+        }
+        const account = RMStore.getCollection("creatorProfiles").find(
+          (item) => item.userId === user.id,
+        )?.payoutAccount;
+        const payouts = RMStore.getCollection("payouts").filter(
+          (item) => item.creatorId === user.id,
+        );
+        return `<div class="panel"><h2>出金口座</h2>
+          ${account ? `<p>登録済：${escapeHTML(account.bank)} / ${escapeHTML(account.branch)} / ${escapeHTML(account.type)} / ****${escapeHTML(account.last4)} / ${escapeHTML(account.holder)}</p>` : "<p>未登録</p>"}
+          <p class="small muted">デモ用です。口座番号は下4桁のみ保存します。実際の口座情報は入力しないでください。</p>
+          <form id="payout-account-form" class="form-fields">
+            <label>銀行名<input name="bank" required maxlength="100"></label>
+            <label>支店<input name="branch" required maxlength="100"></label>
+            <label>口座種別<select name="type"><option>普通</option><option>当座</option></select></label>
+            <label>口座番号<input name="number" inputmode="numeric" pattern="[0-9]{7}" maxlength="7" required autocomplete="off"></label>
+            <label>名義<input name="holder" required maxlength="100"></label>
+            <button class="btn primary" type="submit">口座を登録</button>
+            <p role="alert" id="account-error"></p>
+          </form></div>
+          <div class="panel"><h2>受取履歴</h2>${dataTable(
+            ["金額", "支払予定日", "ステータス"],
+            payouts.map((item) => [
+              yen(item.amount),
+              escapeHTML(item.payoutDate),
+              escapeHTML(item.status),
+            ]),
+            "受取履歴",
+          )}</div>`;
+      }
+
+      function showPaymentForm(action, id) {
+        const contract = RMStore.getCollection("contracts").find(
+          (item) => item.id === id,
+        );
+        if (!contract) throw new Error("契約が見つかりません。");
+        if (action === "simulate") {
+          RMStore.simulateReviewDeadline(id);
+          window.location.reload();
+          return;
+        }
+        const job = RMStore.getCollection("jobs").find(
+          (item) => item.id === contract.jobId,
+        );
+        const fee = RMStore.calcFee(job, contract.amount);
+        const feeLabel =
+          contract.amount === 0
+            ? "固定"
+            : String(job?.role || "").includes("SNS運用")
+              ? "15%"
+              : "10%";
+        const fields =
+          action === "pay"
+            ? `
+          <p>報酬：${yen(contract.amount)}（クリエイター受取額）</p>
+          <p>企業負担手数料（${feeLabel}）：${yen(fee)}</p>
+          <label><input type="checkbox" id="priority-option">優先掲載を追加（${yen(2000)} / 件）</label>
+          <p id="priority-detail">優先掲載：なし ${yen(0)}</p>
+          <p>合計：<strong id="payment-total">${yen(contract.amount + fee)}</strong></p>
+          <p>デモ決済です。実際には請求されません。カード情報は保存されません</p>
+          <label>カード番号<input autocomplete="off" inputmode="numeric" placeholder="デモ用（入力不要）"></label>
+          <label>有効期限<input autocomplete="off" placeholder="MM/YY"></label>
+          <label>名義<input autocomplete="off" placeholder="DEMO USER"></label>`
+            : action === "deliver"
+              ? `
+          <label>納品物URL<input name="url" type="url" required maxlength="2000"></label>
+          <label>メッセージ<textarea name="message" required maxlength="5000"></textarea></label>`
+              : action === "return"
+                ? `<label>修正理由<textarea name="reason" required maxlength="3000"></textarea></label>`
+                : `<p>納品内容を承認し、${yen(contract.amount)}の報酬を確定します。</p>`;
+        openModal(
+          action === "pay"
+            ? "デモ決済"
+            : action === "deliver"
+              ? "納品する"
+              : "検収",
+          `
+          <form id="payment-form" class="form-fields" autocomplete="off">
+            ${fields}<p id="payment-error" role="alert"></p>
+            <button class="btn primary" type="submit">${action === "pay" ? "デモ決済を確定" : action === "deliver" ? "納品を送信" : action === "return" ? "修正を依頼" : "承認して報酬確定"}</button>
+          </form>`,
+        );
+        document
+          .getElementById("priority-option")
+          ?.addEventListener("change", (event) => {
+            const priorityFee = event.target.checked ? 2000 : 0;
+            document.getElementById("priority-detail").textContent =
+              `優先掲載：${event.target.checked ? "あり" : "なし"} ${yen(priorityFee)}`;
+            document.getElementById("payment-total").textContent = yen(
+              contract.amount + fee + priorityFee,
+            );
+          });
+        document
+          .getElementById("payment-form")
+          .addEventListener("submit", (event) => {
+            event.preventDefault();
+            try {
+              // Card inputs have no names and never enter FormData or the store.
+              if (action === "pay")
+                RMStore.payContract(
+                  id,
+                  document.getElementById("priority-option").checked,
+                );
+              else if (action === "deliver") {
+                const values = new FormData(event.currentTarget);
+                RMStore.deliverContract(
+                  id,
+                  values.get("url"),
+                  values.get("message"),
+                );
+              } else
+                RMStore.reviewDelivery(
+                  id,
+                  action === "approve",
+                  new FormData(event.currentTarget).get("reason") || "",
+                );
+              event.currentTarget.reset();
+              modal.close();
+              modal.innerHTML = "";
+              route();
+            } catch (error) {
+              document.getElementById("payment-error").textContent =
+                error.message;
+            }
+          });
+      }
+
+      function showPlanChange() {
+        if (!requireApproval()) return;
+        openModal(
+          "プランを変更",
+          `
+          <form id="plan-form" class="form-fields">
+            <label>月額プラン（税込）<select name="plan">
+              <option value="フリー">フリー ${yen(0)}</option>
+              <option value="スタンダード">スタンダード ${yen(9800)}</option>
+              <option value="プロ">プロ ${yen(29800)}</option>
+            </select></label>
+            <p>初回の有料プラン契約は30日間無料トライアル。実際の請求はありません。</p>
+            <p id="plan-error" role="alert"></p><button class="btn primary">確認へ</button>
+          </form>`,
+        );
+        document
+          .getElementById("plan-form")
+          .addEventListener("submit", (event) => {
+            event.preventDefault();
+            const plan = new FormData(event.currentTarget).get("plan");
+            try {
+              const quote = RMStore.planQuote(plan);
+              openModal(
+                "プラン変更の確認",
+                `
+              <p>${escapeHTML(plan)}：${quote.trial ? "30日間無料トライアルとして開始" : "月額・税込"} ${yen(quote.amount)}</p>
+              <p>デモ契約です。実際には請求されません。</p>
+              <p id="plan-confirm-error" role="alert"></p>
+              <button class="btn primary" id="plan-confirm">このプランで開始</button>`,
+              );
+              document
+                .getElementById("plan-confirm")
+                .addEventListener("click", () => {
+                  try {
+                    RMStore.changePlan(plan);
+                    modal.close();
+                    route();
+                  } catch (error) {
+                    document.getElementById("plan-confirm-error").textContent =
+                      error.message;
+                  }
+                });
+            } catch (error) {
+              document.getElementById("plan-error").textContent = error.message;
+            }
+          });
+      }
+
+      function activityHTML(user, applications, contracts) {
+        const threads = RMStore.getConversationsForUser();
+        const users = RMStore.getCollection("users");
+        const allJobs = RMStore.getCollection("jobs");
+        return `
+          <div class="panel">
+            <h2>${user.role === "company" ? "自社案件への応募者一覧" : "応募履歴"}</h2>
+            ${
+              applications.length
+                ? applications
+                    .map((item) => {
+                      const thread = threads.find(
+                        (entry) => entry.applicationId === item.id,
+                      );
+                      const name =
+                        user.role === "company"
+                          ? users.find((entry) => entry.id === item.creatorId)
+                              ?.displayName
+                          : allJobs.find((entry) => entry.id === item.jobId)
+                              ?.title;
+                      return `<p>${escapeHTML(name || "未登録")} · ${escapeHTML(item.status)} · ${escapeHTML(chatDate(item.createdAt))}
+                ${thread ? `<a class="text-link" href="#chat/${thread.id}">チャットへ</a>` : ""}</p>`;
+                    })
+                    .join("")
+                : "<p>応募はまだありません。</p>"
+            }
+          </div>
+          <div class="panel">
+            <h2>進行中の契約</h2>
+            ${
+              contracts
+                .filter((item) => !["提示中", "辞退"].includes(item.status))
+                .map(
+                  (item) => `
+              <p>${escapeHTML(allJobs.find((job) => job.id === item.jobId)?.title || "案件")}
+                · ${yen(item.amount)} · 納期 ${escapeHTML(item.deadline)} · ${escapeHTML(item.deliverable)}
+                <a class="text-link" href="#chat/${item.conversationId}">チャットへ</a></p>
+                ${paymentActions(item, user)}
+            `,
+                )
+                .join("") || "<p>進行中の契約はありません。</p>"
+            }
+          </div>`;
+      }
+
+      function renderChat() {
+        const user = RMStore.currentUser();
+        if (!user) {
+          main.innerHTML = `<section class="section"><div class="container panel"><h1>チャット</h1>
+            <p>ログインしてご利用ください。</p><button class="btn primary" data-login>ログイン</button></div></section>`;
+          return;
+        }
+        const threads = RMStore.getConversationsForUser();
+        const selected = threads.find(
+          (item) => item.id === location.hash.split("/")[1],
+        );
+        if (selected) RMStore.markConversationRead(selected.id);
+        updateHeader();
+        const messages = RMStore.getCollection("messages");
+        const contracts = RMStore.getCollection("contracts");
+        const allJobs = RMStore.getCollection("jobs");
+        const users = RMStore.getCollection("users");
+        const job =
+          selected && allJobs.find((item) => item.id === selected.jobId);
+        const activeContract =
+          selected &&
+          contracts.some(
+            (item) =>
+              item.conversationId === selected.id &&
+              [
+                "提示中",
+                "契約成立",
+                "支払済（預かり中）",
+                "納品済（検収中）",
+                "修正依頼中",
+                "完了",
+              ].includes(item.status),
+          );
+        main.innerHTML = `
+          <section class="section"><div class="container">
+            <h1>チャット</h1>
+            <div class="chat-layout ${selected ? "chat-selected" : ""}">
+              <aside class="panel chat-list" aria-label="スレッド一覧">
+                <h2>スレッド一覧</h2>
+                ${
+                  threads
+                    .map((thread) => {
+                      const latest = messages
+                        .filter((item) => item.conversationId === thread.id)
+                        .at(-1);
+                      const contract = contracts
+                        .filter((item) => item.conversationId === thread.id)
+                        .at(-1);
+                      return `<a class="chat-thread ${thread.id === selected?.id ? "is-current" : ""}" href="#chat/${thread.id}">
+                    <strong>${escapeHTML(chatName(thread, user))}</strong>
+                    <span>${escapeHTML(allJobs.find((item) => item.id === thread.jobId)?.title || "案件")}</span>
+                    <span>${escapeHTML((latest?.body || "").slice(0, 60))}</span>
+                    <span>未読 ${unreadCount(thread, user)} <span class="tag">${escapeHTML(contract?.status || "応募")}</span></span>
+                  </a>`;
+                    })
+                    .join("") || "<p>応募すると会話が表示されます。</p>"
+                }
+              </aside>
+              <article class="panel chat-conversation" aria-label="会話エリア">
+                ${
+                  selected
+                    ? `
+                  <a class="text-link chat-back" href="#chat">← 一覧へ戻る</a>
+                  <h2>${escapeHTML(chatName(selected, user))}</h2>
+                  <p>${escapeHTML(job?.title || "案件")}</p>
+                  <div class="chat-notice">外部連絡先（LINE・メール等）への誘導禁止。投稿時のPR表記必須。</div>
+                  ${!selected.companyId ? '<p class="muted">サンプル案件のため相手からの返信はありません</p>' : ""}
+                  <div class="chat-messages" aria-label="メッセージ">
+                    ${messages
+                      .filter((item) => item.conversationId === selected.id)
+                      .map((message) => {
+                        const own = message.senderId === user.id;
+                        const otherId =
+                          own &&
+                          (user.id === selected.creatorId
+                            ? selected.companyId
+                            : selected.creatorId);
+                        const contract = contracts.find(
+                          (item) => item.id === message.contractId,
+                        );
+                        return `<div class="chat-message ${message.type === "system" ? "chat-system" : own ? "chat-own" : "chat-other"}">
+                        <small>${escapeHTML(message.senderId ? users.find((item) => item.id === message.senderId)?.displayName || "ユーザー" : "システム")} · ${escapeHTML(chatDate(message.createdAt))}</small>
+                        <div class="chat-body">${escapeHTML(message.body)}</div>
+                        ${
+                          contract
+                            ? `
+                          <div class="contract-card">
+                            <h3>契約条件</h3>
+                            <p>金額：${yen(contract.amount)}</p>
+                            <p>納期：${escapeHTML(contract.deadline)}</p>
+                            <p class="chat-body">成果物：${escapeHTML(contract.deliverable)}</p>
+                            <p>PR表記あり · ${escapeHTML(contract.status)}</p>
+                            ${paymentActions(contract, user)}
+                            ${
+                              user.id === contract.creatorId &&
+                              contract.status === "提示中"
+                                ? `
+                              <button class="btn" data-contract-answer="${contract.id}" data-accept="true">承諾する</button>
+                              <button class="btn" data-contract-answer="${contract.id}" data-accept="false">辞退する</button>`
+                                : ""
+                            }
+                          </div>`
+                            : ""
+                        }
+                        ${own ? `<small>${otherId && (message.readBy || []).includes(otherId) ? "既読" : "未読"}</small>` : ""}
+                      </div>`;
+                      })
+                      .join("")}
+                  </div>
+                  <p id="chat-feedback" class="error" role="alert"></p>
+                  <form id="message-form" class="form-fields">
+                    <label for="chat-body">メッセージ</label>
+                    <textarea id="chat-body" name="body" required maxlength="5000" rows="3" placeholder="Enterで送信、Shift+Enterで改行"></textarea>
+                    <button class="btn primary" type="submit">送信</button>
+                  </form>
+                  ${
+                    user.role === "company" &&
+                    user.status === "approved" &&
+                    selected.companyId === user.id &&
+                    !activeContract
+                      ? `
+                    <details><summary class="btn">契約を提示する</summary>
+                      <form id="contract-form" class="form-fields">
+                        <label for="contract-amount">金額（円）</label>
+                        <input id="contract-amount" name="amount" type="number" min="0" max="100000000" step="1" value="${Number(job?.budget) || 0}" required>
+                        <label for="contract-deadline">納期</label>
+                        <input id="contract-deadline" name="deadline" type="date" required>
+                        <label for="contract-deliverable">成果物</label>
+                        <textarea id="contract-deliverable" name="deliverable" required maxlength="3000"></textarea>
+                        <p>PR表記あり</p><button class="btn primary" type="submit">契約条件を提示</button>
+                      </form>
+                    </details>`
+                      : ""
+                  }
+                `
+                    : "<p>スレッドを選択してください。</p>"
+                }
+              </article>
+            </div>
+          </div></section>`;
+        const run = (action) => {
+          try {
+            action();
+            renderChat();
+          } catch (error) {
+            document.getElementById("chat-feedback").textContent =
+              error.message;
+          }
+        };
+        document
+          .getElementById("message-form")
+          ?.addEventListener("submit", (event) => {
+            event.preventDefault();
+            run(() =>
+              RMStore.sendMessage(
+                selected.id,
+                event.currentTarget.elements.body.value,
+              ),
+            );
+            document.getElementById("chat-body")?.focus();
+          });
+        document
+          .getElementById("chat-body")
+          ?.addEventListener("keydown", (event) => {
+            if (
+              event.key === "Enter" &&
+              !event.shiftKey &&
+              !event.isComposing
+            ) {
+              event.preventDefault();
+              event.currentTarget.form.requestSubmit();
+            }
+          });
+        document
+          .getElementById("contract-form")
+          ?.addEventListener("submit", (event) => {
+            event.preventDefault();
+            run(() =>
+              RMStore.proposeContract(
+                selected.id,
+                Object.fromEntries(new FormData(event.currentTarget)),
+              ),
+            );
+          });
+        main.querySelectorAll("[data-contract-answer]").forEach((button) => {
+          button.addEventListener("click", () =>
+            run(() =>
+              RMStore.respondToContract(
+                button.dataset.contractAnswer,
+                button.dataset.accept === "true",
+              ),
+            ),
+          );
+        });
+        const history = main.querySelector(".chat-messages");
+        if (history) history.scrollTop = history.scrollHeight;
+      }
+
+      function renderMyPage() {
+        const user = RMStore.currentUser();
+        if (!user) {
+          main.innerHTML = `<section class="section"><div class="container">
+            ${head("MY PAGE", "マイページ", "ログインしてご利用ください。")}
+            <button class="btn primary" data-login>ログイン</button>
+          </div></section>`;
+          return;
+        }
+        const company = user.role === "company";
+        const admin = user.role === "admin";
+        const profile = admin
+          ? null
+          : RMStore.getCollection(
+              company ? "companyProfiles" : "creatorProfiles",
+            ).find((item) => item.userId === user.id);
+        const subscription = RMStore.getCollection("subscriptions").find(
+          (item) => item.userId === user.id,
+        );
+        const ownJobs = RMStore.getCollection("jobs").filter(
+          (job) => job.companyId === user.id,
+        );
+        const applications = RMStore.getCollection("applications").filter(
+          (item) =>
+            company
+              ? ownJobs.some((job) => job.id === item.jobId)
+              : item.creatorId === user.id,
+        );
+        const contracts = RMStore.getCollection("contracts").filter((item) =>
+          company ? item.companyId === user.id : item.creatorId === user.id,
+        );
+        const metrics = company
+          ? [
+              [
+                "自社の掲載案件数",
+                `${ownJobs.filter((job) => job.status === "掲載中").length}件`,
+              ],
+              ["応募数", `${applications.length}件`],
+              ["契約数", `${contracts.length}件`],
+            ]
+          : [
+              ["応募数", `${applications.length}件`],
+              ["契約数", `${contracts.length}件`],
+              [
+                "確定報酬残高",
+                yen(
+                  RMStore.getCollection("payouts")
+                    .filter(
+                      (item) =>
+                        item.creatorId === user.id && item.status === "未払い",
+                    )
+                    .reduce((sum, item) => sum + item.amount, 0),
+                ),
+              ],
+            ];
+        const fields = company
+          ? [
+              ["companyName", "会社名"],
+              ["contactName", "担当者"],
+              ["industry", "業種"],
+              ["description", "会社概要"],
+            ]
+          : [
+              ["name", "表示名"],
+              ["role", "職種"],
+              ["genre", "得意ジャンル"],
+              ["sns", "対応SNS（カンマ区切り）"],
+              ["skill", "スキル"],
+              ["price", "料金目安（円）"],
+            ];
+        main.innerHTML = `
+          <section class="section"><div class="container account-page">
+            ${head("MY PAGE", "マイページ", `${escapeHTML(user.displayName)}さんのアカウント`)}
+            <div class="panel">
+              <h2>アカウント情報</h2>
+              <p>審査ステータス：<strong>${{ pending: "審査中", approved: "承認済", rejected: "差戻し", returned: "差戻し", suspended: "停止中" }[user.status] || "審査中"}</strong></p>
+              ${user.reviewNote ? `<p class="review-note">審査コメント：${escapeHTML(user.reviewNote)}</p>` : ""}
+              <p>メール：${escapeHTML(user.email)}</p>
+              ${
+                company
+                  ? `<p>現在のプラン：${escapeHTML(subscription?.plan || "フリー")}</p>
+                <p>次回更新日：${escapeHTML(subscription?.nextRenewalDate || "未定（デモ）")}</p>
+                ${subscription?.trialEndsAt ? `<p>無料トライアル終了：${escapeHTML(chatDate(subscription.trialEndsAt))}</p>` : ""}
+                <button class="btn" data-plan-change>プランを変更</button>`
+                  : ""
+              }
+              ${!company && !admin ? `<p>${profile.badge ? "✦ 認定クリエイター" : "認定バッジなし"}</p>` : ""}
+            </div>
+            ${
+              admin
+                ? `<div class="panel"><a class="btn primary" href="#admin">管理者画面へ</a></div>`
+                : `
+              <h2>${company ? "企業" : "クリエイター"}ダッシュボード</h2>
+              <div class="account-metrics">${metrics
+                .map(
+                  ([label, value]) => `
+                <div class="panel"><p>${label}</p><strong>${value}</strong></div>
+              `,
+                )
+                .join("")}</div>
+              <div class="panel">
+                <h2>プロフィール表示・編集</h2>
+                <form id="profile-form" class="form-fields">
+                  ${fields
+                    .map(
+                      ([key, label]) => `
+                    <div class="dialog-field">
+                      <label for="profile-${key}">${label}</label>
+                      ${
+                        key === "description"
+                          ? `<textarea id="profile-${key}" name="${key}" maxlength="2000">${escapeHTML(profile[key] || "")}</textarea>`
+                          : `<input id="profile-${key}" name="${key}" type="${key === "price" ? "number" : "text"}"
+                            value="${escapeHTML(Array.isArray(profile[key]) ? profile[key].join(", ") : String(profile[key] ?? ""))}"
+                            ${["companyName", "contactName", "name", "role", "price"].includes(key) ? "required" : ""}
+                            ${key === "price" ? 'min="0" max="100000000" step="1"' : 'maxlength="200"'}>`
+                      }
+                    </div>
+                  `,
+                    )
+                    .join("")}
+                  <p id="profile-feedback" role="status" aria-live="polite"></p>
+                  <button type="submit" class="btn primary">プロフィールを保存</button>
+                </form>
+              </div>
+              ${activityHTML(user, applications, contracts)}
+              ${financeHTML(user)}
+              ${company ? companyJobsHTML(user, ownJobs) : '<a class="btn primary" href="#jobs">案件を探す →</a>'}
+            `
+            }
+            <div class="panel"><h2>デモデータ</h2>
+              <p class="muted">登録情報はこのブラウザ内に保存されます。実際の個人情報やパスワードを入力しないでください。</p>
+              <button class="btn" data-reset-demo>デモデータをリセット</button>
+            </div>
+          </div></section>`;
+        bindJobForm();
+        document
+          .getElementById("payout-account-form")
+          ?.addEventListener("submit", (event) => {
+            event.preventDefault();
+            try {
+              RMStore.savePayoutAccount(
+                Object.fromEntries(new FormData(event.currentTarget)),
+              );
+              event.currentTarget.reset();
+              renderMyPage();
+            } catch (error) {
+              document.getElementById("account-error").textContent =
+                error.message;
+            }
+          });
+        document
+          .getElementById("profile-form")
+          ?.addEventListener("submit", (event) => {
+            event.preventDefault();
+            const values = Object.fromEntries(
+              new FormData(event.currentTarget),
+            );
+            Object.keys(values).forEach((key) => {
+              values[key] = values[key].trim();
+            });
+            if (
+              Object.values(values).some(
+                (value, index) =>
+                  [
+                    "companyName",
+                    "contactName",
+                    "name",
+                    "role",
+                    "price",
+                  ].includes(Object.keys(values)[index]) && !value,
+              )
+            ) {
+              document.getElementById("profile-feedback").textContent =
+                "必須項目を入力してください。";
+              return;
+            }
+            if (!company) {
+              values.sns = values.sns
+                .split(/[,、]/)
+                .map((value) => value.trim())
+                .filter(Boolean);
+              values.price = Number(values.price);
+            }
+            try {
+              RMStore.saveProfile(values);
+              refreshData();
+              updateHeader();
+              renderMyPage();
+              document.getElementById("profile-feedback").textContent =
+                "プロフィールを保存しました。";
+            } catch (error) {
+              document.getElementById("profile-feedback").textContent =
+                error.message;
+            }
+          });
+      }
+
+      const jobCategories = [...new Set(seedJobs.map((job) => job.category))];
+      const jobSNS = [...new Set(seedJobs.flatMap((job) => job.sns))];
+      const userStatuses = {
+        pending: "審査中",
+        approved: "承認済",
+        rejected: "差戻し",
+        returned: "差戻し",
+        suspended: "停止中",
+      };
+
+      function displayJob(job) {
+        return Object.fromEntries(
+          Object.entries(job).map(([key, value]) => [
+            key,
+            typeof value === "string"
+              ? escapeHTML(value)
+              : Array.isArray(value)
+                ? value.map(escapeHTML)
+                : value,
+          ]),
+        );
+      }
+
+      function dataTable(headers, rows, label) {
+        const heading = headers
+          .map(
+            (title) => `
+          <th scope="col">${title}</th>
+        `,
+          )
+          .join("");
+        const body = rows.length
+          ? rows
+              .map(
+                (cells) => `
+              <tr>
+                ${cells.map((cell) => `<td>${cell}</td>`).join("")}
+              </tr>
+            `,
+              )
+              .join("")
+          : `
+              <tr>
+                <td colspan="${headers.length}">まだありません</td>
+              </tr>
+            `;
+        return `
+          <div class="table-scroll" role="region" aria-label="${label}" tabindex="0">
+            <table class="admin-table">
+              <caption class="visually-hidden">${label}</caption>
+              <thead>
+                <tr>${heading}</tr>
+              </thead>
+              <tbody>${body}</tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      function companyJobsHTML(user, ownJobs) {
+        const ownList = dataTable(
+          ["案件名", "ステータス", "報酬", "締切"],
+          ownJobs.map((job) => [
+            escapeHTML(job.title),
+            escapeHTML(job.status),
+            yen(job.budget),
+            escapeHTML(job.deadline),
+          ]),
+          "自社案件",
+        );
+        const createForm =
+          user.status === "approved"
+            ? `
+            <div class="panel" id="create-job">
+              <h2>案件を作成</h2>
+              <p class="muted">作成後は審査中となり、管理者が公開すると案件一覧に掲載されます。</p>
+              <form id="job-create-form" class="form-fields">
+                <div class="dialog-field">
+                  <label for="create-title">案件名</label>
+                  <input id="create-title" name="title" required maxlength="200">
+                </div>
+                <div class="dialog-field">
+                  <label for="create-role">職種</label>
+                  <select id="create-role" name="role" required>
+                    ${options(roles, "選択してください")}
+                  </select>
+                </div>
+                <div class="dialog-field">
+                  <label for="create-category">カテゴリ</label>
+                  <select id="create-category" name="category" required>
+                    ${options(jobCategories, "選択してください")}
+                  </select>
+                </div>
+                <div class="dialog-field">
+                  <label for="create-budget">報酬（円・SNS運用者は月額）</label>
+                  <input id="create-budget" name="budget" type="number"
+                    min="0" max="100000000" step="1" required>
+                </div>
+                <div class="dialog-field">
+                  <label for="create-deadline">募集締切</label>
+                  <input id="create-deadline" name="deadline" type="date" required>
+                </div>
+                <fieldset>
+                  <legend>対応SNS（1つ以上選択）</legend>
+                  <div class="sns-options">
+                    ${jobSNS
+                      .map(
+                        (name) => `
+                      <label>
+                        <input type="checkbox" name="sns" value="${name}"> ${name}
+                      </label>
+                    `,
+                      )
+                      .join("")}
+                  </div>
+                </fieldset>
+                <div class="dialog-field">
+                  <label for="create-product">商品提供の有無</label>
+                  <select id="create-product" name="productSupport">
+                    <option>商品提供あり</option>
+                    <option>商品提供なし</option>
+                  </select>
+                </div>
+                <div class="dialog-field">
+                  <label for="create-detail">案件説明</label>
+                  <textarea id="create-detail" name="detail" required maxlength="5000"></textarea>
+                </div>
+                <div class="dialog-field">
+                  <label for="create-condition">応募条件</label>
+                  <textarea id="create-condition" name="condition" required maxlength="3000"></textarea>
+                </div>
+                <p id="job-create-feedback" role="status" aria-live="polite"></p>
+                <button class="btn primary" type="submit">審査に提出する</button>
+              </form>
+            </div>
+          `
+            : '<button class="btn primary" data-register="company">無料で案件を掲載 →</button>';
+        return `
+          <div class="panel">
+            <h2>自社案件一覧</h2>
+            ${ownList}
+          </div>
+          ${createForm}
+        `;
+      }
+
+      function bindJobForm() {
+        document
+          .getElementById("job-create-form")
+          ?.addEventListener("submit", (event) => {
+            event.preventDefault();
+            const form = new FormData(event.currentTarget);
+            try {
+              RMStore.createJob({
+                ...Object.fromEntries(form),
+                sns: form.getAll("sns"),
+              });
+              refreshData();
+              renderMyPage();
+              document.getElementById("job-create-feedback").textContent =
+                "案件を作成しました（審査中）。";
+            } catch (error) {
+              document.getElementById("job-create-feedback").textContent =
+                error.message;
+            }
+          });
+      }
+
+      let adminTab = 0;
+      function renderAdmin() {
+        if (RMStore.currentUser()?.role !== "admin") return;
+        const users = RMStore.getCollection("users");
+        const allJobs = RMStore.getCollection("jobs");
+        const contracts = RMStore.getCollection("contracts");
+        const metrics = [
+          [
+            "企業ユーザー",
+            users.filter((user) => user.role === "company").length,
+          ],
+          [
+            "クリエイターユーザー",
+            users.filter((user) => user.role === "creator").length,
+          ],
+          [
+            "審査待ちユーザー",
+            users.filter((user) => user.status === "pending").length,
+          ],
+          [
+            "掲載中案件",
+            allJobs.filter((job) => job.status === "掲載中").length,
+          ],
+          [
+            "審査中案件",
+            allJobs.filter((job) => job.status === "審査中").length,
+          ],
+          ["契約数", contracts.length],
+          ...["預かり中", "支払確定"].map((status) => [
+            status === "預かり中" ? "預かり中金額" : "支払確定額",
+            yen(
+              RMStore.getCollection("payments")
+                .filter(
+                  (item) => item.kind === "案件" && item.status === status,
+                )
+                .reduce((sum, item) => sum + item.amount, 0),
+            ),
+          ]),
+          [
+            "成約額",
+            yen(
+              contracts.reduce(
+                (sum, contract) => sum + (Number(contract.amount) || 0),
+                0,
+              ),
+            ),
+          ],
+        ];
+        main.innerHTML = `
+          <section class="section">
+            <div class="container admin-page">
+              ${head("ADMIN", "管理者画面", "ユーザー審査・案件の公開を管理します。")}
+              <div class="account-metrics">
+                ${metrics
+                  .map(
+                    ([label, value]) => `
+                  <div class="panel">
+                    <p>${label}</p>
+                    <strong>${value}</strong>
+                  </div>
+                `,
+                  )
+                  .join("")}
+              </div>
+              ${tabs("管理メニュー", ["ユーザー管理", "案件管理", "契約・決済"])}
+              <p id="admin-feedback" role="status" aria-live="polite"></p>
+              <div id="admin-content"></div>
+            </div>
+          </section>
+        `;
+        const update = (index) => {
+          adminTab = index;
+          const content = document.getElementById("admin-content");
+          if (index === 0) {
+            content.innerHTML = dataTable(
+              [
+                "表示名",
+                "メール",
+                "ロール",
+                "ステータス",
+                "認定",
+                "登録日時",
+                "操作",
+              ],
+              users.map((user) => {
+                const profile = RMStore.getCollection("creatorProfiles").find(
+                  (item) => item.userId === user.id,
+                );
+                return [
+                  escapeHTML(user.displayName),
+                  escapeHTML(user.email),
+                  escapeHTML(user.role),
+                  `${escapeHTML(userStatuses[user.status] || user.status)}${user.reviewNote ? `<p class="review-note">${escapeHTML(user.reviewNote)}</p>` : ""}`,
+                  user.role === "creator"
+                    ? profile?.badge
+                      ? "認定あり"
+                      : "認定なし"
+                    : "—",
+                  user.createdAt
+                    ? escapeHTML(
+                        new Date(user.createdAt).toLocaleString("ja-JP"),
+                      )
+                    : "—",
+                  user.role === "admin"
+                    ? "—"
+                    : `<div class="admin-actions" data-user-id="${escapeHTML(user.id)}">
+                    ${user.status !== "approved" ? `<button class="btn" data-user-status="approved">${user.status === "pending" ? "承認する" : "復帰する"}</button>` : ""}
+                    <button class="btn" data-user-status="rejected">差戻す</button>
+                    ${user.status !== "suspended" ? '<button class="btn" data-user-status="suspended">停止する</button>' : ""}
+                    ${user.role === "creator" ? `<button class="btn" data-badge>${profile?.badge ? "認定を取消" : "認定を付与"}</button>` : ""}
+                  </div>`,
+                ];
+              }),
+              "ユーザー管理",
+            );
+          } else if (index === 1) {
+            content.innerHTML = dataTable(
+              ["案件名", "企業", "ステータス", "報酬", "締切", "操作"],
+              allJobs.map((job) => [
+                escapeHTML(job.title),
+                escapeHTML(job.company),
+                escapeHTML(job.status),
+                yen(job.budget),
+                escapeHTML(job.deadline),
+                `<div class="admin-actions" data-job-id="${job.id}">
+                  ${job.status !== "掲載中" ? '<button class="btn" data-job-status="掲載中">公開する</button>' : ""}
+                  ${job.status !== "非公開" ? '<button class="btn" data-job-status="非公開">非公開にする</button>' : ""}
+                </div>`,
+              ]),
+              "案件管理",
+            );
+          } else {
+            content.innerHTML = ["contracts", "payments", "payouts"]
+              .map((name) => {
+                const records = RMStore.getCollection(name);
+                const keys = [...new Set(records.flatMap(Object.keys))];
+                const title = {
+                  contracts: "契約",
+                  payments: "決済",
+                  payouts: "報酬",
+                }[name];
+                return `<h2>${title}</h2>${dataTable(
+                  keys.length
+                    ? keys.map(escapeHTML)
+                    : ["ID", "ステータス", "金額"],
+                  records.map((record) =>
+                    keys.map((key) =>
+                      escapeHTML(
+                        typeof record[key] === "object"
+                          ? JSON.stringify(record[key])
+                          : String(record[key] ?? "—"),
+                      ),
+                    ),
+                  ),
+                  title,
+                )}`;
+              })
+              .join("");
+          }
+        };
+        bindTabs(main, update);
+        main.querySelector(`[data-tab="${adminTab}"]`).click();
+        document
+          .getElementById("admin-content")
+          .addEventListener("click", (event) => {
+            const button = event.target.closest("button");
+            if (!button) return;
+            try {
+              const userId = button.closest("[data-user-id]")?.dataset.userId;
+              if (button.hasAttribute("data-badge"))
+                RMStore.toggleBadge(userId);
+              else if (button.dataset.userStatus) {
+                let note = "";
+                if (button.dataset.userStatus === "rejected") {
+                  note = window.prompt("差戻し理由を入力してください。", "");
+                  if (note === null) return;
+                  if (!note.trim())
+                    throw new Error("差戻し理由を入力してください。");
+                }
+                RMStore.reviewUser(userId, button.dataset.userStatus, note);
+              } else if (button.dataset.jobStatus) {
+                RMStore.publishJob(
+                  Number(button.closest("[data-job-id]").dataset.jobId),
+                  button.dataset.jobStatus,
+                );
+              } else return;
+              refreshData();
+              renderAdmin();
+              document.getElementById("admin-feedback").textContent =
+                "保存しました。";
+            } catch (error) {
+              document.getElementById("admin-feedback").textContent =
+                error.message;
+            }
+          });
+      }
+
+      function showForm(kind, audience = "creator", jobId) {
+        if (storeError) {
+          openModal(
+            "デモデータの読み込みエラー",
+            `<p role="alert">${escapeHTML(storeError)}</p>
+            <button class="btn" data-reset-demo>デモデータをリセット</button>`,
+          );
+          return;
+        }
+        if (
+          (kind === "apply" ||
+            (kind === "register" && audience === "company")) &&
+          !requireApproval()
+        )
+          return;
+        if (kind === "register" && RMStore.currentUser()) {
+          if (audience === "creator") {
+            goToMyPage();
+            return;
+          }
+          if (RMStore.currentUser().role === "company") {
+            modal.close();
+            if (location.hash === "#mypage/create-job") route();
+            else location.hash = "mypage/create-job";
+          } else {
+            openModal(
+              "案件掲載",
+              "<p>企業アカウントでログインしてください。</p>",
+            );
+          }
+          return;
+        }
+        const register = kind === "register";
+        const apply = kind === "apply";
+        const sourceJob = apply ? jobs.find((item) => item.id === jobId) : null;
+        if (apply && !sourceJob) {
+          openModal("案件", "<p>この案件は現在公開されていません。</p>");
+          return;
+        }
+        const job = sourceJob ? displayJob(sourceJob) : null;
+        const applicant = apply ? RMStore.currentUser() : null;
+        let appliedConversation = null;
+        if (applicant && applicant.role !== "creator") {
+          openModal(
+            "応募",
+            "<p>クリエイターアカウントでログインしてください。</p>",
+          );
+          return;
+        }
+        const existing =
+          apply &&
+          RMStore.getCollection("applications").find(
+            (item) => item.jobId === jobId && item.creatorId === applicant?.id,
+          );
+        if (existing) {
+          const thread = RMStore.getConversationsForUser().find(
+            (item) => item.applicationId === existing.id,
+          );
+          openModal(
+            "すでに応募済みです",
+            `<p>すでに応募済みです。</p><a class="btn primary" href="#chat/${thread.id}" onclick="modal.close()">チャットでやり取りする</a>`,
+          );
+          return;
+        }
+        const values = {};
+        let stage = 0;
+        const demoNote = register
+          ? "デモ用の登録です。このブラウザ内に保存されます。実際の個人情報やパスワードは入力しないでください。"
+          : applicant
+            ? "応募内容はこのブラウザ内に保存されます。"
+            : "デモフォームです。入力内容は送信・保存されません。";
+        const titleForStage = () =>
+          stage === 2
+            ? register
+              ? "登録完了"
+              : apply
+                ? applicant
+                  ? "応募完了"
+                  : "応募完了（デモ）"
+                : "お問い合わせ完了（デモ）"
+            : stage === 1
+              ? "入力内容の確認"
+              : register
+                ? "ReviewMatchに無料登録"
+                : apply
+                  ? "案件に応募する"
+                  : "お問い合わせ";
+        openModal(titleForStage(), "");
+        modal.className = "form-dialog";
+        modal.dataset.kind = kind;
+
+        function fieldDefinitions() {
+          const fields = [
+            {
+              id: "form-name",
+              label: register && audience === "company" ? "担当者名" : "お名前",
+              type: "text",
+              extra: 'autocomplete="name" maxlength="80"',
+            },
+          ];
+          if (register && audience === "company")
+            fields.unshift({
+              id: "form-company",
+              label: "会社名",
+              type: "text",
+              extra: 'autocomplete="organization" maxlength="120"',
+            });
+          fields.push({
+            id: "form-email",
+            label: "メールアドレス",
+            type: "email",
+            extra: 'autocomplete="email"',
+          });
+          if (register)
+            fields.push({
+              id: "form-password",
+              label: "パスワード（8文字以上）",
+              type: "password",
+              extra: 'minlength="8" autocomplete="new-password"',
+            });
+          if (apply)
+            fields.push({
+              id: "form-url",
+              label: "制作実績URL",
+              type: "url",
+              extra: 'placeholder="https://…"',
+            });
+          if (!register)
+            fields.push({
+              id: "form-message",
+              label: apply ? "自己PR・応募メッセージ" : "お問い合わせ内容",
+              type: "textarea",
+            });
+          return fields;
+        }
+        function saveInputs() {
+          modal
+            .querySelectorAll("#demo-form input, #demo-form textarea")
+            .forEach((field) => (values[field.id] = field.value));
+        }
+        function brandPanel() {
+          if (kind === "contact") return "";
+          const creator = audience === "creator";
+          const heading = apply
+            ? job.title
+            : creator
+              ? "あなたのスキルを、次の仕事へ。"
+              : "商品の魅力を、もっと多くの人へ。";
+          const benefits = creator
+            ? [
+                "登録・利用は無料",
+                "フォロワー0人から参加可能",
+                "レビュー・SNS案件に特化",
+              ]
+            : ["無料プランあり", "制作スキルで人材を検索", "案件管理を効率化"];
+          return `
+            <aside class="dialog-brand-panel" aria-label="${apply ? "応募する案件" : "ReviewMatchの特徴"}">
+              ${modalLogo(true)}
+              <h3>${heading}</h3>
+              ${
+                apply
+                  ? `<dl class="dialog-project-meta">
+                <div><dt>報酬</dt><dd class="project-reward">${yen(job.budget)}<small>${job.monthly ? " / 月" : " / 件"}</small></dd></div>
+                <div><dt>募集締切</dt><dd>${job.deadline}</dd></div>
+                <div><dt>企業名</dt><dd>${job.company}</dd></div>
+              </dl>`
+                  : `<ul class="dialog-benefits">${benefits.map((text) => `<li>${text}</li>`).join("")}</ul>`
+              }
+            </aside>`;
+        }
+        function render() {
+          const fields = fieldDefinitions();
+          const title = titleForStage();
+          let content;
+          if (stage === 0) {
+            content = `
+              <p class="dialog-description">${register ? "つくる力と、ブランドが出会う場所へ。" : apply ? "あなたの得意と制作実績を教えてください。" : "サービスについて、お気軽にご相談ください。"}</p>
+              ${
+                register
+                  ? `<div class="dialog-segments" role="group" aria-label="登録するアカウントの種類">
+                <button type="button" data-audience="company" aria-pressed="${audience === "company"}">企業</button>
+                <button type="button" data-audience="creator" aria-pressed="${audience === "creator"}">クリエイター</button>
+              </div>`
+                  : ""
+              }
+              <form id="demo-form" class="form-fields" novalidate>
+                ${fields
+                  .map(
+                    (field) =>
+                      `<div class="dialog-field">${
+                        field.type === "textarea"
+                          ? `<label for="${field.id}">${field.label}</label><textarea id="${field.id}" name="message" minlength="10" required aria-describedby="${field.id}-error"></textarea><span class="error" id="${field.id}-error" aria-live="polite"></span>`
+                          : formField(
+                              field.id,
+                              field.label,
+                              field.type,
+                              field.extra || "",
+                            )
+                      }</div>`,
+                  )
+                  .join("")}
+                <button class="btn primary" type="submit">入力内容を確認する <span aria-hidden="true">→</span></button>
+              </form>
+              ${
+                register
+                  ? `<p class="dialog-terms"><a href="#faq">利用規約</a>・<a href="#faq">プライバシーポリシー</a>に同意のうえ登録します</p>
+                <p class="dialog-login" aria-live="polite">すでにアカウントをお持ちですか？ <button type="button" data-demo-login>ログイン</button></p>`
+                  : ""
+              }`;
+          } else if (stage === 1) {
+            content = `
+              <p class="dialog-description">内容をご確認のうえ、${register ? "登録" : apply ? "応募" : "送信"}してください。</p>
+              <dl class="confirmation-list">
+                ${register ? `<div><dt>アカウントの種類</dt><dd>${audience === "company" ? "企業" : "クリエイター"}</dd></div>` : ""}
+                ${fields.map((field) => `<div><dt>${field.label}</dt><dd>${field.type === "password" ? "••••••••" : escapeHTML(values[field.id] || "")}</dd></div>`).join("")}
+              </dl>
+              <p id="register-error" class="error" role="alert"></p>
+              <div class="dialog-confirm-actions">
+                <button class="btn primary" type="button" data-confirm>${register ? "この内容で登録する" : apply ? "この内容で応募する" : "この内容で送信する"}</button>
+                <button class="btn" type="button" data-edit>戻って修正する</button>
+              </div>`;
+          } else {
+            content = `
+              <div class="success" role="status">
+                <div class="success-mark" aria-hidden="true">✓</div>
+                <h3>${register ? "ご登録ありがとうございます！" : "入力内容を確認しました。"}</h3>
+                <p class="muted small">${
+                  register
+                    ? "登録情報を保存しました。現在は審査中です。プロフィールを編集して審査完了をお待ちください。"
+                    : appliedConversation
+                      ? "応募を保存しました。チャットでやり取りできます。"
+                      : "これはデモの完了画面です。データの送信・保存は行っていません。"
+                }</p>
+                ${
+                  register
+                    ? '<button class="btn primary" type="button" data-mypage>マイページへ進む</button>'
+                    : appliedConversation
+                      ? `<a class="btn primary" href="#chat/${appliedConversation.id}" onclick="modal.close()">チャットでやり取りする</a>`
+                      : '<button class="btn primary" type="button" data-close>閉じる</button>'
+                }
+              </div>`;
+          }
+          modal.innerHTML = `
+            <button class="dialog-close" type="button" data-close aria-label="ダイアログを閉じる">×</button>
+            <div class="dialog-layout ${kind === "contact" ? "contact-layout" : ""}">
+              ${brandPanel()}
+              <section class="dialog-form-panel" aria-labelledby="modal-title">
+                <div class="dialog-mobile-brand">${modalLogo()}</div>
+                <ol class="dialog-steps" aria-label="手続きのステップ">
+                  ${["1. 入力", "2. 確認", "完了"].map((label, index) => `<li ${index === stage ? 'aria-current="step"' : ""}>${label}</li>`).join("")}
+                </ol>
+                <h2 id="modal-title" tabindex="-1">${title}</h2>
+                ${content}
+                <p class="dialog-demo">${demoNote}</p>
+              </section>
+            </div>`;
+          modal.scrollTop = 0;
+          modal.querySelector("#modal-title").focus();
+          if (stage !== 0) {
+            modal
+              .querySelector("[data-edit]")
+              ?.addEventListener("click", () => {
+                stage = 0;
+                render();
+              });
+            modal
+              .querySelector("[data-confirm]")
+              ?.addEventListener("click", (event) => {
+                const button = event.currentTarget;
+                if (button.disabled) return;
+                if (register) {
+                  try {
+                    RMStore.register(values, audience);
+                    refreshData();
+                    updateHeader();
+                    delete values["form-password"];
+                    stage = 2;
+                    render();
+                  } catch (error) {
+                    document.getElementById("register-error").textContent =
+                      error.message;
+                  }
+                  return;
+                }
+                if (apply && applicant) {
+                  try {
+                    appliedConversation = RMStore.applyToJob(
+                      jobId,
+                      values["form-message"],
+                      values["form-url"],
+                    );
+                    updateHeader();
+                    stage = 2;
+                    render();
+                  } catch (error) {
+                    document.getElementById("register-error").textContent =
+                      error.message;
+                  }
+                  return;
+                }
+                button.disabled = true;
+                button.textContent = "送信中…";
+                button.setAttribute("aria-live", "polite");
+                modal.querySelector("[data-edit]").disabled = true;
+                modal
+                  .querySelector(".dialog-form-panel")
+                  .setAttribute("aria-busy", "true");
+                submissionTimer = setTimeout(() => {
+                  stage = 2;
+                  render();
+                }, 600);
+              });
+            return;
+          }
+          fields.forEach((field) => {
+            document.getElementById(field.id).value = values[field.id] || "";
+          });
+          modal.querySelectorAll("[data-audience]").forEach((button) =>
+            button.addEventListener("click", () => {
+              saveInputs();
+              audience = button.dataset.audience;
+              render();
+              modal.querySelector(`[data-audience="${audience}"]`).focus();
+            }),
+          );
+          modal
+            .querySelector("[data-demo-login]")
+            ?.addEventListener("click", showLogin);
+          modal
+            .querySelector(".password-toggle")
+            ?.addEventListener("click", (event) => {
+              const password = document.getElementById("form-password");
+              const visible = password.type === "password";
+              password.type = visible ? "text" : "password";
+              event.currentTarget.textContent = visible ? "非表示" : "表示";
+              event.currentTarget.setAttribute("aria-pressed", String(visible));
+              event.currentTarget.setAttribute(
+                "aria-label",
+                `パスワードを${visible ? "非表示" : "表示"}`,
+              );
+            });
+          const form = document.getElementById("demo-form");
+          const inputs = [...form.querySelectorAll("input, textarea")];
+          const validate = (field) => {
+            let message = "";
+            if (!field.value.trim()) message = "入力してください。";
+            else if (
+              field.type === "email" &&
+              !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(field.value)
+            )
+              message = "正しいメールアドレスを入力してください。";
+            else if (field.id === "form-password" && field.value.length < 8)
+              message = "8文字以上で入力してください。";
+            else if (field.type === "url") {
+              try {
+                if (
+                  !["https:", "http:"].includes(new URL(field.value).protocol)
+                )
+                  message = "httpまたはhttpsのURLを入力してください。";
+              } catch {
+                message = "正しいURLを入力してください。";
+              }
+            } else if (
+              field.tagName === "TEXTAREA" &&
+              field.value.trim().length < 10
+            )
+              message = "10文字以上で入力してください。";
+            field.setAttribute("aria-invalid", String(Boolean(message)));
+            document.getElementById(`${field.id}-error`).textContent = message;
+            return !message;
+          };
+          inputs.forEach((field) => {
+            field.addEventListener("input", () => validate(field));
+            field.addEventListener("blur", () => validate(field));
+          });
+          form.addEventListener("submit", (event) => {
+            event.preventDefault();
+            if (!inputs.map(validate).every(Boolean)) {
+              form.querySelector('[aria-invalid="true"]').focus();
+              return;
+            }
+            saveInputs();
+            stage = 1;
+            render();
+          });
+        }
+        render();
+      }
+      document.addEventListener("click", (event) => {
+        const button = event.target.closest("button");
+        if (!button) return;
+        if (button.hasAttribute("data-payment-action")) {
+          try {
+            showPaymentForm(button.dataset.paymentAction, button.dataset.id);
+          } catch (error) {
+            openModal(
+              "操作エラー",
+              `<p role="alert">${escapeHTML(error.message)}</p>`,
+            );
+          }
+        } else if (button.hasAttribute("data-plan-change")) {
+          if (location.hash !== "#mypage") {
+            history.pushState(null, "", "#mypage");
+            route();
+          }
+          showPlanChange();
+        } else if (button.hasAttribute("data-login")) showLogin();
+        else if (button.hasAttribute("data-mypage")) goToMyPage();
+        else if (button.hasAttribute("data-reset-demo")) resetDemo();
+        else if (button.hasAttribute("data-logout")) {
+          try {
+            RMStore.logout();
+            updateHeader();
+            route();
+          } catch (error) {
+            openModal(
+              "保存エラー",
+              `<p role="alert">${escapeHTML(error.message)}</p>`,
+            );
+          }
+        } else if (button.hasAttribute("data-close")) modal.close();
+        else if (button.hasAttribute("data-register"))
+          showForm("register", button.dataset.register);
+        else if (button.hasAttribute("data-apply"))
+          showForm("apply", "creator", Number(button.dataset.apply));
+        else if (button.hasAttribute("data-contact")) showForm("contact");
+        else if (button.hasAttribute("data-creator")) {
+          const creator = creators[Number(button.dataset.creator)];
+          openModal(
+            `${escapeHTML(creator.name)} / クリエイター`,
+            `<div style="display:flex;gap:15px;align-items:center;margin:15px 0"><span class="avatar" style="width:65px;height:65px">${escapeHTML(creator.name.slice(0, 1))}</span><div><strong>${escapeHTML(creator.role)}</strong><div class="small" style="color:#2563eb">${creator.badge ? "✦ 認定レビュークリエイター" : "クリエイター"}</div></div></div><p>${escapeHTML(creator.bio)}</p><div class="panel small">得意ジャンル：${escapeHTML(creator.genre)}<br>スキル：${escapeHTML(creator.skill)}<br>対応SNS：${escapeHTML(creator.sns.join(" / "))}<br>制作実績：${creator.works}件<br>フォロワー：${creator.followers.toLocaleString()}人<br>評価：★ ${creator.rating} / 5<br>料金目安：${yen(creator.price)}〜 ${creator.role === roles[3] ? "/月" : "/件"}</div><p class="small muted" style="margin-top:18px">※架空のクリエイターです。実際の依頼はできません。</p><button class="btn primary" data-register="company" style="width:100%">無料で案件を掲載 →</button>`,
+          );
+        }
+      });
+      // Switch modal content without opening an already-open dialog.
+      const originalShowModal = modal.showModal.bind(modal);
+      modal.showModal = () => {
+        if (!modal.open) originalShowModal();
+      };
+      document
+        .getElementById("menu-button")
+        .addEventListener("click", (event) => {
+          const open = document
+            .getElementById("navigation")
+            .classList.toggle("open");
+          event.currentTarget.setAttribute("aria-expanded", String(open));
+        });
+      window.addEventListener("hashchange", route);
+      updateHeader();
+      route();
