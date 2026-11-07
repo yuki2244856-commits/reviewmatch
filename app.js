@@ -72,7 +72,7 @@
         "生活家電・日用品",
       ];
       const jobSNS = ["TikTok", "Instagram", "YouTube"];
-      // Supabase owns identity, catalog and workflow; payments and payouts stay local.
+      // Supabase owns identity, catalog, workflow and finance; reviews stay local.
       const RMStore = (() => {
         const key = "reviewmatch_store_v1";
         const version = 1;
@@ -141,7 +141,7 @@
           };
         })();
         // Only unmigrated collections are persisted locally.
-        const collections = ["payments", "payouts", "reviews", "payoutAccounts"];
+        const collections = ["reviews"];
         const remoteNames = [
           "users",
           "companyProfiles",
@@ -153,6 +153,8 @@
           "messages",
           "contracts",
           "notifications",
+          "payments",
+          "payouts",
         ];
         const remote = Object.fromEntries(remoteNames.map((name) => [name, []]));
         let authUser = null;
@@ -188,6 +190,8 @@
           next_renewal_date: "nextRenewalDate",
           trial_used: "trialUsed",
           trial_end_date: "trialEndsAt",
+          priority_fee: "priorityFee",
+          payout_date: "payoutDate",
         };
 
         function fromRow(row, kind) {
@@ -197,6 +201,11 @@
               value,
             ]),
           );
+          // Payment kind is the category; message/notification kind maps to type.
+          if (kind === "payments") {
+            result.kind = row.kind;
+            delete result.type;
+          }
           if (kind === "jobs") {
             result.company = row.company_name || "";
             result.sns = row.sns || [];
@@ -267,6 +276,8 @@
             "messages",
             "contracts",
             "notifications",
+            "payments",
+            "payouts",
           ];
           // RLS restricts rows to the public catalog, owner, or administrator.
           const rows = await Promise.all(
@@ -321,15 +332,28 @@
           const result = { ...copy(state), ...copy(remote) };
           result.session = sessionUser ? { userId: sessionUser.id } : null;
           for (const profile of result.creatorProfiles) {
-            profile.payoutAccount = result.payoutAccounts.find(
-              (item) => item.userId === profile.userId,
-            )?.account;
+            profile.payoutAccount = profile.payout_last4
+              ? {
+                  bank: profile.payout_bank,
+                  branch: profile.payout_branch,
+                  type: profile.payout_type,
+                  last4: profile.payout_last4,
+                  holder: profile.payout_holder,
+                }
+              : undefined;
           }
+          // Preserve the collection API as a server-derived, read-only view.
+          result.payoutAccounts = result.creatorProfiles
+            .filter((profile) => profile.payoutAccount)
+            .map((profile) => ({
+              userId: profile.userId,
+              account: profile.payoutAccount,
+            }));
           return result;
         }
 
         function save(next) {
-          // Never serialize Auth, profiles, catalog, or legacy password hashes.
+          // Persist only reviews; never serialize remote data or account numbers.
           state = {
             version,
             ...Object.fromEntries(
@@ -348,19 +372,11 @@
             const parsed = JSON.parse(raw);
             if (
               parsed.version !== version ||
-              !collections
-                .filter((name) => name !== "payoutAccounts")
-                .every((name) => Array.isArray(parsed[name]))
+              !collections.every((name) => Array.isArray(parsed[name]))
             ) {
               throw new Error();
             }
-            parsed.payoutAccounts ??= (parsed.creatorProfiles || [])
-              .filter((profile) => profile.payoutAccount)
-              .map((profile) => ({
-                userId: profile.userId,
-                account: profile.payoutAccount,
-              }));
-            // Preserve local transactions, while removing migrated data and credentials.
+            // Discard migrated collections, legacy accounts and credentials.
             return save(parsed);
           } catch {
             throw new Error(
@@ -377,13 +393,13 @@
         }
 
         function getCollection(name) {
-          if (![...collections, ...remoteNames].includes(name))
+          if (![...collections, ...remoteNames, "payoutAccounts"].includes(name))
             throw new Error("不明なコレクションです。");
           return load()[name];
         }
 
         function add(name, record) {
-          if (remoteNames.includes(name))
+          if (remoteNames.includes(name) || name === "payoutAccounts")
             throw new Error("Supabase の専用保存処理を使用してください。");
           getCollection(name);
           return transact((next) => {
@@ -396,7 +412,7 @@
         }
 
         function update(name, id, changes) {
-          if (remoteNames.includes(name))
+          if (remoteNames.includes(name) || name === "payoutAccounts")
             throw new Error("Supabase の専用保存処理を使用してください。");
           getCollection(name);
           return transact((next) => {
@@ -714,6 +730,11 @@
           conversations: "id applicationId jobId companyId creatorId createdAt",
           contracts:
             "id applicationId conversationId jobId companyId creatorId amount deadline deliverable status deliveryUrl deliveryMessage deliveredAt reviewDeadline createdAt",
+          subscriptions:
+            "id userId plan status trialUsed trialEndsAt nextRenewalDate",
+          payments:
+            "id contractId companyId kind plan amount fee priorityFee total status createdAt",
+          payouts: "id contractId creatorId amount status payoutDate createdAt",
           messages:
             "id conversationId senderId type body contractId readBy createdAt",
           notifications: "id userId type conversationId isRead createdAt",
@@ -782,19 +803,6 @@
                       throw new Error(
                         "契約が更新されています。再読み込みしてください。",
                       );
-                  }
-                  if (table === "contracts") {
-                    // Keep local finance consistent once this contract write commits,
-                    // even if a subsequent message/notification request fails.
-                    const local = load();
-                    for (const name of ["payments", "payouts"]) {
-                      local[name] = local[name]
-                        .filter((item) => item.contractId !== record.id)
-                        .concat(
-                          next[name].filter((item) => item.contractId === record.id),
-                        );
-                    }
-                    save(local);
                   }
                 }
               }
@@ -1114,7 +1122,6 @@
               kind: "案件",
               contractId: id,
               companyId: contract.companyId,
-              creatorId: contract.creatorId,
               amount: contract.amount,
               fee,
               priorityFee,
@@ -1293,56 +1300,37 @@
         }
 
         async function changePlan(plan) {
-          const quote = planQuote(plan);
-          const data = load();
-          const userId = data.session.userId;
-          let subscription = data.subscriptions.find(
-            (item) => item.userId === userId,
-          );
-          if (!subscription) {
-            subscription = { id: crypto.randomUUID(), userId };
-            data.subscriptions.push(subscription);
-          }
-          const renewal = new Date();
-          if (quote.trial) renewal.setDate(renewal.getDate() + 30);
-          else {
-            const day = renewal.getDate();
-            renewal.setDate(1);
-            renewal.setMonth(renewal.getMonth() + 1);
-            const lastDay = new Date(
-              renewal.getFullYear(),
-              renewal.getMonth() + 1,
-              0,
-            ).getDate();
-            renewal.setDate(Math.min(day, lastDay));
-          }
-          Object.assign(subscription, {
-            plan,
-            status: quote.trial ? "トライアル中" : "有効",
-            trialUsed: Boolean(subscription.trialUsed || quote.trial),
-            trialEndsAt: quote.trial ? renewal.toISOString() : null,
-            nextRenewalDate: plan === "フリー" ? null : renewal.toISOString(),
-          });
-          const existing = remote.subscriptions.find(
-            (item) => item.userId === userId,
-          );
-          await request(
-            existing
-              ? client()
-                  .from("subscriptions")
-                  .update(toRow(subscription))
-                  .eq("id", existing.id)
-                  .select()
-                  .single()
-              : client()
-                  .from("subscriptions")
-                  .insert(toRow(subscription))
-                  .select()
-                  .single(),
-          );
-          await hydrate();
-          return transact((next) =>
-            next.payments.push({
+          return workflow((data) => {
+            const quote = planQuote(plan);
+            const userId = data.session.userId;
+            let subscription = data.subscriptions.find(
+              (item) => item.userId === userId,
+            );
+            if (!subscription) {
+              subscription = { id: crypto.randomUUID(), userId };
+              data.subscriptions.push(subscription);
+            }
+            const renewal = new Date();
+            if (quote.trial) renewal.setDate(renewal.getDate() + 30);
+            else {
+              const day = renewal.getDate();
+              renewal.setDate(1);
+              renewal.setMonth(renewal.getMonth() + 1);
+              const lastDay = new Date(
+                renewal.getFullYear(),
+                renewal.getMonth() + 1,
+                0,
+              ).getDate();
+              renewal.setDate(Math.min(day, lastDay));
+            }
+            Object.assign(subscription, {
+              plan,
+              status: quote.trial ? "トライアル中" : "有効",
+              trialUsed: Boolean(subscription.trialUsed || quote.trial),
+              trialEndsAt: quote.trial ? renewal.toISOString() : null,
+              nextRenewalDate: plan === "フリー" ? null : renewal.toISOString(),
+            });
+            data.payments.push({
               id: crypto.randomUUID(),
               kind: "プラン",
               companyId: userId,
@@ -1353,37 +1341,45 @@
               total: quote.amount,
               status: quote.trial ? "完了（トライアル）" : "完了",
               createdAt: new Date().toISOString(),
-            }),
-          );
+            });
+          });
         }
 
-        function savePayoutAccount(values) {
-          return transact((data) => {
-            const user = data.users.find((item) => item.id === data.session?.userId);
-            if (user?.role !== "creator")
-              throw new Error("クリエイターでログインしてください。");
-            if (
-              !/^\d{7}$/.test(values.number) ||
-              !["普通", "当座"].includes(values.type) ||
-              ["bank", "branch", "holder"].some(
-                (key) => !values[key]?.trim() || values[key].length > 100,
-              )
+        async function savePayoutAccount(values) {
+          const user = currentUser();
+          if (user?.role !== "creator")
+            throw new Error("クリエイターでログインしてください。");
+          if (
+            !/^\d{7}$/.test(values.number) ||
+            !["普通", "当座"].includes(values.type) ||
+            ["bank", "branch", "holder"].some(
+              (key) => !values[key]?.trim() || values[key].length > 100,
             )
-              throw new Error(
-                "口座情報を確認してください。口座番号は7桁で入力してください。",
-              );
-            const account = {
-              bank: values.bank.trim(),
-              branch: values.branch.trim(),
-              type: values.type,
-              last4: values.number.slice(-4),
-              holder: values.holder.trim(),
-            };
-            data.payoutAccounts = data.payoutAccounts.filter(
-              (item) => item.userId !== user.id,
+          )
+            throw new Error(
+              "口座情報を確認してください。口座番号は7桁で入力してください。",
             );
-            data.payoutAccounts.push({ userId: user.id, account });
-          });
+          try {
+            await request(
+              client()
+                .from("creator_profiles")
+                .update({
+                  payout_bank: values.bank.trim(),
+                  payout_branch: values.branch.trim(),
+                  payout_type: values.type,
+                  payout_last4: values.number.slice(-4),
+                  payout_holder: values.holder.trim(),
+                })
+                .eq("user_id", user.id)
+                .select()
+                .single(),
+            );
+            await hydrate();
+          } catch (error) {
+            await hydrate().catch(() => {});
+            showConnectionError(error);
+            throw error;
+          }
         }
 
         return {
@@ -3199,16 +3195,22 @@
         bindJobForm();
         document
           .getElementById("payout-account-form")
-          ?.addEventListener("submit", (event) => {
+          ?.addEventListener("submit", async (event) => {
             event.preventDefault();
+            const form = event.currentTarget;
+            const submitButton = form.querySelector('[type="submit"]');
+            if (submitButton.disabled) return;
             try {
-              RMStore.savePayoutAccount(
-                Object.fromEntries(new FormData(event.currentTarget)),
+              submitButton.disabled = true;
+              await RMStore.savePayoutAccount(
+                Object.fromEntries(new FormData(form)),
               );
-              event.currentTarget.reset();
+              form.reset();
               renderMyPage();
             } catch (error) {
               document.getElementById("account-error").textContent = error.message;
+            } finally {
+              submitButton.disabled = false;
             }
           });
         document

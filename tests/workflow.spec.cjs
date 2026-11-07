@@ -227,7 +227,7 @@ test("simultaneous read changes retry without losing another UUID", async ({
   ]);
 });
 
-test("committed remote payment keeps local finance when a following system message fails", async ({
+test("committed remote payment is rehydrated when a following system message fails", async ({
   page,
   api,
 }) => {
@@ -251,6 +251,7 @@ test("committed remote payment keeps local finance when a following system messa
     page.evaluate((id) => RMStore.payContract(id), contract.id),
   ).rejects.toThrow("失敗");
   expect(api.db.contracts[0].status).toBe("支払済（預かり中）");
+  expect(api.db.payments).toHaveLength(1);
   expect(
     await page.evaluate(() => RMStore.getCollection("payments").length),
   ).toBe(1);

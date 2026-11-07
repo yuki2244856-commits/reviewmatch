@@ -211,7 +211,7 @@ test("company creates a pending job; admin publishes, hides and reviews accounts
   );
 });
 
-test("UUID-based application, chat, contract, dummy payment, delivery, review and local payout use remote workflow", async ({
+test("UUID-based application, chat, contract, payment, delivery, review and remote payout use remote workflow", async ({
   page,
   api,
 }) => {
@@ -256,16 +256,25 @@ test("UUID-based application, chat, contract, dummy payment, delivery, review an
   );
   expect(api.db.contracts[0].status).toBe("完了");
   expect(data.contracts).toBeUndefined();
-  expect(data.payments[0]).toMatchObject({
+  expect(data.payments).toBeUndefined();
+  expect(data.payouts).toBeUndefined();
+  expect(api.db.payments[0]).toMatchObject({
+    kind: "案件",
+    contract_id: contract.id,
+    company_id: ids.company,
     fee: 1500,
-    priorityFee: 2000,
+    priority_fee: 2000,
     total: 18500,
+    status: "支払確定",
   });
-  expect(data.payouts[0]).toMatchObject({
-    creatorId: ids.creator,
+  expect(api.db.payments[0].creator_id).toBeUndefined();
+  expect(api.db.payouts[0]).toMatchObject({
+    contract_id: contract.id,
+    creator_id: ids.creator,
     amount: 15000,
     status: "未払い",
   });
+  expect(api.db.payouts[0].payout_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   expect(api.db.notifications.length).toBeGreaterThan(0);
   expect(api.db.applications[0].company_id).toBeUndefined();
   expect(
@@ -274,8 +283,10 @@ test("UUID-based application, chat, contract, dummy payment, delivery, review an
     ),
   ).toBe(true);
   expect(
-    api.calls.filter((call) => /payments|payouts/.test(call.path)),
-  ).toEqual([]);
+    api.calls.filter(
+      (call) => /payments|payouts/.test(call.path) && call.method === "POST",
+    ),
+  ).toHaveLength(2);
   expect(
     await page.evaluate(() => [
       RMStore.calcFee({ role: "SNS運用者" }, 30000),
@@ -428,7 +439,7 @@ test("profile write refusal is shown and does not change server data", async ({
   await expect(page.locator("#profile-form button")).toBeEnabled();
 });
 
-test("dummy subscription payment stays local and payout account survives reload", async ({
+test("subscription payment and payout account persist remotely and survive reload", async ({
   page,
   api,
 }) => {
@@ -438,6 +449,13 @@ test("dummy subscription payment stays local and payout account survives reload"
   await page.reload();
   await expect(page.locator("main")).toContainText("現在のプラン：プロ");
   expect(api.db.subscriptions[0].plan).toBe("プロ");
+  expect(api.db.payments[0]).toMatchObject({
+    company_id: ids.company,
+    kind: "プラン",
+    plan: "プロ",
+    amount: 0,
+    status: "完了（トライアル）",
+  });
   expect(
     await page.evaluate(() => RMStore.getCollection("payments")[0].kind),
   ).toBe("プラン");
@@ -457,6 +475,15 @@ test("dummy subscription payment stays local and payout account survives reload"
     localStorage.getItem("reviewmatch_store_v1"),
   );
   expect(stored).not.toContain("1234567");
+  expect(JSON.parse(stored).payoutAccounts).toBeUndefined();
+  expect(api.db.creator_profiles[0]).toMatchObject({
+    payout_bank: "デモ銀行",
+    payout_branch: "デモ支店",
+    payout_type: "普通",
+    payout_last4: "4567",
+    payout_holder: "テスト",
+  });
+  expect(JSON.stringify(api.calls)).not.toContain("1234567");
   expect(JSON.parse(stored).creatorProfiles).toBeUndefined();
 });
 
