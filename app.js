@@ -371,7 +371,40 @@
           startRealtime();
         }
 
+        let pageViewStarted = false;
+
+        async function recordPageView() {
+          try {
+            const path = location.pathname.split("/").pop() || "index.html";
+            if (
+              location.hostname !== "yuki2244856-commits.github.io" ||
+              new URLSearchParams(location.search).has("notrack") ||
+              path === "admin.html"
+            ) {
+              return;
+            }
+
+            const key = "reviewmatch_visitor_id";
+            let visitorId = localStorage.getItem(key);
+            if (!visitorId) {
+              visitorId = crypto.randomUUID();
+              localStorage.setItem(key, visitorId);
+            }
+
+            await client().from("page_views").insert({
+              path,
+              visitor_id: visitorId,
+            });
+          } catch {
+            // Analytics must never interrupt initialization or display errors.
+          }
+        }
+
         async function initialize() {
+          if (!pageViewStarted) {
+            pageViewStarted = true;
+            void recordPageView();
+          }
           const { data, error } = await client().auth.getSession();
           if (error) throw error;
           authUser = data.session?.user || null;
