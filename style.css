@@ -2356,3 +2356,32 @@
           width: 34%;
         }
       }
+
+      .legal-document section {
+        margin-bottom: 32px;
+      }
+      .legal-document h2 {
+        margin: 0 0 12px;
+        font-size: 22px;
+        line-height: 1.5;
+      }
+      .legal-document p {
+        margin: 0 0 16px;
+      }
+      .legal-document ol,
+      .legal-document ul {
+        margin: 0 0 16px;
+        padding-left: 1.75em;
+      }
+      .legal-document ol {
+        list-style: decimal;
+      }
+      .legal-document ul {
+        list-style: disc;
+      }
+      .legal-document li + li {
+        margin-top: 8px;
+      }
+      .legal-document {
+        overflow-wrap: anywhere;
+      }
