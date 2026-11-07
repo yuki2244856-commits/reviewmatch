@@ -3,6 +3,56 @@
       const SUPABASE_URL = "https://kcgxyqfwwhcvjhizootc.supabase.co";
       const SUPABASE_ANON_KEY =
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjZ3h5cWZ3d2hjdmpoaXpvb3RjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQwMTc3NzksImV4cCI6MjEwOTU5Mzc3OX0.uMkPN_jaOu2TU-XUNicDPTPdLQell4AQ1VRwdmUmJ9g";
+      const creatorSocialPlatforms = [
+        { key: "youtubeUrl", label: "YouTube", base: "https://www.youtube.com/@" },
+        { key: "tiktokUrl", label: "TikTok", base: "https://www.tiktok.com/@" },
+        {
+          key: "instagramUrl",
+          label: "Instagram",
+          base: "https://www.instagram.com/",
+        },
+        { key: "xUrl", label: "X", base: "https://x.com/" },
+      ];
+
+      function normalizeCreatorSocialUrl(value, platform) {
+        const input = String(value ?? "").trim();
+        if (!input) return null;
+        if (/^https?:\/\//i.test(input)) return input;
+        // Only a bare handle can be expanded; other schemes and paths are omitted.
+        const handle = input.replace(/^@/, "");
+        if (!/^[\p{L}\p{N}_.-]+$/u.test(handle)) return null;
+        return platform.base + handle;
+      }
+
+      function creatorSocialLinks(creator) {
+        const links = creatorSocialPlatforms.flatMap(({ key, label }) => {
+          const value = creator?.[key];
+          if (typeof value !== "string" || !/^https?:\/\//i.test(value)) {
+            return [];
+          }
+          try {
+            const url = new URL(value);
+            if (!["http:", "https:"].includes(url.protocol)) return [];
+          } catch {
+            return [];
+          }
+          return [
+            `<a class="tag" href="${escapeHTML(value)}"
+                target="_blank" rel="noopener noreferrer">${escapeHTML(label)}</a>`,
+          ];
+        });
+        return links.length
+          ? `<div class="creator-tags creator-social-links">${links.join("")}</div>`
+          : "";
+      }
+
+      function creatorSocialLinksForUser(userId) {
+        const creator = RMStore.getCollection("creatorProfiles").find(
+          (profile) => profile.userId === userId,
+        );
+        return creatorSocialLinks(creator);
+      }
+
       const authMemory = new Map();
       let authStoragePersistent = true;
       const authStorage = {
@@ -170,6 +220,10 @@
           sender_id: "senderId",
           contract_id: "contractId",
           portfolio_url: "portfolioUrl",
+          youtube_url: "youtubeUrl",
+          tiktok_url: "tiktokUrl",
+          instagram_url: "instagramUrl",
+          x_url: "xUrl",
           read_by: "readBy",
           delivery_url: "deliveryUrl",
           delivery_message: "deliveryMessage",
@@ -218,6 +272,9 @@
               result[key] = Number(row[key] || 0);
             }
             result.bio = row.bio || "";
+            for (const { key } of creatorSocialPlatforms) {
+              result[key] = result[key] || "";
+            }
           }
           return result;
         }
@@ -552,10 +609,29 @@
           const company = user.role === "company";
           const allowed = company
             ? ["companyName", "contactName", "industry", "description"]
-            : ["name", "role", "genre", "sns", "skill", "price", "bio"];
+            : [
+                "name",
+                "role",
+                "genre",
+                "sns",
+                "skill",
+                "price",
+                "bio",
+                ...creatorSocialPlatforms.map(({ key }) => key),
+              ];
           const profile = Object.fromEntries(
             allowed.filter((key) => key in values).map((key) => [key, values[key]]),
           );
+          if (!company) {
+            for (const platform of creatorSocialPlatforms) {
+              if (platform.key in profile) {
+                profile[platform.key] = normalizeCreatorSocialUrl(
+                  profile[platform.key],
+                  platform,
+                );
+              }
+            }
+          }
           const table = company ? "company_profiles" : "creator_profiles";
           const existing = remote[
             company ? "companyProfiles" : "creatorProfiles"
@@ -1996,6 +2072,7 @@
               <p class="creator-role">${escapeHTML(creator.role)}</p>
               <p class="creator-certification ${creator.badge ? "certified" : ""}">${creator.badge ? "✦ 認定レビュークリエイター" : "認定バッジなし"}</p>
               <div class="creator-tags"><span class="tag">${escapeHTML(creator.genre)}</span><span class="tag">${escapeHTML(creator.skill)}</span></div>
+              ${creatorSocialLinks(creator)}
               <p class="creator-sns">対応SNS：${escapeHTML(creator.sns.join(" / "))}</p>
               <dl class="creator-stats"><div><dt>制作実績</dt><dd>${creator.works}<small>件</small></dd></div><div><dt>評価</dt><dd>★ ${creator.rating}<small> / 5</small></dd></div></dl>
               <div class="card-bottom"><span><strong>${yen(creator.price)}</strong><span class="small muted">〜${creator.role === roles[3] ? "/月" : "/件"}</span></span><button class="text-link" data-creator="${creators.indexOf(creator)}">詳細を見る →</button></div>
@@ -2864,8 +2941,9 @@
                                     ?.displayName
                                 : allJobs.find((entry) => entry.id === item.jobId)
                                     ?.title;
-                            return `<p>${escapeHTML(name || "未登録")} · ${escapeHTML(item.status)} · ${escapeHTML(chatDate(item.createdAt))}
-                ${thread ? `<a class="text-link" href="chat.html?id=${encodeURIComponent(thread.id)}">チャットへ</a>` : ""}</p>`;
+                            return `<div><p>${escapeHTML(name || "未登録")} · ${escapeHTML(item.status)} · ${escapeHTML(chatDate(item.createdAt))}</p>
+                ${user.role === "company" ? creatorSocialLinksForUser(item.creatorId) : ""}
+                ${thread ? `<a class="text-link" href="chat.html?id=${encodeURIComponent(thread.id)}">チャットへ</a>` : ""}</div>`;
                           })
                           .join("")
                       : "<p>応募はまだありません。</p>"
@@ -2965,6 +3043,7 @@
                           ? `
                   <a class="text-link chat-back" href="chat.html">← 一覧へ戻る</a>
                   <h2>${escapeHTML(chatName(selected, user))}</h2>
+                  ${user.role === "company" ? creatorSocialLinksForUser(selected.creatorId) : ""}
                   <p>${escapeHTML(job?.title || "案件")}</p>
                   <div class="chat-notice">外部連絡先（LINE・メール等）への誘導禁止。投稿時のPR表記必須。</div>
                   ${!selected.companyId ? '<p class="muted">サンプル案件のため相手からの返信はありません</p>' : ""}
@@ -3160,6 +3239,11 @@
               ["sns", "対応SNS（カンマ区切り）"],
               ["skill", "スキル"],
               ["price", "料金目安（円）"],
+              ...creatorSocialPlatforms.map(({ key, label, base }) => [
+                key,
+                `${label} のアカウントURL`,
+                `${base}handle または @handle`,
+              ]),
             ];
         main.innerHTML = `
           <section class="section"><div class="container account-page">
@@ -3196,13 +3280,14 @@
                 <form id="profile-form" class="form-fields">
                   ${fields
                           .map(
-                            ([key, label]) => `
+                            ([key, label, placeholder]) => `
                     <div class="dialog-field">
                       <label for="profile-${key}">${label}</label>
                       ${
                               key === "description"
                                 ? `<textarea id="profile-${key}" name="${key}" maxlength="2000">${escapeHTML(profile[key] || "")}</textarea>`
                                 : `<input id="profile-${key}" name="${key}" type="${key === "price" ? "number" : "text"}"
+                            ${placeholder ? `placeholder="${escapeHTML(placeholder)}"` : ""}
                             value="${escapeHTML(Array.isArray(profile[key]) ? profile[key].join(", ") : String(profile[key] ?? ""))}"
                             ${["companyName", "contactName", "name", "role", "price"].includes(key) ? "required" : ""}
                 ${key === "price" ? 'min="0" max="100000000" step="1"' : 'maxlength="200"'}>`
@@ -4073,7 +4158,21 @@
           const creator = creators[Number(button.dataset.creator)];
           openModal(
             `${escapeHTML(creator.name)} / クリエイター`,
-            `<div style="display:flex;gap:15px;align-items:center;margin:15px 0"><span class="avatar" style="width:65px;height:65px">${escapeHTML(creator.name.slice(0, 1))}</span><div><strong>${escapeHTML(creator.role)}</strong><div class="small" style="color:#2563eb">${creator.badge ? "✦ 認定レビュークリエイター" : "クリエイター"}</div></div></div><p>${escapeHTML(creator.bio)}</p><div class="panel small">得意ジャンル：${escapeHTML(creator.genre)}<br>スキル：${escapeHTML(creator.skill)}<br>対応SNS：${escapeHTML(creator.sns.join(" / "))}<br>制作実績：${creator.works}件<br>フォロワー：${creator.followers.toLocaleString()}人<br>評価：★ ${creator.rating} / 5<br>料金目安：${yen(creator.price)}〜 ${creator.role === roles[3] ? "/月" : "/件"}</div><p class="small muted" style="margin-top:18px">※架空のクリエイターです。実際の依頼はできません。</p><button class="btn primary" data-register="company" style="width:100%">無料で案件を掲載 →</button>`,
+            `<div style="display:flex;gap:15px;align-items:center;margin:15px 0">
+                <span class="avatar" style="width:65px;height:65px">${escapeHTML(creator.name.slice(0, 1))}</span>
+                <div>
+              <strong>${escapeHTML(creator.role)}</strong><div class="small" style="color:#2563eb">${creator.badge ? "✦ 認定レビュークリエイター" : "クリエイター"}</div></div></div>
+              <p>${escapeHTML(creator.bio)}</p>
+              ${creatorSocialLinks(creator)}
+              <div class="panel small">得意ジャンル：${escapeHTML(creator.genre)}<br>
+              スキル：${escapeHTML(creator.skill)}<br>
+              対応SNS：${escapeHTML(creator.sns.join(" / "))}<br>
+              制作実績：${creator.works}件<br>
+              フォロワー：${creator.followers.toLocaleString()}人<br>
+              評価：★ ${creator.rating} / 5<br>
+              料金目安：${yen(creator.price)}〜 ${creator.role === roles[3] ? "/月" : "/件"}</div>
+              <p class="small muted" style="margin-top:18px">※架空のクリエイターです。実際の依頼はできません。</p>
+              <button class="btn primary" data-register="company" style="width:100%">無料で案件を掲載 →</button>`,
           );
         }
       });
