@@ -30,3 +30,10 @@ PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npm test
 テストでは実際の supabase-js と Chromium を使い、Auth / REST 応答のみをテスト用データに置き換えます。全11画面、認証、登録、プロフィール、案件管理・審査、UUIDを使うローカル取引フロー、接続エラー、メモリへの切替を確認します。実 DB を変更しません。
 
 **実接続の検証状況:** この実装環境では環境プロキシが Supabase ホストへの通信を 403 で遮断するため、実接続テストは未実施です。依頼文のテーブル・列情報をもとに実装しています。実プロジェクトでの列定義、RLS、Auth トリガー、デモアカウントとの互換性は接続可能な環境で確認してください。特に subscriptions は user_id、plan、next_renewal_date、status、trial_used、trial_ends_at を使用します。
+
+## Stripe starter (test mode, activation disabled)
+
+See `docs/stripe-integration.md` for the planner-refined Connect/Billing/Radar plan,
+Supabase migration/functions, deployment settings and the connected-balance hold/manual-payout ledger and outstanding controls/legal/webhook work. ReviewMatch does not hold client payment principal; Stripe does not provide regulated escrow.
+The provided publishable key is in `stripe-config.js`. Secret API keys remain only in
+Supabase Edge Function secrets; do not add them to this repository or chat.

@@ -256,6 +256,10 @@
             ]),
           );
           // Payment kind is the category; message/notification kind maps to type.
+          if (kind === "subscriptions" && window.ReviewMatchStripe?.enabled) {
+            result.id = row.subscription_id;
+            result.plan = row.entitled ? row.plan : "フリー";
+          }
           if (kind === "payments") {
             result.kind = row.kind;
             delete result.type;
@@ -327,7 +331,9 @@
             "company_profiles",
             "creator_profiles",
             "jobs",
-            "subscriptions",
+            window.ReviewMatchStripe?.enabled
+              ? "stripe_subscriptions"
+              : "subscriptions",
             "applications",
             "conversations",
             "messages",
@@ -347,6 +353,11 @@
             return;
           names.forEach((name, index) => {
             remote[name] = rows[index].map((row) => fromRow(row, name));
+            if (name === "subscriptions" && window.ReviewMatchStripe?.enabled) {
+              remote[name].sort(
+                (a, b) => Number(b.entitled) - Number(a.entitled),
+              );
+            }
           });
           remote.messages.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
           for (const conversation of remote.conversations) {
@@ -1215,6 +1226,10 @@
         }
 
         async function payContract(id, priority = false) {
+          if (window.ReviewMatchStripe?.enabled)
+            throw new Error(
+              "デモの決済・報酬操作は無効です。Stripe の管理機能をご利用ください。",
+            );
           return workflow((data) => {
             const { contract, conversation } = contractActor(data, id, "company", [
               "契約成立",
@@ -1268,12 +1283,13 @@
               message.length > 5000
             )
               throw new Error("納品内容を確認してください。");
+            const deliveryTime = Date.now();
             Object.assign(contract, {
               deliveryUrl: url.trim(),
               deliveryMessage: message.trim(),
-              deliveredAt: new Date().toISOString(),
+              deliveredAt: new Date(deliveryTime).toISOString(),
               reviewDeadline: new Date(
-                Date.now() + 48 * 60 * 60 * 1000,
+                deliveryTime + 48 * 60 * 60 * 1000,
               ).toISOString(),
               status: "納品済（検収中）",
             });
@@ -1288,6 +1304,10 @@
         }
 
         function completeDelivery(data, contract, automatic = false) {
+          if (window.ReviewMatchStripe?.enabled)
+            throw new Error(
+              "デモの決済・報酬操作は無効です。Stripe の管理機能をご利用ください。",
+            );
           const payment = data.payments.find(
             (item) => item.contractId === contract.id && item.status === "預かり中",
           );
@@ -1349,6 +1369,7 @@
         }
 
         async function runAutoApprovals() {
+          if (window.ReviewMatchStripe?.enabled) return;
           const expired = (item) =>
             item.status === "納品済（検収中）" &&
             Date.now() >=
@@ -1374,6 +1395,10 @@
         }
 
         async function simulateReviewDeadline(id) {
+          if (window.ReviewMatchStripe?.enabled)
+            throw new Error(
+              "デモの決済・報酬操作は無効です。Stripe の管理機能をご利用ください。",
+            );
           return workflow((data) => {
             const { contract } = contractActor(data, id, "company", [
               "納品済（検収中）",
@@ -1409,6 +1434,10 @@
         }
 
         async function changePlan(plan) {
+          if (window.ReviewMatchStripe?.enabled)
+            throw new Error(
+              "デモの決済・報酬操作は無効です。Stripe の管理機能をご利用ください。",
+            );
           return workflow((data) => {
             const quote = planQuote(plan);
             const userId = data.session.userId;
@@ -1455,6 +1484,10 @@
         }
 
         async function savePayoutAccount(values) {
+          if (window.ReviewMatchStripe?.enabled)
+            throw new Error(
+              "デモの決済・報酬操作は無効です。Stripe の管理機能をご利用ください。",
+            );
           const user = currentUser();
           if (user?.role !== "creator")
             throw new Error("クリエイターでログインしてください。");
@@ -1572,12 +1605,16 @@
           ],
           [
             "どんな費用がかかりますか？",
-            "月額はフリー0円、スタンダード9,800円、プロ29,800円（税込）。全プラン登録後30日間無料トライアルです。プラン料金は税込、成約手数料・オプション料金は別途です。手数料と商品の発送料は企業負担です。",
+            window.ReviewMatchStripe?.enabled
+              ? "月額はフリー0円、スタンダード9,800円、プロ29,800円（税込）。無料トライアルはありません。プラン料金は税込、成約手数料・オプション料金は別途です。手数料と商品の発送料は企業負担です。"
+              : "月額はフリー0円、スタンダード9,800円、プロ29,800円（税込）。全プラン登録後30日間無料トライアルです。プラン料金は税込、成約手数料・オプション料金は別途です。手数料と商品の発送料は企業負担です。",
           ],
           ["成約手数料はいくらですか？", feeSummary + feeNote],
           [
             "納品確認と支払いのタイミングは？",
-            "納品後48時間以内に検収してください。決済は月末締め翌月末払いです。",
+            window.ReviewMatchStripe?.enabled
+              ? "Stripe のクリエイター残高で銀行出金を保留する予定です。検収承認（納品48時間後の自動承認を含む）後、月末締め・翌月末払いの対象となります。現在は準備中です。"
+              : "納品後48時間以内に検収してください。決済は月末締め翌月末払いです。",
           ],
           [
             "制作物の利用条件はどう決めますか？",
@@ -1585,7 +1622,9 @@
           ],
           [
             "無料トライアルに手数料は含まれますか？",
-            "30日間は月額プラン料金が無料です。プラン料金は税込、成約手数料・オプション料金は別途です。手数料と商品の発送料は企業負担です。",
+            window.ReviewMatchStripe?.enabled
+              ? "Stripe のプラン契約に無料トライアルはありません。プラン料金は税込、成約手数料・オプション料金は別途です。手数料と商品の発送料は企業負担です。"
+              : "30日間は月額プラン料金が無料です。プラン料金は税込、成約手数料・オプション料金は別途です。手数料と商品の発送料は企業負担です。",
           ],
         ],
         creator: [
@@ -1710,7 +1749,7 @@
                 <li>SNS運用を継続依頼</li>
               </ul>
               <div class="checks">
-                <span>✓ 企業は30日間無料トライアル</span
+                <span>${window.ReviewMatchStripe?.enabled ? "✓ 無料プランで企業登録" : "✓ 企業は30日間無料トライアル"}</span
                 ><span>✓ クリエイターはずっと無料</span>
               </div>
             </div>
@@ -1979,7 +2018,7 @@
             <details>
               <summary>企業向けの料金プランは？</summary>
               <p>
-                フリーは月額0円・掲載1件/月、スタンダードは月額9,800円（税込）・掲載10件/月、プロは月額29,800円（税込）・掲載無制限。全プラン登録後30日間無料です。成約手数料・オプション料金は別途必要です。商品の発送料は企業負担です。
+                フリーは月額0円・掲載1件/月、スタンダードは月額9,800円（税込）・掲載10件/月、プロは月額29,800円（税込）・掲載無制限。${window.ReviewMatchStripe?.enabled ? "有料プランの無料トライアルはありません。" : "全プラン登録後30日間無料です。"}成約手数料・オプション料金は別途必要です。商品の発送料は企業負担です。
               </p>
             </details>
             <details>
@@ -2113,7 +2152,7 @@
             "つくる力と、ブランドをつなぐ。",
             "レビュー制作からSNS運用まで。目的に合うパートナーと出会えます。",
           ) +
-          `<section class="section"><div class="container">${tabs("利用者別サービス", ["企業の方", "クリエイターの方"])}<div id="service-content"></div></div></section><section class="section soft"><div class="container"><span class="eyebrow">PRICING</span><h2>目的に合わせて、選べる3つのプラン。</h2><p class="muted">全プラン登録後30日間無料。クリエイターは完全無料です。</p>${renderPlans()}<p class="small muted" style="margin-top:20px">${feeSummary}<br>${feeNote}<br><a class="text-link" href="pricing.html">料金の詳細とシミュレーター →</a></p></div></section>`;
+          `<section class="section"><div class="container">${tabs("利用者別サービス", ["企業の方", "クリエイターの方"])}<div id="service-content"></div></div></section><section class="section soft"><div class="container"><span class="eyebrow">PRICING</span><h2>目的に合わせて、選べる3つのプラン。</h2><p class="muted">${window.ReviewMatchStripe?.enabled ? "有料プランの無料トライアルはありません。" : "全プラン登録後30日間無料。"}クリエイターは完全無料です。</p>${renderPlans()}<p class="small muted" style="margin-top:20px">${feeSummary}<br>${feeNote}<br><a class="text-link" href="pricing.html">料金の詳細とシミュレーター →</a></p></div></section>`;
         const update = (index) => {
           const audience = index === 0 ? "company" : "creator";
           document.getElementById("service-content").innerHTML =
@@ -2287,9 +2326,11 @@
           head(
             "SIMPLE PRICING",
             "出会いを広げる、シンプルな料金。",
-            "企業は全プラン30日間無料トライアル。クリエイターは完全無料。",
+            window.ReviewMatchStripe?.enabled
+              ? "有料プランの無料トライアルはありません。クリエイターは完全無料。"
+              : "企業は全プラン30日間無料トライアル。クリエイターは完全無料。",
           ) +
-          `<section class="section"><div class="container">${renderPlans()}<div class="panel" style="margin-top:25px"><h3>成約手数料・オプション</h3><p class="small muted" style="margin-bottom:0">${feeSummary}<br>${feeNote}<br>優先掲載はスタンダード・プロで利用可能。トライアル中も成約手数料・オプション料金は発生します。</p></div><h2 style="margin-top:65px">料金シミュレーター</h2><p class="muted">月の掲載数から、最適なプランと費用の目安をチェック。</p><div class="simulator"><div class="sim-fields"><label for="sim-count">月の掲載案件数<input type="number" id="sim-count" min="1" max="10000" value="5" required></label><label for="sim-plan">比較するプラン<select id="sim-plan">${plans.map((plan, index) => `<option value="${index}" ${index === 1 ? "selected" : ""}>${plan.name}</option>`).join("")}</select></label><label for="sim-priority">優先掲載の件数<input type="number" id="sim-priority" min="0" max="10000" value="0" required></label><p class="small muted" id="sim-warning" role="status"></p></div><div class="sim-result" aria-live="polite" id="sim-result"></div></div></div></section>`;
+          `<section class="section"><div class="container">${renderPlans()}<div class="panel" style="margin-top:25px"><h3>成約手数料・オプション</h3><p class="small muted" style="margin-bottom:0">${feeSummary}<br>${feeNote}<br>優先掲載はスタンダード・プロで利用可能。${window.ReviewMatchStripe?.enabled ? "成約手数料・オプション料金は別途発生します。" : "トライアル中も成約手数料・オプション料金は発生します。"}</p></div><h2 style="margin-top:65px">料金シミュレーター</h2><p class="muted">月の掲載数から、最適なプランと費用の目安をチェック。</p><div class="simulator"><div class="sim-fields"><label for="sim-count">月の掲載案件数<input type="number" id="sim-count" min="1" max="10000" value="5" required></label><label for="sim-plan">比較するプラン<select id="sim-plan">${plans.map((plan, index) => `<option value="${index}" ${index === 1 ? "selected" : ""}>${plan.name}</option>`).join("")}</select></label><label for="sim-priority">優先掲載の件数<input type="number" id="sim-priority" min="0" max="10000" value="0" required></label><p class="small muted" id="sim-warning" role="status"></p></div><div class="sim-result" aria-live="polite" id="sim-result"></div></div></div></section>`;
         const update = () => {
           const countInput = document.getElementById("sim-count");
           const priorityInput = document.getElementById("sim-priority");
@@ -2319,7 +2360,9 @@
           const plan = plans[selected];
           const valid = count <= plan.limit && (priority === 0 || selected > 0);
           warning.textContent = valid
-            ? "※30日間の無料期間終了後の通常月額の目安です。"
+            ? window.ReviewMatchStripe?.enabled
+              ? "※通常月額の目安です。"
+              : "※30日間の無料期間終了後の通常月額の目安です。"
             : `${plan.name}では指定の掲載条件に対応できません。おすすめプランをご確認ください。`;
           document.getElementById("sim-result").innerHTML =
             `<span class="eyebrow">MONTHLY ESTIMATE</span><p style="margin-bottom:6px">${plan.name}の月額目安</p><div class="money" style="font-size:36px">${valid ? yen(plan.price + priority * 2000) : "利用条件外"}</div><p class="small muted">${valid ? `月額 ${yen(plan.price)}（税込） ＋ 優先掲載 ${yen(priority * 2000)}<br>成約手数料・クリエイター報酬は別途` : "掲載上限またはオプション条件を超えています。"}</p><hr style="border:0;border-top:1px solid #d7e3f7;margin:20px 0"><strong style="color:#2563eb">おすすめ：${plans[recommended].name}</strong><p class="small">条件に合う最安プラン：${yen(plans[recommended].price + priority * 2000)} / 月（プラン料金は税込）</p><p class="small muted" style="margin:0">成約1件・報酬10,000円の場合<br>制作案件：企業負担の手数料1,000円（報酬との合計11,000円）<br>SNS運用支援：企業負担の手数料1,500円（報酬との合計11,500円）</p><p class="small muted fee-note">${feeSummary}<br>${feeNote}</p>`;
@@ -2714,6 +2757,15 @@
       }
 
       function financeHTML(user) {
+        if (window.ReviewMatchStripe?.enabled) {
+          const action =
+            user.role === "creator" ? "connect-onboarding" : "billing-portal";
+          return `<div class="panel"><h2>Stripe（テストモード）</h2>
+            <p>案件決済の「預かり中」は Stripe のクリエイター残高で銀行への出金を保留する予定の状態です。検収承認後、月末締め・翌月末払いの対象となります。機能は準備中・無効です。</p>
+            <button class="btn" data-stripe-action="${action}">${user.role === "creator" ? "Stripe で受取設定" : "請求・契約を管理"}</button>
+            ${user.role === "company" ? '<button class="btn" data-stripe-action="subscription-checkout" data-plan="スタンダード">スタンダード 月額 ¥9,800</button><button class="btn" data-stripe-action="subscription-checkout" data-plan="プロ">プロ 月額 ¥29,800</button>' : ""}
+            <p data-stripe-feedback role="alert"></p></div>`;
+        }
         if (user.role === "company") {
           const contracts = RMStore.getCollection("contracts");
           const jobs = RMStore.getCollection("jobs");
@@ -2783,6 +2835,14 @@
       }
 
       async function showPaymentForm(action, id) {
+        if (
+          window.ReviewMatchStripe?.enabled &&
+          ["pay", "approve", "simulate"].includes(action)
+        ) {
+          throw new Error(
+            "案件決済・検収承認・出金は準備中です。承認後も月末締め・翌月末払いまで銀行への出金を待ちます。",
+          );
+        }
         const contract = RMStore.getCollection("contracts").find(
           (item) => item.id === id,
         );
@@ -2871,6 +2931,16 @@
       }
 
       function showPlanChange() {
+        if (window.ReviewMatchStripe?.enabled) {
+          openModal(
+            "Stripe プラン管理（テストモード）",
+            `<p>初回契約は下の有料プランから選択してください。既存契約の変更・解約は請求管理で行います。無料トライアルはありません。</p>
+            <button class="btn" data-stripe-action="subscription-checkout" data-plan="スタンダード">スタンダード 月額 ¥9,800</button>
+            <button class="btn" data-stripe-action="subscription-checkout" data-plan="プロ">プロ 月額 ¥29,800</button>
+            <button class="btn" data-stripe-action="billing-portal">請求・契約を管理</button><p data-stripe-feedback role="alert"></p>`,
+          );
+          return;
+        }
         if (!requireApproval()) return;
         openModal(
           "プランを変更",
@@ -4259,4 +4329,25 @@
             route();
           }
         }, 0);
+      });
+
+      document.addEventListener("click", async (event) => {
+        const button = event.target.closest("[data-stripe-action]");
+        if (!button || button.disabled || !window.ReviewMatchStripe?.enabled)
+          return;
+        button.disabled = true;
+        const feedback = button.parentElement.querySelector(
+          "[data-stripe-feedback]",
+        );
+        if (feedback) feedback.textContent = "Stripe に接続中…";
+        try {
+          await window.ReviewMatchStripe.redirect(
+            supabaseClient,
+            button.dataset.stripeAction,
+            button.dataset.plan ? { plan: button.dataset.plan } : {},
+          );
+        } catch (error) {
+          if (feedback) feedback.textContent = error.message;
+          button.disabled = false;
+        }
       });
