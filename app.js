@@ -2369,6 +2369,8 @@
       }
       function route() {
         const routeName = currentPage;
+        // The legal disclosure is static HTML and remains available without demo data.
+        if (routeName === "tokusho") return;
         if (storeError) {
           main.innerHTML = `<section class="section"><div class="container panel">
             <h1>デモデータを読み込めません</h1><p role="alert">${escapeHTML(storeError)}</p>
