@@ -107,6 +107,11 @@ function database() {
         title: "非公開テスト",
       },
     ],
+    applications: [],
+    conversations: [],
+    messages: [],
+    contracts: [],
+    notifications: [],
     subscriptions: [
       {
         id: "subscription",
@@ -233,6 +238,25 @@ const test = base.extend({
         const admin = user?.role === "admin";
         let rows = db[table].filter((row) => {
           if (admin) return true;
+          if (
+            ["applications", "conversations", "messages", "contracts"].includes(
+              table,
+            )
+          ) {
+            const conversation =
+              table === "messages"
+                ? db.conversations.find(
+                    (item) => item.id === row.conversation_id,
+                  )
+                : row;
+            const companyId =
+              table === "applications"
+                ? db.jobs.find((job) => job.id === row.job_id)?.company_id
+                : conversation?.company_id;
+            return (
+              !!id && (conversation?.creator_id === id || companyId === id)
+            );
+          }
           if (table === "jobs")
             return row.status === "掲載中" || row.company_id === id;
           if (table === "creator_profiles")
@@ -248,16 +272,68 @@ const test = base.extend({
         });
         for (const [key, value] of url.searchParams) {
           if (value.startsWith("eq."))
-            rows = rows.filter((row) => String(row[key]) === value.slice(3));
+            rows = rows.filter(
+              (row) =>
+                (Array.isArray(row[key])
+                  ? `{${row[key].join(",")}}`
+                  : String(row[key])) === value.slice(3),
+            );
         }
         if (method === "PATCH") {
           if (
             !admin &&
-            !rows.every((row) => row.id === id || row.user_id === id)
+            !rows.every(
+              (row) =>
+                row.id === id ||
+                row.user_id === id ||
+                [
+                  "applications",
+                  "conversations",
+                  "messages",
+                  "contracts",
+                ].includes(table),
+            )
           )
             return reply({ message: "RLS denied" }, 403);
           rows.forEach((row) => Object.assign(row, body));
         } else if (method === "POST") {
+          const allowed = {
+            applications:
+              "id job_id creator_id message portfolio_url status created_at",
+            conversations:
+              "id application_id job_id company_id creator_id created_at",
+            messages:
+              "id conversation_id sender_id kind body contract_id read_by created_at",
+            contracts:
+              "id application_id conversation_id job_id company_id creator_id amount deadline deliverable status delivery_url delivery_message delivery_at review_deadline created_at",
+            notifications: "id user_id kind conversation_id is_read created_at",
+          };
+          if (
+            allowed[table] &&
+            Object.keys(body).some(
+              (key) => !allowed[table].split(" ").includes(key),
+            )
+          )
+            return reply({ message: "Unknown column" }, 400);
+          if (
+            table === "applications" &&
+            (user?.role !== "creator" ||
+              user.status !== "approved" ||
+              body.creator_id !== id ||
+              !db.jobs.some(
+                (job) => job.id === body.job_id && job.status === "掲載中",
+              ))
+          )
+            return reply({ message: "RLS denied" }, 403);
+          if (
+            table === "messages" &&
+            !db.conversations.some(
+              (row) =>
+                row.id === body.conversation_id &&
+                [row.creator_id, row.company_id].includes(id),
+            )
+          )
+            return reply({ message: "RLS denied" }, 403);
           if (
             table === "jobs" &&
             (user?.role !== "company" ||
