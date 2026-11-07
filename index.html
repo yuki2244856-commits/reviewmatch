@@ -2173,6 +2173,28 @@
       .form-fields {
         min-width: 0;
       }
+      .payment-actions {
+        margin: 16px 0;
+        overflow-wrap: anywhere;
+      }
+      .payment-actions .btn {
+        max-width: 100%;
+        white-space: normal;
+        margin: 4px 0;
+      }
+      #payment-form input[type="checkbox"] {
+        width: auto;
+        display: inline;
+      }
+      #payment-form label,
+      #payout-account-form label {
+        display: grid;
+        gap: 6px;
+        min-width: 0;
+      }
+      #payment-form label:has(input[type="checkbox"]) {
+        display: block;
+      }
       .review-note {
         white-space: pre-wrap;
         overflow-wrap: anywhere;
@@ -3718,7 +3740,14 @@
               data.contracts.some(
                 (item) =>
                   item.conversationId === conversationId &&
-                  ["提示中", "契約成立"].includes(item.status),
+                  [
+                    "提示中",
+                    "契約成立",
+                    "支払済（預かり中）",
+                    "納品済（検収中）",
+                    "修正依頼中",
+                    "完了",
+                  ].includes(item.status),
               )
             ) {
               throw new Error("有効な契約があります。");
@@ -3801,7 +3830,312 @@
           });
         }
 
+        function calcFee(job, amount) {
+          return amount === 0
+            ? 500
+            : Math.round(
+                amount *
+                  (String(job?.role || "").includes("SNS運用") ? 0.15 : 0.1),
+              );
+        }
+
+        function contractActor(data, id, role, statuses) {
+          const contract = data.contracts.find((item) => item.id === id);
+          if (!contract) throw new Error("契約が見つかりません。");
+          const { user, conversation } = participant(
+            data,
+            contract.conversationId,
+          );
+          if (
+            user.role !== role ||
+            user.status !== "approved" ||
+            contract[`${role}Id`] !== user.id ||
+            !statuses.includes(contract.status)
+          ) {
+            throw new Error("この契約では操作できません。");
+          }
+          return { contract, conversation };
+        }
+
+        function payContract(id, priority = false) {
+          return transact((data) => {
+            const { contract, conversation } = contractActor(
+              data,
+              id,
+              "company",
+              ["契約成立"],
+            );
+            if (data.payments.some((item) => item.contractId === id))
+              throw new Error("決済済みです。");
+            const fee = calcFee(
+              data.jobs.find((item) => item.id === contract.jobId),
+              contract.amount,
+            );
+            const priorityFee = priority ? 2000 : 0;
+            data.payments.push({
+              id: crypto.randomUUID(),
+              kind: "案件",
+              contractId: id,
+              companyId: contract.companyId,
+              creatorId: contract.creatorId,
+              amount: contract.amount,
+              fee,
+              priorityFee,
+              total: contract.amount + fee + priorityFee,
+              status: "預かり中",
+              createdAt: new Date().toISOString(),
+            });
+            contract.status = "支払済（預かり中）";
+            appendMessage(
+              data,
+              conversation,
+              null,
+              "system",
+              "お支払いが完了しました（預かり中）",
+            );
+          });
+        }
+
+        function deliverContract(id, url, message) {
+          return transact((data) => {
+            const { contract, conversation } = contractActor(
+              data,
+              id,
+              "creator",
+              ["支払済（預かり中）", "修正依頼中"],
+            );
+            let parsed;
+            try {
+              parsed = new URL(url);
+            } catch {
+              throw new Error("納品URLを確認してください。");
+            }
+            if (
+              !["http:", "https:"].includes(parsed.protocol) ||
+              url.length > 2000 ||
+              !message.trim() ||
+              message.length > 5000
+            )
+              throw new Error("納品内容を確認してください。");
+            Object.assign(contract, {
+              deliveryUrl: url.trim(),
+              deliveryMessage: message.trim(),
+              deliveredAt: new Date().toISOString(),
+              status: "納品済（検収中）",
+            });
+            appendMessage(
+              data,
+              conversation,
+              null,
+              "system",
+              `納品されました\n${contract.deliveryUrl}\n${contract.deliveryMessage}`,
+            );
+          });
+        }
+
+        function completeDelivery(data, contract, automatic = false) {
+          const payment = data.payments.find(
+            (item) =>
+              item.contractId === contract.id && item.status === "預かり中",
+          );
+          if (
+            !payment ||
+            data.payouts.some((item) => item.contractId === contract.id)
+          )
+            throw new Error("決済状態を確認してください。");
+          const now = new Date();
+          const month = new Intl.DateTimeFormat("sv-SE", {
+            timeZone: "Asia/Tokyo",
+            year: "numeric",
+            month: "2-digit",
+          }).format(now);
+          const [year, monthNumber] = month.split("-").map(Number);
+          const payoutDate = new Date(Date.UTC(year, monthNumber + 1, 0))
+            .toISOString()
+            .slice(0, 10);
+          contract.status = "完了";
+          contract.completedAt = now.toISOString();
+          payment.status = "支払確定";
+          data.payouts.push({
+            id: crypto.randomUUID(),
+            creatorId: contract.creatorId,
+            contractId: contract.id,
+            amount: contract.amount,
+            status: "未払い",
+            closingMonth: month,
+            payoutDate,
+            createdAt: now.toISOString(),
+          });
+          appendMessage(
+            data,
+            data.conversations.find(
+              (item) => item.id === contract.conversationId,
+            ),
+            null,
+            "system",
+            automatic
+              ? "48時間経過により自動承認されました。契約完了（報酬確定）"
+              : "検収が承認されました。契約完了（報酬確定）",
+          );
+        }
+
+        function reviewDelivery(id, approve, reason = "") {
+          return transact((data) => {
+            const { contract, conversation } = contractActor(
+              data,
+              id,
+              "company",
+              ["納品済（検収中）"],
+            );
+            if (approve) completeDelivery(data, contract);
+            else {
+              if (!reason.trim() || reason.length > 3000)
+                throw new Error("修正理由を入力してください（3000文字以内）。");
+              contract.status = "修正依頼中";
+              appendMessage(
+                data,
+                conversation,
+                null,
+                "system",
+                `修正依頼：${reason.trim()}`,
+              );
+            }
+          });
+        }
+
+        function runAutoApprovals() {
+          const expired = (item) =>
+            item.status === "納品済（検収中）" &&
+            Date.now() - Date.parse(item.deliveredAt) >= 48 * 60 * 60 * 1000;
+          if (!load().contracts.some(expired)) return;
+          return transact((data) =>
+            data.contracts
+              .filter(expired)
+              .forEach((item) => completeDelivery(data, item, true)),
+          );
+        }
+
+        function simulateReviewDeadline(id) {
+          return transact((data) => {
+            const { contract } = contractActor(data, id, "company", [
+              "納品済（検収中）",
+            ]);
+            contract.deliveredAt = new Date(
+              Date.parse(contract.deliveredAt) - 48 * 60 * 60 * 1000,
+            ).toISOString();
+          });
+        }
+
+        function planQuote(plan) {
+          const user = currentUser();
+          if (user?.role !== "company" || user.status !== "approved")
+            throw new Error("承認済み企業でログインしてください。");
+          const prices = { フリー: 0, スタンダード: 9800, プロ: 29800 };
+          if (!Object.hasOwn(prices, plan))
+            throw new Error("プランを確認してください。");
+          const subscription = getCollection("subscriptions").find(
+            (item) => item.userId === user.id,
+          );
+          if (subscription?.plan === plan)
+            throw new Error("現在のプランです。");
+          const trial =
+            prices[plan] > 0 &&
+            !subscription?.trialUsed &&
+            !getCollection("payments").some(
+              (item) =>
+                item.companyId === user.id &&
+                item.kind === "プラン" &&
+                ["スタンダード", "プロ"].includes(item.plan),
+            );
+          return { trial, amount: trial ? 0 : prices[plan] };
+        }
+
+        function changePlan(plan) {
+          const quote = planQuote(plan);
+          return transact((data) => {
+            const userId = data.session.userId;
+            let subscription = data.subscriptions.find(
+              (item) => item.userId === userId,
+            );
+            if (!subscription) {
+              subscription = { id: crypto.randomUUID(), userId };
+              data.subscriptions.push(subscription);
+            }
+            const renewal = new Date();
+            if (quote.trial) renewal.setDate(renewal.getDate() + 30);
+            else {
+              const day = renewal.getDate();
+              renewal.setDate(1);
+              renewal.setMonth(renewal.getMonth() + 1);
+              const lastDay = new Date(
+                renewal.getFullYear(),
+                renewal.getMonth() + 1,
+                0,
+              ).getDate();
+              renewal.setDate(Math.min(day, lastDay));
+            }
+            Object.assign(subscription, {
+              plan,
+              status: quote.trial ? "トライアル中" : "有効",
+              trialUsed: Boolean(subscription.trialUsed || quote.trial),
+              trialEndsAt: quote.trial ? renewal.toISOString() : null,
+              nextRenewalDate: plan === "フリー" ? null : renewal.toISOString(),
+            });
+            data.payments.push({
+              id: crypto.randomUUID(),
+              kind: "プラン",
+              companyId: userId,
+              plan,
+              amount: quote.amount,
+              fee: 0,
+              priorityFee: 0,
+              total: quote.amount,
+              status: quote.trial ? "完了（トライアル）" : "完了",
+              createdAt: new Date().toISOString(),
+            });
+          });
+        }
+
+        function savePayoutAccount(values) {
+          return transact((data) => {
+            const user = data.users.find(
+              (item) => item.id === data.session?.userId,
+            );
+            if (user?.role !== "creator")
+              throw new Error("クリエイターでログインしてください。");
+            if (
+              !/^\d{7}$/.test(values.number) ||
+              !["普通", "当座"].includes(values.type) ||
+              ["bank", "branch", "holder"].some(
+                (key) => !values[key]?.trim() || values[key].length > 100,
+              )
+            )
+              throw new Error(
+                "口座情報を確認してください。口座番号は7桁で入力してください。",
+              );
+            const profile = data.creatorProfiles.find(
+              (item) => item.userId === user.id,
+            );
+            profile.payoutAccount = {
+              bank: values.bank.trim(),
+              branch: values.branch.trim(),
+              type: values.type,
+              last4: values.number.slice(-4),
+              holder: values.holder.trim(),
+            };
+          });
+        }
+
         return {
+          calcFee,
+          payContract,
+          deliverContract,
+          reviewDelivery,
+          runAutoApprovals,
+          simulateReviewDeadline,
+          planQuote,
+          changePlan,
+          savePayoutAccount,
           applyToJob,
           getConversationsForUser,
           sendMessage,
@@ -3847,6 +4181,7 @@
         );
       }
       try {
+        RMStore.runAutoApprovals();
         refreshData();
       } catch (error) {
         storeError = error.message;
@@ -4302,6 +4637,14 @@
             : `${plan.name}では指定の掲載条件に対応できません。おすすめプランをご確認ください。`;
           document.getElementById("sim-result").innerHTML =
             `<span class="eyebrow">MONTHLY ESTIMATE</span><p style="margin-bottom:6px">${plan.name}の月額目安</p><div class="money" style="font-size:36px">${valid ? yen(plan.price + priority * 2000) : "利用条件外"}</div><p class="small muted">${valid ? `月額 ${yen(plan.price)}（税込） ＋ 優先掲載 ${yen(priority * 2000)}<br>成約手数料・クリエイター報酬は別途` : "掲載上限またはオプション条件を超えています。"}</p><hr style="border:0;border-top:1px solid #d7e3f7;margin:20px 0"><strong style="color:#2563eb">おすすめ：${plans[recommended].name}</strong><p class="small">条件に合う最安プラン：${yen(plans[recommended].price + priority * 2000)} / 月（プラン料金は税込）</p><p class="small muted" style="margin:0">成約1件・報酬10,000円の場合<br>制作案件：企業負担の手数料1,000円（報酬との合計11,000円）<br>SNS運用支援：企業負担の手数料1,500円（報酬との合計11,500円）</p><p class="small muted fee-note">${feeSummary}<br>${feeNote}</p>`;
+          document
+            .getElementById("sim-result")
+            .insertAdjacentHTML(
+              "beforeend",
+              RMStore.currentUser()?.role === "company"
+                ? `<button class="btn primary" data-plan-change>マイページでプランを変更</button>`
+                : `<button class="btn primary" data-register="company">無料で登録する</button>`,
+            );
         };
         main
           .querySelectorAll("input, select")
@@ -4661,6 +5004,245 @@
         return new Date(value).toLocaleString("ja-JP");
       }
 
+      function paymentActions(contract, user) {
+        const id = escapeHTML(contract.id);
+        let actions = `<p>状態：${escapeHTML(contract.status)}</p>`;
+        if (contract.deliveryUrl) {
+          actions += `<p class="chat-body">納品URL：${escapeHTML(contract.deliveryUrl)}<br>${escapeHTML(contract.deliveryMessage)}</p>`;
+        }
+        if (contract.status === "納品済（検収中）") {
+          actions += `<p>検収期限：${escapeHTML(chatDate(new Date(Date.parse(contract.deliveredAt) + 48 * 60 * 60 * 1000).toISOString()))}</p>`;
+          if (user.id === contract.companyId) {
+            actions += `<button class="btn primary" data-payment-action="approve" data-id="${id}">検収して承認する</button>
+              <button class="btn" data-payment-action="return" data-id="${id}">差戻す（修正依頼）</button>
+              <button class="btn" data-payment-action="simulate" data-id="${id}">（デモ）48時間経過を再現</button>`;
+          }
+        }
+        if (user.id === contract.companyId && contract.status === "契約成立") {
+          actions += `<button class="btn primary" data-payment-action="pay" data-id="${id}">支払う（デモ決済）</button>`;
+        }
+        if (
+          user.id === contract.creatorId &&
+          ["支払済（預かり中）", "修正依頼中"].includes(contract.status)
+        ) {
+          actions += `<button class="btn primary" data-payment-action="deliver" data-id="${id}">納品する</button>`;
+        }
+        return `<div class="payment-actions">${actions}</div>`;
+      }
+
+      function financeHTML(user) {
+        if (user.role === "company") {
+          const contracts = RMStore.getCollection("contracts");
+          const jobs = RMStore.getCollection("jobs");
+          const payments = RMStore.getCollection("payments").filter(
+            (item) => item.companyId === user.id,
+          );
+          return `<div class="panel"><h2>支払履歴</h2>${dataTable(
+            [
+              "日付",
+              "種別",
+              "案件・プラン",
+              "報酬・月額",
+              "手数料",
+              "優先掲載",
+              "合計",
+              "ステータス",
+            ],
+            payments.map((item) => {
+              const contract = contracts.find(
+                (entry) => entry.id === item.contractId,
+              );
+              const title =
+                item.kind === "プラン"
+                  ? item.plan
+                  : jobs.find((entry) => entry.id === contract?.jobId)?.title;
+              return [
+                escapeHTML(chatDate(item.createdAt)),
+                escapeHTML(item.kind),
+                escapeHTML(title || "案件"),
+                yen(item.amount),
+                yen(item.fee || 0),
+                yen(item.priorityFee || 0),
+                yen(item.total),
+                escapeHTML(item.status),
+              ];
+            }),
+            "支払履歴",
+          )}</div>`;
+        }
+        const account = RMStore.getCollection("creatorProfiles").find(
+          (item) => item.userId === user.id,
+        )?.payoutAccount;
+        const payouts = RMStore.getCollection("payouts").filter(
+          (item) => item.creatorId === user.id,
+        );
+        return `<div class="panel"><h2>出金口座</h2>
+          ${account ? `<p>登録済：${escapeHTML(account.bank)} / ${escapeHTML(account.branch)} / ${escapeHTML(account.type)} / ****${escapeHTML(account.last4)} / ${escapeHTML(account.holder)}</p>` : "<p>未登録</p>"}
+          <p class="small muted">デモ用です。口座番号は下4桁のみ保存します。実際の口座情報は入力しないでください。</p>
+          <form id="payout-account-form" class="form-fields">
+            <label>銀行名<input name="bank" required maxlength="100"></label>
+            <label>支店<input name="branch" required maxlength="100"></label>
+            <label>口座種別<select name="type"><option>普通</option><option>当座</option></select></label>
+            <label>口座番号<input name="number" inputmode="numeric" pattern="[0-9]{7}" maxlength="7" required autocomplete="off"></label>
+            <label>名義<input name="holder" required maxlength="100"></label>
+            <button class="btn primary" type="submit">口座を登録</button>
+            <p role="alert" id="account-error"></p>
+          </form></div>
+          <div class="panel"><h2>受取履歴</h2>${dataTable(
+            ["金額", "支払予定日", "ステータス"],
+            payouts.map((item) => [
+              yen(item.amount),
+              escapeHTML(item.payoutDate),
+              escapeHTML(item.status),
+            ]),
+            "受取履歴",
+          )}</div>`;
+      }
+
+      function showPaymentForm(action, id) {
+        const contract = RMStore.getCollection("contracts").find(
+          (item) => item.id === id,
+        );
+        if (!contract) throw new Error("契約が見つかりません。");
+        if (action === "simulate") {
+          RMStore.simulateReviewDeadline(id);
+          window.location.reload();
+          return;
+        }
+        const job = RMStore.getCollection("jobs").find(
+          (item) => item.id === contract.jobId,
+        );
+        const fee = RMStore.calcFee(job, contract.amount);
+        const feeLabel =
+          contract.amount === 0
+            ? "固定"
+            : String(job?.role || "").includes("SNS運用")
+              ? "15%"
+              : "10%";
+        const fields =
+          action === "pay"
+            ? `
+          <p>報酬：${yen(contract.amount)}（クリエイター受取額）</p>
+          <p>企業負担手数料（${feeLabel}）：${yen(fee)}</p>
+          <label><input type="checkbox" id="priority-option">優先掲載を追加（${yen(2000)} / 件）</label>
+          <p id="priority-detail">優先掲載：なし ${yen(0)}</p>
+          <p>合計：<strong id="payment-total">${yen(contract.amount + fee)}</strong></p>
+          <p>デモ決済です。実際には請求されません。カード情報は保存されません</p>
+          <label>カード番号<input autocomplete="off" inputmode="numeric" placeholder="デモ用（入力不要）"></label>
+          <label>有効期限<input autocomplete="off" placeholder="MM/YY"></label>
+          <label>名義<input autocomplete="off" placeholder="DEMO USER"></label>`
+            : action === "deliver"
+              ? `
+          <label>納品物URL<input name="url" type="url" required maxlength="2000"></label>
+          <label>メッセージ<textarea name="message" required maxlength="5000"></textarea></label>`
+              : action === "return"
+                ? `<label>修正理由<textarea name="reason" required maxlength="3000"></textarea></label>`
+                : `<p>納品内容を承認し、${yen(contract.amount)}の報酬を確定します。</p>`;
+        openModal(
+          action === "pay"
+            ? "デモ決済"
+            : action === "deliver"
+              ? "納品する"
+              : "検収",
+          `
+          <form id="payment-form" class="form-fields" autocomplete="off">
+            ${fields}<p id="payment-error" role="alert"></p>
+            <button class="btn primary" type="submit">${action === "pay" ? "デモ決済を確定" : action === "deliver" ? "納品を送信" : action === "return" ? "修正を依頼" : "承認して報酬確定"}</button>
+          </form>`,
+        );
+        document
+          .getElementById("priority-option")
+          ?.addEventListener("change", (event) => {
+            const priorityFee = event.target.checked ? 2000 : 0;
+            document.getElementById("priority-detail").textContent =
+              `優先掲載：${event.target.checked ? "あり" : "なし"} ${yen(priorityFee)}`;
+            document.getElementById("payment-total").textContent = yen(
+              contract.amount + fee + priorityFee,
+            );
+          });
+        document
+          .getElementById("payment-form")
+          .addEventListener("submit", (event) => {
+            event.preventDefault();
+            try {
+              // Card inputs have no names and never enter FormData or the store.
+              if (action === "pay")
+                RMStore.payContract(
+                  id,
+                  document.getElementById("priority-option").checked,
+                );
+              else if (action === "deliver") {
+                const values = new FormData(event.currentTarget);
+                RMStore.deliverContract(
+                  id,
+                  values.get("url"),
+                  values.get("message"),
+                );
+              } else
+                RMStore.reviewDelivery(
+                  id,
+                  action === "approve",
+                  new FormData(event.currentTarget).get("reason") || "",
+                );
+              event.currentTarget.reset();
+              modal.close();
+              modal.innerHTML = "";
+              route();
+            } catch (error) {
+              document.getElementById("payment-error").textContent =
+                error.message;
+            }
+          });
+      }
+
+      function showPlanChange() {
+        if (!requireApproval()) return;
+        openModal(
+          "プランを変更",
+          `
+          <form id="plan-form" class="form-fields">
+            <label>月額プラン（税込）<select name="plan">
+              <option value="フリー">フリー ${yen(0)}</option>
+              <option value="スタンダード">スタンダード ${yen(9800)}</option>
+              <option value="プロ">プロ ${yen(29800)}</option>
+            </select></label>
+            <p>初回の有料プラン契約は30日間無料トライアル。実際の請求はありません。</p>
+            <p id="plan-error" role="alert"></p><button class="btn primary">確認へ</button>
+          </form>`,
+        );
+        document
+          .getElementById("plan-form")
+          .addEventListener("submit", (event) => {
+            event.preventDefault();
+            const plan = new FormData(event.currentTarget).get("plan");
+            try {
+              const quote = RMStore.planQuote(plan);
+              openModal(
+                "プラン変更の確認",
+                `
+              <p>${escapeHTML(plan)}：${quote.trial ? "30日間無料トライアルとして開始" : "月額・税込"} ${yen(quote.amount)}</p>
+              <p>デモ契約です。実際には請求されません。</p>
+              <p id="plan-confirm-error" role="alert"></p>
+              <button class="btn primary" id="plan-confirm">このプランで開始</button>`,
+              );
+              document
+                .getElementById("plan-confirm")
+                .addEventListener("click", () => {
+                  try {
+                    RMStore.changePlan(plan);
+                    modal.close();
+                    route();
+                  } catch (error) {
+                    document.getElementById("plan-confirm-error").textContent =
+                      error.message;
+                  }
+                });
+            } catch (error) {
+              document.getElementById("plan-error").textContent = error.message;
+            }
+          });
+      }
+
       function activityHTML(user, applications, contracts) {
         const threads = RMStore.getConversationsForUser();
         const users = RMStore.getCollection("users");
@@ -4692,12 +5274,13 @@
             <h2>進行中の契約</h2>
             ${
               contracts
-                .filter((item) => item.status === "契約成立")
+                .filter((item) => !["提示中", "辞退"].includes(item.status))
                 .map(
                   (item) => `
               <p>${escapeHTML(allJobs.find((job) => job.id === item.jobId)?.title || "案件")}
                 · ${yen(item.amount)} · 納期 ${escapeHTML(item.deadline)} · ${escapeHTML(item.deliverable)}
                 <a class="text-link" href="#chat/${item.conversationId}">チャットへ</a></p>
+                ${paymentActions(item, user)}
             `,
                 )
                 .join("") || "<p>進行中の契約はありません。</p>"
@@ -4729,7 +5312,14 @@
           contracts.some(
             (item) =>
               item.conversationId === selected.id &&
-              ["提示中", "契約成立"].includes(item.status),
+              [
+                "提示中",
+                "契約成立",
+                "支払済（預かり中）",
+                "納品済（検収中）",
+                "修正依頼中",
+                "完了",
+              ].includes(item.status),
           );
         main.innerHTML = `
           <section class="section"><div class="container">
@@ -4790,6 +5380,7 @@
                             <p>納期：${escapeHTML(contract.deadline)}</p>
                             <p class="chat-body">成果物：${escapeHTML(contract.deliverable)}</p>
                             <p>PR表記あり · ${escapeHTML(contract.status)}</p>
+                            ${paymentActions(contract, user)}
                             ${
                               user.id === contract.creatorId &&
                               contract.status === "提示中"
@@ -4938,7 +5529,17 @@
           : [
               ["応募数", `${applications.length}件`],
               ["契約数", `${contracts.length}件`],
-              ["確定報酬残高", "0円"],
+              [
+                "確定報酬残高",
+                yen(
+                  RMStore.getCollection("payouts")
+                    .filter(
+                      (item) =>
+                        item.creatorId === user.id && item.status === "未払い",
+                    )
+                    .reduce((sum, item) => sum + item.amount, 0),
+                ),
+              ],
             ];
         const fields = company
           ? [
@@ -4966,7 +5567,9 @@
               ${
                 company
                   ? `<p>現在のプラン：${escapeHTML(subscription?.plan || "フリー")}</p>
-                <p>次回更新日：${escapeHTML(subscription?.nextRenewalDate || "未定（デモ）")}</p>`
+                <p>次回更新日：${escapeHTML(subscription?.nextRenewalDate || "未定（デモ）")}</p>
+                ${subscription?.trialEndsAt ? `<p>無料トライアル終了：${escapeHTML(chatDate(subscription.trialEndsAt))}</p>` : ""}
+                <button class="btn" data-plan-change>プランを変更</button>`
                   : ""
               }
               ${!company && !admin ? `<p>${profile.badge ? "✦ 認定クリエイター" : "認定バッジなし"}</p>` : ""}
@@ -5008,6 +5611,7 @@
                 </form>
               </div>
               ${activityHTML(user, applications, contracts)}
+              ${financeHTML(user)}
               ${company ? companyJobsHTML(user, ownJobs) : '<a class="btn primary" href="#jobs">案件を探す →</a>'}
             `
             }
@@ -5017,6 +5621,21 @@
             </div>
           </div></section>`;
         bindJobForm();
+        document
+          .getElementById("payout-account-form")
+          ?.addEventListener("submit", (event) => {
+            event.preventDefault();
+            try {
+              RMStore.savePayoutAccount(
+                Object.fromEntries(new FormData(event.currentTarget)),
+              );
+              event.currentTarget.reset();
+              renderMyPage();
+            } catch (error) {
+              document.getElementById("account-error").textContent =
+                error.message;
+            }
+          });
         document
           .getElementById("profile-form")
           ?.addEventListener("submit", (event) => {
@@ -5260,6 +5879,16 @@
             allJobs.filter((job) => job.status === "審査中").length,
           ],
           ["契約数", contracts.length],
+          ...["預かり中", "支払確定"].map((status) => [
+            status === "預かり中" ? "預かり中金額" : "支払確定額",
+            yen(
+              RMStore.getCollection("payments")
+                .filter(
+                  (item) => item.kind === "案件" && item.status === status,
+                )
+                .reduce((sum, item) => sum + item.amount, 0),
+            ),
+          ]),
           [
             "成約額",
             yen(
@@ -5354,11 +5983,15 @@
               "案件管理",
             );
           } else {
-            content.innerHTML = ["contracts", "payments"]
+            content.innerHTML = ["contracts", "payments", "payouts"]
               .map((name) => {
                 const records = RMStore.getCollection(name);
                 const keys = [...new Set(records.flatMap(Object.keys))];
-                const title = name === "contracts" ? "契約" : "決済";
+                const title = {
+                  contracts: "契約",
+                  payments: "決済",
+                  payouts: "報酬",
+                }[name];
                 return `<h2>${title}</h2>${dataTable(
                   keys.length
                     ? keys.map(escapeHTML)
@@ -5806,7 +6439,22 @@
       document.addEventListener("click", (event) => {
         const button = event.target.closest("button");
         if (!button) return;
-        if (button.hasAttribute("data-login")) showLogin();
+        if (button.hasAttribute("data-payment-action")) {
+          try {
+            showPaymentForm(button.dataset.paymentAction, button.dataset.id);
+          } catch (error) {
+            openModal(
+              "操作エラー",
+              `<p role="alert">${escapeHTML(error.message)}</p>`,
+            );
+          }
+        } else if (button.hasAttribute("data-plan-change")) {
+          if (location.hash !== "#mypage") {
+            history.pushState(null, "", "#mypage");
+            route();
+          }
+          showPlanChange();
+        } else if (button.hasAttribute("data-login")) showLogin();
         else if (button.hasAttribute("data-mypage")) goToMyPage();
         else if (button.hasAttribute("data-reset-demo")) resetDemo();
         else if (button.hasAttribute("data-logout")) {
