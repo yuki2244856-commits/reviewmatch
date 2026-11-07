@@ -2194,6 +2194,92 @@
         max-width: 100%;
         min-width: 0;
       }
+      .chat-layout {
+        display: grid;
+        grid-template-columns: minmax(220px, 1fr) minmax(0, 2fr);
+        gap: 20px;
+        align-items: start;
+      }
+      .chat-layout > *,
+      .chat-layout input,
+      .chat-layout textarea {
+        min-width: 0;
+        max-width: 100%;
+      }
+      .chat-thread {
+        display: grid;
+        gap: 6px;
+        padding: 14px;
+        border-bottom: 1px solid #dbeafe;
+        overflow-wrap: anywhere;
+      }
+      .chat-thread.is-current,
+      .chat-notice {
+        background: #eff6ff;
+      }
+      .chat-notice {
+        padding: 12px;
+        border-left: 3px solid #60a5fa;
+      }
+      .chat-messages {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        max-height: 55vh;
+        overflow-y: auto;
+        padding: 18px 0;
+      }
+      .chat-message {
+        max-width: 90%;
+        padding: 12px;
+        border-radius: 14px;
+        overflow-wrap: anywhere;
+        background: #f1f5f9;
+        align-self: flex-start;
+      }
+      .chat-own {
+        align-self: flex-end;
+        background: #2563eb;
+        color: white;
+      }
+      .chat-system {
+        align-self: center;
+        font-size: 13px;
+      }
+      .chat-body {
+        white-space: pre-wrap;
+      }
+      .contract-card {
+        margin-top: 12px;
+        padding: 12px;
+        border: 1px solid #60a5fa;
+        border-radius: 10px;
+        background: white;
+        color: #14253d;
+      }
+      .chat-conversation,
+      .account-page .panel {
+        overflow-wrap: anywhere;
+      }
+      .chat-back {
+        display: none;
+      }
+      @media (max-width: 640px) {
+        .chat-layout {
+          display: block;
+        }
+        .chat-layout .chat-conversation,
+        .chat-selected .chat-list {
+          display: none;
+        }
+        .chat-selected .chat-conversation,
+        .chat-back {
+          display: block;
+        }
+        .chat-conversation {
+          padding: 14px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -3442,7 +3528,286 @@
           });
         }
 
+        function participant(data, conversationId) {
+          const user = data.users.find(
+            (item) => item.id === data.session?.userId,
+          );
+          const conversation = data.conversations.find(
+            (item) => item.id === conversationId,
+          );
+          if (
+            !user ||
+            !conversation ||
+            ![conversation.creatorId, conversation.companyId].includes(user.id)
+          ) {
+            throw new Error("この会話を利用できません。");
+          }
+          return { user, conversation };
+        }
+
+        function appendMessage(
+          data,
+          conversation,
+          senderId,
+          type,
+          body,
+          contractId = null,
+        ) {
+          const message = {
+            id: crypto.randomUUID(),
+            conversationId: conversation.id,
+            senderId,
+            type,
+            body,
+            contractId,
+            createdAt: new Date().toISOString(),
+            readBy: senderId ? [senderId] : [],
+          };
+          data.messages.push(message);
+          conversation.updatedAt = message.createdAt;
+          return message;
+        }
+
+        function notify(data, userId, type, conversationId) {
+          if (!userId) return;
+          data.notifications.push({
+            id: crypto.randomUUID(),
+            userId,
+            type,
+            conversationId,
+            createdAt: new Date().toISOString(),
+          });
+        }
+
+        function applyToJob(jobId, message, portfolioUrl) {
+          return transact((data) => {
+            const user = data.users.find(
+              (item) => item.id === data.session?.userId,
+            );
+            const job = data.jobs.find(
+              (item) => item.id === jobId && item.status === "掲載中",
+            );
+            if (
+              user?.role !== "creator" ||
+              user.status !== "approved" ||
+              !job
+            ) {
+              throw new Error(
+                "承認済みクリエイターとして公開案件に応募してください。",
+              );
+            }
+            if (
+              data.applications.some(
+                (item) => item.jobId === jobId && item.creatorId === user.id,
+              )
+            ) {
+              throw new Error("すでに応募済みです。");
+            }
+            if (!message?.trim() || !/^https?:\/\//i.test(portfolioUrl || "")) {
+              throw new Error("応募メッセージと実績URLを確認してください。");
+            }
+            const application = {
+              id: crypto.randomUUID(),
+              jobId,
+              creatorId: user.id,
+              companyId: job.companyId ?? null,
+              message: message.trim(),
+              portfolioUrl,
+              status: "応募",
+              createdAt: new Date().toISOString(),
+            };
+            const conversation = {
+              id: crypto.randomUUID(),
+              applicationId: application.id,
+              jobId,
+              creatorId: user.id,
+              companyId: application.companyId,
+              createdAt: application.createdAt,
+              updatedAt: application.createdAt,
+            };
+            data.applications.push(application);
+            data.conversations.push(conversation);
+            appendMessage(
+              data,
+              conversation,
+              user.id,
+              "text",
+              application.message,
+            );
+            appendMessage(
+              data,
+              conversation,
+              null,
+              "system",
+              "応募が送信されました",
+            );
+            notify(
+              data,
+              conversation.companyId,
+              "application",
+              conversation.id,
+            );
+            return conversation;
+          });
+        }
+
+        function getConversationsForUser() {
+          const user = currentUser();
+          if (!user) return [];
+          return getCollection("conversations")
+            .filter((item) =>
+              user.role === "company"
+                ? item.companyId === user.id
+                : user.role === "creator" && item.creatorId === user.id,
+            )
+            .sort((a, b) =>
+              (b.updatedAt || b.createdAt).localeCompare(
+                a.updatedAt || a.createdAt,
+              ),
+            );
+        }
+
+        function sendMessage(conversationId, body) {
+          return transact((data) => {
+            const { user, conversation } = participant(data, conversationId);
+            if (!body?.trim() || body.length > 5000)
+              throw new Error("本文は1〜5000文字で入力してください。");
+            appendMessage(data, conversation, user.id, "text", body.trim());
+            notify(
+              data,
+              user.id === conversation.creatorId
+                ? conversation.companyId
+                : conversation.creatorId,
+              "message",
+              conversationId,
+            );
+          });
+        }
+
+        function markConversationRead(conversationId) {
+          const data = load();
+          const { user } = participant(data, conversationId);
+          if (
+            !data.messages.some(
+              (item) =>
+                item.conversationId === conversationId &&
+                !(item.readBy || []).includes(user.id),
+            )
+          )
+            return;
+          return transact((next) => {
+            next.messages
+              .filter((item) => item.conversationId === conversationId)
+              .forEach((item) => {
+                item.readBy = [...new Set([...(item.readBy || []), user.id])];
+              });
+          });
+        }
+
+        function proposeContract(conversationId, values) {
+          return transact((data) => {
+            const { user, conversation } = participant(data, conversationId);
+            if (
+              user.role !== "company" ||
+              user.id !== conversation.companyId ||
+              user.status !== "approved"
+            ) {
+              throw new Error("案件のオーナー企業のみ提示できます。");
+            }
+            if (
+              data.contracts.some(
+                (item) =>
+                  item.conversationId === conversationId &&
+                  ["提示中", "契約成立"].includes(item.status),
+              )
+            ) {
+              throw new Error("有効な契約があります。");
+            }
+            const amount = Number(values.amount);
+            if (
+              values.amount === "" ||
+              !Number.isSafeInteger(amount) ||
+              amount < 0 ||
+              amount > 100000000 ||
+              !/^\d{4}-\d{2}-\d{2}$/.test(values.deadline || "") ||
+              !Number.isFinite(Date.parse(values.deadline)) ||
+              new Date(values.deadline).toISOString().slice(0, 10) !==
+                values.deadline ||
+              !values.deliverable?.trim() ||
+              values.deliverable.length > 3000
+            ) {
+              throw new Error("金額・納期・成果物を確認してください。");
+            }
+            const now = new Date().toISOString();
+            const contract = {
+              id: crypto.randomUUID(),
+              applicationId: conversation.applicationId,
+              conversationId,
+              jobId: conversation.jobId,
+              companyId: user.id,
+              creatorId: conversation.creatorId,
+              amount,
+              deadline: values.deadline,
+              deliverable: values.deliverable.trim(),
+              status: "提示中",
+              createdAt: now,
+              updatedAt: now,
+            };
+            data.contracts.push(contract);
+            appendMessage(
+              data,
+              conversation,
+              user.id,
+              "contract",
+              "契約が提示されました",
+              contract.id,
+            );
+            notify(data, conversation.creatorId, "contract", conversationId);
+            return contract;
+          });
+        }
+
+        function respondToContract(contractId, accept) {
+          return transact((data) => {
+            const contract = data.contracts.find(
+              (item) => item.id === contractId,
+            );
+            if (!contract) throw new Error("契約が見つかりません。");
+            const { user, conversation } = participant(
+              data,
+              contract.conversationId,
+            );
+            if (
+              user.role !== "creator" ||
+              user.id !== contract.creatorId ||
+              contract.status !== "提示中"
+            ) {
+              throw new Error("この契約には回答できません。");
+            }
+            contract.status = accept ? "契約成立" : "辞退";
+            contract.updatedAt = new Date().toISOString();
+            if (accept)
+              data.applications.find(
+                (item) => item.id === contract.applicationId,
+              ).status = "契約成立";
+            appendMessage(
+              data,
+              conversation,
+              null,
+              "system",
+              accept ? "契約が成立しました" : "契約が辞退されました",
+            );
+            notify(data, conversation.companyId, "contract", conversation.id);
+          });
+        }
+
         return {
+          applyToJob,
+          getConversationsForUser,
+          sendMessage,
+          markConversationRead,
+          proposeContract,
+          respondToContract,
           reviewUser,
           toggleBadge,
           publishJob,
@@ -3850,7 +4215,7 @@
         }
         main.innerHTML =
           head("PROJECT DETAILS", job.title, job.company) +
-          `<section class="section"><div class="container"><a href="#jobs" class="text-link">← 案件一覧へ戻る</a><div class="detail-layout" style="margin-top:25px"><article><div class="panel">${tabs("案件の詳細", ["案件情報", "企業情報", "応募方法"])}<div class="detail-copy" id="detail-content"></div></div></article><aside><div class="panel"><span class="tag">${job.role}</span><div class="money" style="margin:20px 0">${yen(job.budget)}<small> ${job.monthly ? "/ 月" : "/ 件"}</small></div><p class="small muted">募集締切：${job.deadline}<br>カテゴリ：${job.category}<br>${job.productSupport} / オンライン対応<br>対応SNS：${job.sns.join(" / ")}</p><button class="btn primary" style="width:100%" data-apply="${job.id}">この案件に応募する →</button><p class="small muted" style="margin:12px 0 0">${job.companyId ? "※ブラウザ内のデモ案件です。" : "※サンプル案件です。"}実際の応募は送信されません。</p></div></aside></div><h2 style="margin-top:60px">こちらの案件もおすすめ</h2><div class="grid">${jobs
+          `<section class="section"><div class="container"><a href="#jobs" class="text-link">← 案件一覧へ戻る</a><div class="detail-layout" style="margin-top:25px"><article><div class="panel">${tabs("案件の詳細", ["案件情報", "企業情報", "応募方法"])}<div class="detail-copy" id="detail-content"></div></div></article><aside><div class="panel"><span class="tag">${job.role}</span><div class="money" style="margin:20px 0">${yen(job.budget)}<small> ${job.monthly ? "/ 月" : "/ 件"}</small></div><p class="small muted">募集締切：${job.deadline}<br>カテゴリ：${job.category}<br>${job.productSupport} / オンライン対応<br>対応SNS：${job.sns.join(" / ")}</p><button class="btn primary" style="width:100%" data-apply="${job.id}">この案件に応募する →</button><p class="small muted" style="margin:12px 0 0">${job.companyId ? "※ブラウザ内のデモ案件です。" : "※サンプル案件です。"}応募は承認済みクリエイターのログイン時に、このブラウザ内へ保存されます。</p></div></aside></div><h2 style="margin-top:60px">こちらの案件もおすすめ</h2><div class="grid">${jobs
             .filter(
               (item) => item.id !== id && item.category === source.category,
             )
@@ -3988,7 +4353,8 @@
           history.replaceState(null, "", "#mypage");
           routeName = "mypage";
         }
-        if (routeName === "admin") renderAdmin();
+        if (routeName === "chat" || routeName.startsWith("chat/")) renderChat();
+        else if (routeName === "admin") renderAdmin();
         else if (routeName === "mypage" || routeName === "mypage/create-job")
           renderMyPage();
         else if (routeName === "home") {
@@ -4130,6 +4496,7 @@
         const user = storeError ? null : RMStore.currentUser();
         actions.innerHTML = user
           ? `<span class="account-name">${escapeHTML(user.displayName)}</span>
+             <a class="btn" href="#chat">チャット <span class="tag">${chatUnreadTotal()}</span></a>
              <a class="btn" href="#mypage">マイページ</a>
              ${user.role === "admin" ? '<a class="btn" href="#admin">管理者画面</a>' : ""}
              <button class="btn" data-logout>ログアウト</button>`
@@ -4252,6 +4619,282 @@
         }
       }
 
+      function unreadCount(conversation, user) {
+        return RMStore.getCollection("messages").filter(
+          (item) =>
+            item.conversationId === conversation.id &&
+            item.senderId &&
+            item.senderId !== user.id &&
+            !(item.readBy || []).includes(user.id),
+        ).length;
+      }
+
+      function chatUnreadTotal() {
+        const user = RMStore.currentUser();
+        return user
+          ? RMStore.getConversationsForUser().reduce(
+              (sum, item) => sum + unreadCount(item, user),
+              0,
+            )
+          : 0;
+      }
+
+      function chatName(conversation, user) {
+        if (user.id === conversation.creatorId && !conversation.companyId) {
+          return (
+            RMStore.getCollection("jobs").find(
+              (item) => item.id === conversation.jobId,
+            )?.company || "サンプル企業"
+          );
+        }
+        const otherId =
+          user.id === conversation.creatorId
+            ? conversation.companyId
+            : conversation.creatorId;
+        return (
+          RMStore.getCollection("users").find((item) => item.id === otherId)
+            ?.displayName || "ユーザー"
+        );
+      }
+
+      function chatDate(value) {
+        return new Date(value).toLocaleString("ja-JP");
+      }
+
+      function activityHTML(user, applications, contracts) {
+        const threads = RMStore.getConversationsForUser();
+        const users = RMStore.getCollection("users");
+        const allJobs = RMStore.getCollection("jobs");
+        return `
+          <div class="panel">
+            <h2>${user.role === "company" ? "自社案件への応募者一覧" : "応募履歴"}</h2>
+            ${
+              applications.length
+                ? applications
+                    .map((item) => {
+                      const thread = threads.find(
+                        (entry) => entry.applicationId === item.id,
+                      );
+                      const name =
+                        user.role === "company"
+                          ? users.find((entry) => entry.id === item.creatorId)
+                              ?.displayName
+                          : allJobs.find((entry) => entry.id === item.jobId)
+                              ?.title;
+                      return `<p>${escapeHTML(name || "未登録")} · ${escapeHTML(item.status)} · ${escapeHTML(chatDate(item.createdAt))}
+                ${thread ? `<a class="text-link" href="#chat/${thread.id}">チャットへ</a>` : ""}</p>`;
+                    })
+                    .join("")
+                : "<p>応募はまだありません。</p>"
+            }
+          </div>
+          <div class="panel">
+            <h2>進行中の契約</h2>
+            ${
+              contracts
+                .filter((item) => item.status === "契約成立")
+                .map(
+                  (item) => `
+              <p>${escapeHTML(allJobs.find((job) => job.id === item.jobId)?.title || "案件")}
+                · ${yen(item.amount)} · 納期 ${escapeHTML(item.deadline)} · ${escapeHTML(item.deliverable)}
+                <a class="text-link" href="#chat/${item.conversationId}">チャットへ</a></p>
+            `,
+                )
+                .join("") || "<p>進行中の契約はありません。</p>"
+            }
+          </div>`;
+      }
+
+      function renderChat() {
+        const user = RMStore.currentUser();
+        if (!user) {
+          main.innerHTML = `<section class="section"><div class="container panel"><h1>チャット</h1>
+            <p>ログインしてご利用ください。</p><button class="btn primary" data-login>ログイン</button></div></section>`;
+          return;
+        }
+        const threads = RMStore.getConversationsForUser();
+        const selected = threads.find(
+          (item) => item.id === location.hash.split("/")[1],
+        );
+        if (selected) RMStore.markConversationRead(selected.id);
+        updateHeader();
+        const messages = RMStore.getCollection("messages");
+        const contracts = RMStore.getCollection("contracts");
+        const allJobs = RMStore.getCollection("jobs");
+        const users = RMStore.getCollection("users");
+        const job =
+          selected && allJobs.find((item) => item.id === selected.jobId);
+        const activeContract =
+          selected &&
+          contracts.some(
+            (item) =>
+              item.conversationId === selected.id &&
+              ["提示中", "契約成立"].includes(item.status),
+          );
+        main.innerHTML = `
+          <section class="section"><div class="container">
+            <h1>チャット</h1>
+            <div class="chat-layout ${selected ? "chat-selected" : ""}">
+              <aside class="panel chat-list" aria-label="スレッド一覧">
+                <h2>スレッド一覧</h2>
+                ${
+                  threads
+                    .map((thread) => {
+                      const latest = messages
+                        .filter((item) => item.conversationId === thread.id)
+                        .at(-1);
+                      const contract = contracts
+                        .filter((item) => item.conversationId === thread.id)
+                        .at(-1);
+                      return `<a class="chat-thread ${thread.id === selected?.id ? "is-current" : ""}" href="#chat/${thread.id}">
+                    <strong>${escapeHTML(chatName(thread, user))}</strong>
+                    <span>${escapeHTML(allJobs.find((item) => item.id === thread.jobId)?.title || "案件")}</span>
+                    <span>${escapeHTML((latest?.body || "").slice(0, 60))}</span>
+                    <span>未読 ${unreadCount(thread, user)} <span class="tag">${escapeHTML(contract?.status || "応募")}</span></span>
+                  </a>`;
+                    })
+                    .join("") || "<p>応募すると会話が表示されます。</p>"
+                }
+              </aside>
+              <article class="panel chat-conversation" aria-label="会話エリア">
+                ${
+                  selected
+                    ? `
+                  <a class="text-link chat-back" href="#chat">← 一覧へ戻る</a>
+                  <h2>${escapeHTML(chatName(selected, user))}</h2>
+                  <p>${escapeHTML(job?.title || "案件")}</p>
+                  <div class="chat-notice">外部連絡先（LINE・メール等）への誘導禁止。投稿時のPR表記必須。</div>
+                  ${!selected.companyId ? '<p class="muted">サンプル案件のため相手からの返信はありません</p>' : ""}
+                  <div class="chat-messages" aria-label="メッセージ">
+                    ${messages
+                      .filter((item) => item.conversationId === selected.id)
+                      .map((message) => {
+                        const own = message.senderId === user.id;
+                        const otherId =
+                          own &&
+                          (user.id === selected.creatorId
+                            ? selected.companyId
+                            : selected.creatorId);
+                        const contract = contracts.find(
+                          (item) => item.id === message.contractId,
+                        );
+                        return `<div class="chat-message ${message.type === "system" ? "chat-system" : own ? "chat-own" : "chat-other"}">
+                        <small>${escapeHTML(message.senderId ? users.find((item) => item.id === message.senderId)?.displayName || "ユーザー" : "システム")} · ${escapeHTML(chatDate(message.createdAt))}</small>
+                        <div class="chat-body">${escapeHTML(message.body)}</div>
+                        ${
+                          contract
+                            ? `
+                          <div class="contract-card">
+                            <h3>契約条件</h3>
+                            <p>金額：${yen(contract.amount)}</p>
+                            <p>納期：${escapeHTML(contract.deadline)}</p>
+                            <p class="chat-body">成果物：${escapeHTML(contract.deliverable)}</p>
+                            <p>PR表記あり · ${escapeHTML(contract.status)}</p>
+                            ${
+                              user.id === contract.creatorId &&
+                              contract.status === "提示中"
+                                ? `
+                              <button class="btn" data-contract-answer="${contract.id}" data-accept="true">承諾する</button>
+                              <button class="btn" data-contract-answer="${contract.id}" data-accept="false">辞退する</button>`
+                                : ""
+                            }
+                          </div>`
+                            : ""
+                        }
+                        ${own ? `<small>${otherId && (message.readBy || []).includes(otherId) ? "既読" : "未読"}</small>` : ""}
+                      </div>`;
+                      })
+                      .join("")}
+                  </div>
+                  <p id="chat-feedback" class="error" role="alert"></p>
+                  <form id="message-form" class="form-fields">
+                    <label for="chat-body">メッセージ</label>
+                    <textarea id="chat-body" name="body" required maxlength="5000" rows="3" placeholder="Enterで送信、Shift+Enterで改行"></textarea>
+                    <button class="btn primary" type="submit">送信</button>
+                  </form>
+                  ${
+                    user.role === "company" &&
+                    user.status === "approved" &&
+                    selected.companyId === user.id &&
+                    !activeContract
+                      ? `
+                    <details><summary class="btn">契約を提示する</summary>
+                      <form id="contract-form" class="form-fields">
+                        <label for="contract-amount">金額（円）</label>
+                        <input id="contract-amount" name="amount" type="number" min="0" max="100000000" step="1" value="${Number(job?.budget) || 0}" required>
+                        <label for="contract-deadline">納期</label>
+                        <input id="contract-deadline" name="deadline" type="date" required>
+                        <label for="contract-deliverable">成果物</label>
+                        <textarea id="contract-deliverable" name="deliverable" required maxlength="3000"></textarea>
+                        <p>PR表記あり</p><button class="btn primary" type="submit">契約条件を提示</button>
+                      </form>
+                    </details>`
+                      : ""
+                  }
+                `
+                    : "<p>スレッドを選択してください。</p>"
+                }
+              </article>
+            </div>
+          </div></section>`;
+        const run = (action) => {
+          try {
+            action();
+            renderChat();
+          } catch (error) {
+            document.getElementById("chat-feedback").textContent =
+              error.message;
+          }
+        };
+        document
+          .getElementById("message-form")
+          ?.addEventListener("submit", (event) => {
+            event.preventDefault();
+            run(() =>
+              RMStore.sendMessage(
+                selected.id,
+                event.currentTarget.elements.body.value,
+              ),
+            );
+            document.getElementById("chat-body")?.focus();
+          });
+        document
+          .getElementById("chat-body")
+          ?.addEventListener("keydown", (event) => {
+            if (
+              event.key === "Enter" &&
+              !event.shiftKey &&
+              !event.isComposing
+            ) {
+              event.preventDefault();
+              event.currentTarget.form.requestSubmit();
+            }
+          });
+        document
+          .getElementById("contract-form")
+          ?.addEventListener("submit", (event) => {
+            event.preventDefault();
+            run(() =>
+              RMStore.proposeContract(
+                selected.id,
+                Object.fromEntries(new FormData(event.currentTarget)),
+              ),
+            );
+          });
+        main.querySelectorAll("[data-contract-answer]").forEach((button) => {
+          button.addEventListener("click", () =>
+            run(() =>
+              RMStore.respondToContract(
+                button.dataset.contractAnswer,
+                button.dataset.accept === "true",
+              ),
+            ),
+          );
+        });
+        const history = main.querySelector(".chat-messages");
+        if (history) history.scrollTop = history.scrollHeight;
+      }
+
       function renderMyPage() {
         const user = RMStore.currentUser();
         if (!user) {
@@ -4364,6 +5007,7 @@
                   <button type="submit" class="btn primary">プロフィールを保存</button>
                 </form>
               </div>
+              ${activityHTML(user, applications, contracts)}
               ${company ? companyJobsHTML(user, ownJobs) : '<a class="btn primary" href="#jobs">案件を探す →</a>'}
             `
             }
@@ -4811,17 +5455,45 @@
           return;
         }
         const job = sourceJob ? displayJob(sourceJob) : null;
+        const applicant = apply ? RMStore.currentUser() : null;
+        let appliedConversation = null;
+        if (applicant && applicant.role !== "creator") {
+          openModal(
+            "応募",
+            "<p>クリエイターアカウントでログインしてください。</p>",
+          );
+          return;
+        }
+        const existing =
+          apply &&
+          RMStore.getCollection("applications").find(
+            (item) => item.jobId === jobId && item.creatorId === applicant?.id,
+          );
+        if (existing) {
+          const thread = RMStore.getConversationsForUser().find(
+            (item) => item.applicationId === existing.id,
+          );
+          openModal(
+            "すでに応募済みです",
+            `<p>すでに応募済みです。</p><a class="btn primary" href="#chat/${thread.id}" onclick="modal.close()">チャットでやり取りする</a>`,
+          );
+          return;
+        }
         const values = {};
         let stage = 0;
         const demoNote = register
           ? "デモ用の登録です。このブラウザ内に保存されます。実際の個人情報やパスワードは入力しないでください。"
-          : "デモフォームです。入力内容は送信・保存されません。";
+          : applicant
+            ? "応募内容はこのブラウザ内に保存されます。"
+            : "デモフォームです。入力内容は送信・保存されません。";
         const titleForStage = () =>
           stage === 2
             ? register
               ? "登録完了"
               : apply
-                ? "応募完了（デモ）"
+                ? applicant
+                  ? "応募完了"
+                  : "応募完了（デモ）"
                 : "お問い合わせ完了（デモ）"
             : stage === 1
               ? "入力内容の確認"
@@ -4972,12 +5644,16 @@
                 <p class="muted small">${
                   register
                     ? "登録情報を保存しました。現在は審査中です。プロフィールを編集して審査完了をお待ちください。"
-                    : "これはデモの完了画面です。データの送信・保存は行っていません。"
+                    : appliedConversation
+                      ? "応募を保存しました。チャットでやり取りできます。"
+                      : "これはデモの完了画面です。データの送信・保存は行っていません。"
                 }</p>
                 ${
                   register
                     ? '<button class="btn primary" type="button" data-mypage>マイページへ進む</button>'
-                    : '<button class="btn primary" type="button" data-close>閉じる</button>'
+                    : appliedConversation
+                      ? `<a class="btn primary" href="#chat/${appliedConversation.id}" onclick="modal.close()">チャットでやり取りする</a>`
+                      : '<button class="btn primary" type="button" data-close>閉じる</button>'
                 }
               </div>`;
           }
@@ -5015,6 +5691,22 @@
                     refreshData();
                     updateHeader();
                     delete values["form-password"];
+                    stage = 2;
+                    render();
+                  } catch (error) {
+                    document.getElementById("register-error").textContent =
+                      error.message;
+                  }
+                  return;
+                }
+                if (apply && applicant) {
+                  try {
+                    appliedConversation = RMStore.applyToJob(
+                      jobId,
+                      values["form-message"],
+                      values["form-url"],
+                    );
+                    updateHeader();
                     stage = 2;
                     render();
                   } catch (error) {
