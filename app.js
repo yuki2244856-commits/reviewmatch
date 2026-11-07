@@ -4125,10 +4125,11 @@
           const creator = creators[Number(button.dataset.creator)];
           openModal(
             `${escapeHTML(creator.name)} / クリエイター`,
-            `<div style="display:flex;gap:15px;align-items:center;margin:15px 0"><span class="avatar" style="width:65px;height:65px">${escapeHTML(creator.name.slice(0, 1))}</span><div>
+            `<div style="display:flex;gap:15px;align-items:center;margin:15px 0">
+                <span class="avatar" style="width:65px;height:65px">${escapeHTML(creator.name.slice(0, 1))}</span>
+                <div>
               <strong>${escapeHTML(creator.role)}</strong><div class="small" style="color:#2563eb">${creator.badge ? "✦ 認定レビュークリエイター" : "クリエイター"}</div></div></div>
               <p>${escapeHTML(creator.bio)}</p>
-              
               ${creatorSocialLinks(creator)}
               <div class="panel small">得意ジャンル：${escapeHTML(creator.genre)}<br>
               スキル：${escapeHTML(creator.skill)}<br>
@@ -4136,8 +4137,8 @@
               制作実績：${creator.works}件<br>
               フォロワー：${creator.followers.toLocaleString()}人<br>
               評価：★ ${creator.rating} / 5<br>
-              料金目安：${yen(creator.price)}〜 ${creator.role === roles[3] ? "/月" : "/件"}</div><p
-               class="small muted" style="margin-top:18px">※架空のクリエイターです。実際の依頼はできません。</p>
+              料金目安：${yen(creator.price)}〜 ${creator.role === roles[3] ? "/月" : "/件"}</div>
+              <p class="small muted" style="margin-top:18px">※架空のクリエイターです。実際の依頼はできません。</p>
               <button class="btn primary" data-register="company" style="width:100%">無料で案件を掲載 →</button>`,
           );
         }
