@@ -112,6 +112,8 @@ function database() {
     messages: [],
     contracts: [],
     notifications: [],
+    payments: [],
+    payouts: [],
     subscriptions: [
       {
         id: "subscription",
@@ -257,6 +259,26 @@ const test = base.extend({
               !!id && (conversation?.creator_id === id || companyId === id)
             );
           }
+          if (table === "payments")
+            return (
+              !!id &&
+              (row.company_id === id ||
+                db.contracts.some(
+                  (contract) =>
+                    contract.id === row.contract_id &&
+                    [contract.company_id, contract.creator_id].includes(id),
+                ))
+            );
+          if (table === "payouts")
+            return (
+              !!id &&
+              (row.creator_id === id ||
+                db.contracts.some(
+                  (contract) =>
+                    contract.id === row.contract_id &&
+                    contract.company_id === id,
+                ))
+            );
           if (table === "jobs")
             return row.status === "掲載中" || row.company_id === id;
           if (table === "creator_profiles")
@@ -286,6 +308,7 @@ const test = base.extend({
               (row) =>
                 row.id === id ||
                 row.user_id === id ||
+                (table === "payments" && row.company_id === id) ||
                 [
                   "applications",
                   "conversations",
@@ -307,6 +330,10 @@ const test = base.extend({
             contracts:
               "id application_id conversation_id job_id company_id creator_id amount deadline deliverable status delivery_url delivery_message delivery_at review_deadline created_at",
             notifications: "id user_id kind conversation_id is_read created_at",
+            payments:
+              "id contract_id company_id kind plan amount fee priority_fee total status created_at",
+            payouts:
+              "id contract_id creator_id amount status payout_date created_at",
           };
           if (
             allowed[table] &&
@@ -342,6 +369,21 @@ const test = base.extend({
               body.status !== "審査中")
           )
             return reply({ message: "RLS denied" }, 403);
+          if (table === "payments" && body.company_id !== id)
+            return reply({ message: "RLS denied" }, 403);
+          if (
+            table === "payouts" &&
+            !db.contracts.some(
+              (contract) =>
+                contract.id === body.contract_id && contract.company_id === id,
+            )
+          )
+            return reply({ message: "RLS denied" }, 403);
+          if (
+            table === "payouts" &&
+            !["未払い", "支払済"].includes(body.status)
+          )
+            return reply({ message: "payout status check violated" }, 400);
           if (table.endsWith("_profiles") && body.user_id !== id)
             return reply({ message: "RLS denied" }, 403);
           if (omitCreator && table === "creator_profiles")
