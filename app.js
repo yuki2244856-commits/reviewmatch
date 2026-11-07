@@ -72,7 +72,7 @@
         "生活家電・日用品",
       ];
       const jobSNS = ["TikTok", "Instagram", "YouTube"];
-      // Supabase owns identity/catalog; the remaining workflow stays browser-local.
+      // Supabase owns identity, catalog and workflow; payments and payouts stay local.
       const RMStore = (() => {
         const key = "reviewmatch_store_v1";
         const version = 1;
@@ -140,24 +140,19 @@
             },
           };
         })();
-        // Only these collections are persisted locally in Step 2a.
-        const collections = [
-          "applications",
-          "contracts",
-          "conversations",
-          "messages",
-          "payments",
-          "payouts",
-          "reviews",
-          "notifications",
-          "payoutAccounts",
-        ];
+        // Only unmigrated collections are persisted locally.
+        const collections = ["payments", "payouts", "reviews", "payoutAccounts"];
         const remoteNames = [
           "users",
           "companyProfiles",
           "creatorProfiles",
           "jobs",
           "subscriptions",
+          "applications",
+          "conversations",
+          "messages",
+          "contracts",
+          "notifications",
         ];
         const remote = Object.fromEntries(remoteNames.map((name) => [name, []]));
         let authUser = null;
@@ -166,6 +161,20 @@
         const copy = (value) => JSON.parse(JSON.stringify(value));
         const normalizeEmail = (email) => email.trim().toLowerCase();
         const fieldNames = {
+          application_id: "applicationId",
+          job_id: "jobId",
+          creator_id: "creatorId",
+          conversation_id: "conversationId",
+          sender_id: "senderId",
+          contract_id: "contractId",
+          portfolio_url: "portfolioUrl",
+          read_by: "readBy",
+          delivery_url: "deliveryUrl",
+          delivery_message: "deliveryMessage",
+          delivery_at: "deliveredAt",
+          review_deadline: "reviewDeadline",
+          is_read: "isRead",
+          kind: "type",
           display_name: "displayName",
           review_note: "reviewNote",
           user_id: "userId",
@@ -239,30 +248,30 @@
         function clearRemote() {
           for (const name of remoteNames) remote[name] = [];
           sessionUser = null;
+          startRealtime();
         }
 
         let hydrationVersion = 0;
         async function hydrate(user = authUser) {
           const version = ++hydrationVersion;
           const identity = user?.id || null;
-          const names = [
-            "users",
-            "companyProfiles",
-            "creatorProfiles",
-            "jobs",
-            "subscriptions",
-          ];
+          const names = remoteNames;
           const tables = [
             "profiles",
             "company_profiles",
             "creator_profiles",
             "jobs",
             "subscriptions",
+            "applications",
+            "conversations",
+            "messages",
+            "contracts",
+            "notifications",
           ];
           // RLS restricts rows to the public catalog, owner, or administrator.
           const rows = await Promise.all(
             tables.map((table, index) => {
-              if (!user && [0, 1, 4].includes(index)) return [];
+              if (!user && ![2, 3].includes(index)) return [];
               return request(client().from(table).select("*"));
             }),
           );
@@ -271,6 +280,19 @@
           names.forEach((name, index) => {
             remote[name] = rows[index].map((row) => fromRow(row, name));
           });
+          remote.messages.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+          for (const conversation of remote.conversations) {
+            conversation.updatedAt =
+              remote.messages
+                .filter((message) => message.conversationId === conversation.id)
+                .at(-1)?.createdAt || conversation.createdAt;
+          }
+          for (const application of remote.applications) {
+            application.companyId =
+              remote.jobs.find((job) => job.id === application.jobId)?.companyId ??
+              null;
+            if (application.status === "応募中") application.status = "応募";
+          }
           sessionUser = remote.users.find((item) => item.id === identity) || null;
           if (user && !sessionUser)
             throw new Error(
@@ -278,6 +300,7 @@
             );
           if (sessionUser) sessionUser.email = user.email || "";
           document.getElementById("supabase-notice")?.remove();
+          startRealtime();
         }
 
         async function initialize() {
@@ -681,12 +704,154 @@
             userId,
             type,
             conversationId,
+            isRead: false,
             createdAt: new Date().toISOString(),
           });
         }
 
-        function applyToJob(jobId, message, portfolioUrl) {
-          return transact((data) => {
+        const workflowColumns = {
+          applications: "id jobId creatorId message portfolioUrl status createdAt",
+          conversations: "id applicationId jobId companyId creatorId createdAt",
+          contracts:
+            "id applicationId conversationId jobId companyId creatorId amount deadline deliverable status deliveryUrl deliveryMessage deliveredAt reviewDeadline createdAt",
+          messages:
+            "id conversationId senderId type body contractId readBy createdAt",
+          notifications: "id userId type conversationId isRead createdAt",
+        };
+        let workflowQueue = Promise.resolve();
+        function workflow(change) {
+          const operation = workflowQueue.then(async () => {
+            await hydrate();
+            const before = load();
+            const next = copy(before);
+            const result = change(next);
+            // Status transitions notify the other participant using the same remote channel.
+            for (const contract of next.contracts) {
+              const previous = before.contracts.find(
+                (item) => item.id === contract.id,
+              );
+              if (
+                previous &&
+                previous.status !== contract.status &&
+                !next.notifications.some(
+                  (item) =>
+                    !before.notifications.some((old) => old.id === item.id) &&
+                    item.conversationId === contract.conversationId,
+                )
+              ) {
+                notify(
+                  next,
+                  currentUser().id === contract.companyId
+                    ? contract.creatorId
+                    : contract.companyId,
+                  "contract",
+                  contract.conversationId,
+                );
+              }
+            }
+            try {
+              for (const [table, columns] of Object.entries(workflowColumns)) {
+                for (const record of next[table]) {
+                  const previous = before[table].find(
+                    (item) => item.id === record.id,
+                  );
+                  const values = Object.fromEntries(
+                    columns
+                      .split(" ")
+                      .filter((key) => record[key] !== undefined)
+                      .map((key) => [key, record[key]]),
+                  );
+                  if (!previous) {
+                    await request(client().from(table).insert(toRow(values, table)));
+                  } else {
+                    const changes = Object.fromEntries(
+                      Object.entries(values).filter(
+                        ([key, value]) =>
+                          JSON.stringify(previous[key]) !== JSON.stringify(value),
+                      ),
+                    );
+                    if (!Object.keys(changes).length) continue;
+                    let query = client()
+                      .from(table)
+                      .update(toRow(changes, table))
+                      .eq("id", record.id);
+                    if (table === "contracts")
+                      query = query.eq("status", previous.status);
+                    const updated = await request(query.select("id"));
+                    if (!updated.length)
+                      throw new Error(
+                        "契約が更新されています。再読み込みしてください。",
+                      );
+                  }
+                  if (table === "contracts") {
+                    // Keep local finance consistent once this contract write commits,
+                    // even if a subsequent message/notification request fails.
+                    const local = load();
+                    for (const name of ["payments", "payouts"]) {
+                      local[name] = local[name]
+                        .filter((item) => item.contractId !== record.id)
+                        .concat(
+                          next[name].filter((item) => item.contractId === record.id),
+                        );
+                    }
+                    save(local);
+                  }
+                }
+              }
+              save(next);
+              await hydrate();
+              return copy(result ?? null);
+            } catch (error) {
+              showConnectionError(error);
+              // Multi-table REST writes are not atomic; reflect committed rows on failure.
+              await hydrate().catch(() => {});
+              showConnectionError(error);
+              throw error;
+            }
+          });
+          workflowQueue = operation.catch(() => {});
+          return operation;
+        }
+
+        let realtimeChannel = null;
+        let realtimeIdentity = null;
+        function startRealtime() {
+          const identity = authUser?.id || null;
+          if (identity === realtimeIdentity) return;
+          if (realtimeChannel) {
+            client()
+              .removeChannel(realtimeChannel)
+              .catch(() => {});
+            realtimeChannel = null;
+          }
+          realtimeIdentity = identity;
+          if (!identity) return;
+          try {
+            realtimeChannel = client()
+              .channel(`messages:${identity}`)
+              .on(
+                "postgres_changes",
+                { event: "INSERT", schema: "public", table: "messages" },
+                async () => {
+                  if (authUser?.id !== identity) return;
+                  try {
+                    await hydrate();
+                    if (authUser?.id !== identity) return;
+                    updateHeader();
+                    if (currentPage === "chat") renderChat();
+                  } catch (error) {
+                    showConnectionError(error);
+                  }
+                },
+              )
+              .subscribe();
+          } catch {
+            // Realtime is optional; ordinary hydration and writes remain usable.
+          }
+        }
+
+        async function applyToJob(jobId, message, portfolioUrl) {
+          return workflow((data) => {
             const user = data.users.find((item) => item.id === data.session?.userId);
             const job = data.jobs.find(
               (item) => item.id === jobId && item.status === "掲載中",
@@ -748,8 +913,8 @@
             );
         }
 
-        function sendMessage(conversationId, body) {
-          return transact((data) => {
+        async function sendMessage(conversationId, body) {
+          return workflow((data) => {
             const { user, conversation } = participant(data, conversationId);
             if (!body?.trim() || body.length > 5000)
               throw new Error("本文は1〜5000文字で入力してください。");
@@ -765,28 +930,53 @@
           });
         }
 
-        function markConversationRead(conversationId) {
-          const data = load();
-          const { user } = participant(data, conversationId);
-          if (
-            !data.messages.some(
-              (item) =>
-                item.conversationId === conversationId &&
-                !(item.readBy || []).includes(user.id),
-            )
-          )
-            return;
-          return transact((next) => {
-            next.messages
-              .filter((item) => item.conversationId === conversationId)
-              .forEach((item) => {
-                item.readBy = [...new Set([...(item.readBy || []), user.id])];
-              });
-          });
+        async function markConversationRead(conversationId) {
+          const { user } = participant(load(), conversationId);
+          // Fetch current arrays before merging; never replace them with a stale mirror.
+          const rows = await request(
+            client()
+              .from("messages")
+              .select("*")
+              .eq("conversation_id", conversationId),
+          );
+          for (let row of rows) {
+            for (let attempt = 0; attempt < 5; attempt++) {
+              if ((row.read_by || []).includes(user.id)) break;
+              let query = client()
+                .from("messages")
+                .update({
+                  read_by: [...new Set([...(row.read_by || []), user.id])],
+                })
+                .eq("id", row.id);
+              // Compare-and-swap prevents simultaneous reads of system messages
+              // from overwriting the other participant's UUID.
+              query =
+                row.read_by === null
+                  ? query.is("read_by", null)
+                  : query.eq("read_by", `{${(row.read_by || []).join(",")}}`);
+              const updated = await request(query.select("id"));
+              if (updated.length) break;
+              if (attempt === 4)
+                throw new Error("既読状態を更新できません。再試行してください。");
+              const latest = await request(
+                client().from("messages").select("*").eq("id", row.id),
+              );
+              if (!latest.length) break;
+              row = latest[0];
+            }
+          }
+          await request(
+            client()
+              .from("notifications")
+              .update({ is_read: true })
+              .eq("conversation_id", conversationId)
+              .eq("user_id", user.id),
+          );
+          await hydrate();
         }
 
-        function proposeContract(conversationId, values) {
-          return transact((data) => {
+        async function proposeContract(conversationId, values) {
+          return workflow((data) => {
             const { user, conversation } = participant(data, conversationId);
             if (
               user.role !== "company" ||
@@ -855,8 +1045,8 @@
           });
         }
 
-        function respondToContract(contractId, accept) {
-          return transact((data) => {
+        async function respondToContract(contractId, accept) {
+          return workflow((data) => {
             const contract = data.contracts.find((item) => item.id === contractId);
             if (!contract) throw new Error("契約が見つかりません。");
             const { user, conversation } = participant(data, contract.conversationId);
@@ -907,8 +1097,8 @@
           return { contract, conversation };
         }
 
-        function payContract(id, priority = false) {
-          return transact((data) => {
+        async function payContract(id, priority = false) {
+          return workflow((data) => {
             const { contract, conversation } = contractActor(data, id, "company", [
               "契約成立",
             ]);
@@ -943,8 +1133,8 @@
           });
         }
 
-        function deliverContract(id, url, message) {
-          return transact((data) => {
+        async function deliverContract(id, url, message) {
+          return workflow((data) => {
             const { contract, conversation } = contractActor(data, id, "creator", [
               "支払済（預かり中）",
               "修正依頼中",
@@ -966,6 +1156,9 @@
               deliveryUrl: url.trim(),
               deliveryMessage: message.trim(),
               deliveredAt: new Date().toISOString(),
+              reviewDeadline: new Date(
+                Date.now() + 48 * 60 * 60 * 1000,
+              ).toISOString(),
               status: "納品済（検収中）",
             });
             appendMessage(
@@ -982,10 +1175,7 @@
           const payment = data.payments.find(
             (item) => item.contractId === contract.id && item.status === "預かり中",
           );
-          if (
-            !payment ||
-            data.payouts.some((item) => item.contractId === contract.id)
-          )
+          if (data.payouts.some((item) => item.contractId === contract.id))
             throw new Error("決済状態を確認してください。");
           const now = new Date();
           const month = new Intl.DateTimeFormat("sv-SE", {
@@ -999,7 +1189,7 @@
             .slice(0, 10);
           contract.status = "完了";
           contract.completedAt = now.toISOString();
-          payment.status = "支払確定";
+          if (payment) payment.status = "支払確定";
           data.payouts.push({
             id: crypto.randomUUID(),
             creatorId: contract.creatorId,
@@ -1021,8 +1211,8 @@
           );
         }
 
-        function reviewDelivery(id, approve, reason = "") {
-          return transact((data) => {
+        async function reviewDelivery(id, approve, reason = "") {
+          return workflow((data) => {
             const { contract, conversation } = contractActor(data, id, "company", [
               "納品済（検収中）",
             ]);
@@ -1042,23 +1232,37 @@
           });
         }
 
-        function runAutoApprovals() {
+        async function runAutoApprovals() {
           const expired = (item) =>
             item.status === "納品済（検収中）" &&
-            Date.now() - Date.parse(item.deliveredAt) >= 48 * 60 * 60 * 1000;
-          if (!load().contracts.some(expired)) return;
-          return transact((data) =>
+            Date.now() >=
+              Date.parse(
+                item.reviewDeadline ||
+                  new Date(
+                    Date.parse(item.deliveredAt) + 48 * 60 * 60 * 1000,
+                  ).toISOString(),
+              );
+          const user = currentUser();
+          if (user?.role !== "company") return;
+          if (
+            !load().contracts.some(
+              (item) => item.companyId === user.id && expired(item),
+            )
+          )
+            return;
+          return workflow((data) =>
             data.contracts
-              .filter(expired)
+              .filter((item) => item.companyId === user.id && expired(item))
               .forEach((item) => completeDelivery(data, item, true)),
           );
         }
 
-        function simulateReviewDeadline(id) {
-          return transact((data) => {
+        async function simulateReviewDeadline(id) {
+          return workflow((data) => {
             const { contract } = contractActor(data, id, "company", [
               "納品済（検収中）",
             ]);
+            contract.reviewDeadline = new Date(Date.now() - 1).toISOString();
             contract.deliveredAt = new Date(
               Date.parse(contract.deliveredAt) - 48 * 60 * 60 * 1000,
             ).toISOString();
@@ -1246,7 +1450,6 @@
         );
       }
       try {
-        RMStore.runAutoApprovals();
         refreshData();
       } catch (error) {
         storeError = error.message;
@@ -2473,13 +2676,13 @@
                 )}</div>`;
       }
 
-      function showPaymentForm(action, id) {
+      async function showPaymentForm(action, id) {
         const contract = RMStore.getCollection("contracts").find(
           (item) => item.id === id,
         );
         if (!contract) throw new Error("契約が見つかりません。");
         if (action === "simulate") {
-          RMStore.simulateReviewDeadline(id);
+          await RMStore.simulateReviewDeadline(id);
           window.location.reload();
           return;
         }
@@ -2532,25 +2735,26 @@
           });
         document
           .getElementById("payment-form")
-          .addEventListener("submit", (event) => {
+          .addEventListener("submit", async (event) => {
             event.preventDefault();
+            const form = event.currentTarget;
             try {
               // Card inputs have no names and never enter FormData or the store.
               if (action === "pay")
-                RMStore.payContract(
+                await RMStore.payContract(
                   id,
                   document.getElementById("priority-option").checked,
                 );
               else if (action === "deliver") {
                 const values = new FormData(event.currentTarget);
-                RMStore.deliverContract(id, values.get("url"), values.get("message"));
+                await RMStore.deliverContract(id, values.get("url"), values.get("message"));
               } else
-                RMStore.reviewDelivery(
+                await RMStore.reviewDelivery(
                   id,
                   action === "approve",
                   new FormData(event.currentTarget).get("reason") || "",
                 );
-              event.currentTarget.reset();
+              form.reset();
               modal.close();
               modal.innerHTML = "";
               route();
@@ -2667,7 +2871,20 @@
         const selected = threads.find(
           (item) => item.id === new URLSearchParams(location.search).get("id"),
         );
-        if (selected) RMStore.markConversationRead(selected.id);
+        if (
+          selected &&
+          RMStore.getCollection("messages").some((message) =>
+            message.conversationId === selected.id &&
+            !(message.readBy || []).includes(user.id),
+          )
+        ) {
+          RMStore.markConversationRead(selected.id)
+            .then(() => {
+              updateHeader();
+              if (currentPage === "chat") renderChat();
+            })
+            .catch(showConnectionError);
+        }
         updateHeader();
         const messages = RMStore.getCollection("messages");
         const contracts = RMStore.getCollection("contracts");
@@ -2795,9 +3012,9 @@
               </article>
             </div>
           </div></section>`;
-        const run = (action) => {
+        const run = async (action) => {
           try {
-            action();
+            await action();
             renderChat();
           } catch (error) {
             document.getElementById("chat-feedback").textContent = error.message;
@@ -3678,8 +3895,9 @@
                   return;
                 }
                 if (apply && applicant) {
+                  button.disabled = true;
                   try {
-                    appliedConversation = RMStore.applyToJob(
+                    appliedConversation = await RMStore.applyToJob(
                       jobId,
                       values["form-message"],
                       values["form-url"],
@@ -3690,6 +3908,8 @@
                   } catch (error) {
                     document.getElementById("register-error").textContent =
                       error.message;
+                  } finally {
+                    button.disabled = false;
                   }
                   return;
                 }
@@ -3781,7 +4001,7 @@
         if (!button) return;
         if (button.hasAttribute("data-payment-action")) {
           try {
-            showPaymentForm(button.dataset.paymentAction, button.dataset.id);
+            await showPaymentForm(button.dataset.paymentAction, button.dataset.id);
           } catch (error) {
             openModal(
               "操作エラー",
@@ -3860,7 +4080,7 @@
             route();
             return;
           }
-          RMStore.runAutoApprovals();
+          await RMStore.runAutoApprovals();
           updateHeader();
           route();
           if (

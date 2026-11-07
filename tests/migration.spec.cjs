@@ -106,7 +106,12 @@ for (const role of ["creator", "company"]) {
       async ({ role, job, jobId }) => {
         try {
           if (role === "company") await RMStore.createJob(job);
-          else RMStore.applyToJob(jobId, "応募", "https://example.test/work");
+          else
+            await RMStore.applyToJob(
+              jobId,
+              "応募",
+              "https://example.test/work",
+            );
         } catch (error) {
           return error.message;
         }
@@ -206,7 +211,7 @@ test("company creates a pending job; admin publishes, hides and reviews accounts
   );
 });
 
-test("UUID-based application, chat, contract, dummy payment, delivery, review and payout stay local", async ({
+test("UUID-based application, chat, contract, dummy payment, delivery, review and local payout use remote workflow", async ({
   page,
   api,
 }) => {
@@ -220,8 +225,8 @@ test("UUID-based application, chat, contract, dummy payment, delivery, review an
   expect(thread.creatorId).toBe(ids.creator);
   expect(thread.companyId).toBe(ids.company);
   await login(page, "company");
-  const contract = await page.evaluate((threadId) => {
-    RMStore.sendMessage(threadId, "よろしくお願いします");
+  const contract = await page.evaluate(async (threadId) => {
+    await RMStore.sendMessage(threadId, "よろしくお願いします");
     return RMStore.proposeContract(threadId, {
       amount: "15000",
       deadline: "2026-12-20",
@@ -249,7 +254,8 @@ test("UUID-based application, chat, contract, dummy payment, delivery, review an
   const data = await page.evaluate(() =>
     JSON.parse(localStorage.getItem("reviewmatch_store_v1")),
   );
-  expect(data.contracts[0].status).toBe("完了");
+  expect(api.db.contracts[0].status).toBe("完了");
+  expect(data.contracts).toBeUndefined();
   expect(data.payments[0]).toMatchObject({
     fee: 1500,
     priorityFee: 2000,
@@ -260,13 +266,15 @@ test("UUID-based application, chat, contract, dummy payment, delivery, review an
     amount: 15000,
     status: "未払い",
   });
-  expect(data.notifications.length).toBeGreaterThan(0);
+  expect(api.db.notifications.length).toBeGreaterThan(0);
+  expect(api.db.applications[0].company_id).toBeUndefined();
   expect(
-    api.calls.filter((call) =>
-      /applications|messages|contracts|payments|payouts|notifications|conversations/.test(
-        call.path,
-      ),
+    api.db.messages.some(
+      (row) => row.kind === "system" && row.sender_id === null,
     ),
+  ).toBe(true);
+  expect(
+    api.calls.filter((call) => /payments|payouts/.test(call.path)),
   ).toEqual([]);
   expect(
     await page.evaluate(() => [
@@ -276,7 +284,7 @@ test("UUID-based application, chat, contract, dummy payment, delivery, review an
   ).toEqual([4500, 500]);
 });
 
-test("unavailable localStorage retains in-memory auth and local messages with notice", async ({
+test("unavailable localStorage retains in-memory auth and remote messages with notice", async ({
   page,
   api,
 }) => {
@@ -290,13 +298,13 @@ test("unavailable localStorage retains in-memory auth and local messages with no
   await ready(page, "/mypage.html");
   await login(page, "creator");
   await expect(page.locator("#storage-notice")).toBeVisible();
-  const data = await page.evaluate((jobId) => {
-    const thread = RMStore.applyToJob(
+  const data = await page.evaluate(async (jobId) => {
+    const thread = await RMStore.applyToJob(
       jobId,
       "メモリ動作",
       "https://example.test/work",
     );
-    RMStore.sendMessage(thread.id, "追加メッセージ");
+    await RMStore.sendMessage(thread.id, "追加メッセージ");
     return {
       user: RMStore.currentUser(),
       messages: RMStore.getCollection("messages"),
@@ -322,7 +330,7 @@ test("connection failure shows loading/error and retry recovers", async ({
   await expect(page.locator("#supabase-notice")).toHaveCount(0);
 });
 
-test("legacy local user hashes/session/catalog are removed without losing local workflow records", async ({
+test("legacy local user hashes/session/catalog are removed while migrated workflow records are discarded", async ({
   page,
   api,
 }) => {
@@ -354,7 +362,7 @@ test("legacy local user hashes/session/catalog are removed without losing local 
     user: RMStore.currentUser(),
   }));
   expect(data.user).toBe(null);
-  expect(data.store.applications[0].id).toBe("legacy-app");
+  expect(data.store.applications).toBeUndefined();
   expect(JSON.stringify(data.store)).not.toContain("old-secret-hash");
   expect(data.store.users).toBeUndefined();
   expect(data.store.jobs).toBeUndefined();
