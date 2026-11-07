@@ -7,6 +7,8 @@ window.ReviewMatchStripe = Object.freeze({
     return window.REVIEWMATCH_STRIPE_CONFIG?.enabled === true;
   },
   async redirect(client, action, extra = {}) {
+    if (!window.ReviewMatchStripe.enabled)
+      throw new Error("Stripe 機能は現在無効です。");
     const {
       data: { session },
       error: authError,

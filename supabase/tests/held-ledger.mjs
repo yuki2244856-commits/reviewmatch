@@ -7,11 +7,15 @@ create role anon; create role authenticated; create role service_role;
 create function auth.uid() returns uuid language sql as $$ select nullif(current_setting('test.uid', true), '')::uuid $$;
 grant usage on schema auth to authenticated;
 insert into auth.users values ('00000000-0000-4000-8000-000000000002'), ('00000000-0000-4000-8000-000000000003');`);
-for (const file of [
-  "202611070001_stripe_foundation.sql",
-  "202611070002_stripe_merchant_accounts.sql",
-  "202611070003_held_project_payouts.sql",
-]) {
+for (
+  const file of [
+    "202611070001_stripe_foundation.sql",
+    "202611070002_stripe_merchant_accounts.sql",
+    "202611070003_held_project_payouts.sql",
+    "202611080001_atomic_workflow.sql",
+    "202611080002_held_payout_safety.sql",
+  ]
+) {
   await db.exec(
     await readFile(new URL(`../migrations/${file}`, import.meta.url), "utf8"),
   );
@@ -81,18 +85,20 @@ assert.equal(
   null,
 );
 await assert.rejects(() =>
-  db.query("select approve_held_order($1)", [uuid(1)]),
+  db.query("select approve_held_order($1)", [uuid(1)])
 );
 await assert.rejects(() =>
   db.exec(
     "update stripe_held_orders set approved_at='2026-02-05',approval_method='manual',due_on=null where charge_id='ch_2'",
-  ),
+  )
 );
 await assert.rejects(() =>
-  db.query("select reserve_held_payout('acct_creator','2026-03-31T03:00:00Z')"),
+  db.query("select reserve_held_payout('acct_creator','2026-03-31T03:00:00Z')")
 );
-await db.exec(`update stripe_accounts set payout_interval='manual',exclusive_payout_controls_verified_until='2026-04-01',
-  funds_reconciled_at='2026-03-30T03:00:00Z',reconciled_available_jpy=1735;`);
+await db.exec(
+  `update stripe_accounts set payout_interval='manual',exclusive_payout_controls_verified_until='2026-04-01',
+  funds_reconciled_at='2026-03-30T03:00:00Z',reconciled_available_jpy=1735;`,
+);
 await assert.rejects(
   () =>
     db.query(
@@ -123,6 +129,10 @@ await assert.rejects(
 await db.exec(
   "update stripe_held_orders set state='held' where charge_id='ch_2'",
 );
+// A revision can arrive after approval. It must remain reserved, never allocated.
+await db.exec(
+  "update stripe_held_orders set approved_at='2026-02-05',approval_method='manual',due_on='2026-03-31' where charge_id='ch_3'",
+);
 const batch = (
   await db.query(
     "select * from reserve_held_payout('acct_creator','2026-03-31T03:00:00Z')",
@@ -149,7 +159,7 @@ await assert.rejects(() =>
   db.query(
     "select apply_held_payout_result('evt_bad',1,'acct_creator',$1,'po_1',999,'paid')",
     [batch.id],
-  ),
+  )
 );
 assert.equal(
   (
@@ -203,13 +213,13 @@ assert.equal(
 );
 await db.exec("set role authenticated");
 await assert.rejects(() =>
-  db.query("select auto_approve_held_orders('2026-02-05')"),
+  db.query("select auto_approve_held_orders('2026-02-05')")
 );
 await assert.rejects(() =>
-  db.query("select reserve_held_payout('acct_creator')"),
+  db.query("select reserve_held_payout('acct_creator')")
 );
 await assert.rejects(() =>
-  db.query("update stripe_held_orders set state='paid_out'"),
+  db.query("update stripe_held_orders set state='paid_out'")
 );
 assert.equal(
   (await db.query("select * from stripe_held_orders")).rows.length,
@@ -244,7 +254,18 @@ await assert.rejects(
   /Buyer approval/,
 );
 await db.exec("reset role");
+await db.exec(
+  "update stripe_accounts set exclusive_payout_controls_verified_until='2099-01-01', funds_reconciled_at=now()",
+);
+await db.query(
+  "select apply_stripe_merchant_event('evt_account_change',10,'acct_creator','active')",
+);
+const proof = (await db.query(
+  "select exclusive_payout_controls_verified_until, funds_reconciled_at from stripe_accounts",
+)).rows[0];
+assert.equal(proof.exclusive_payout_controls_verified_until, null);
+assert.equal(proof.funds_reconciled_at, null);
 await db.close();
 console.log(
-  "PASS: three migrations; 48-hour acceptance/revisions; Tokyo cycle; reserve isolation; refund lock; replay; bank results/late failure; RPC/RLS denial",
+  "PASS: five migrations; 48-hour acceptance/revisions; Tokyo cycle; reserve isolation; refund lock; replay; bank results/late failure; RPC/RLS denial",
 );

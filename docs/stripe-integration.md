@@ -273,3 +273,49 @@ Tests use mocked/local data only. No deployment, remote testing, PR or activatio
 
 These results validate the local starter and mocks, not legal classification, Stripe Platform Controls eligibility,
 exclusive payout control, bank arrival timing or production readiness.
+
+
+## Main review fixes (2026-11-08)
+
+Apply migrations `202611080001_atomic_workflow.sql` and
+`202611080002_held_payout_safety.sql` **before** serving the updated `app.js`.
+The frontend now requires `apply_reviewmatch_workflow`; there is deliberately no
+fallback to partial multi-table REST writes. The RPC is SECURITY INVOKER and
+preserves existing table grants and RLS. The original application tables and
+policies are not defined in this repository; validate them in staging before
+applying the migration. This RPC adds atomicity, not new financial authorization.
+
+Billing API activation additionally requires the server-side Edge Function secret
+`STRIPE_BILLING_ENABLED=true`. When absent or any other value, POST returns 409
+before Stripe credentials are read. Keep it unset until Billing deployment is
+verified; frontend `enabled:true` alone cannot activate the API. This gate does
+not stop signed webhooks, which must keep reconciling already-created resources.
+It does not enable connected onboarding, project charges or payouts: those remain
+independently blocked. No flag was enabled by the review.
+
+All pages, including `tokusho.html`, `terms.html` and `privacy.html`, load the same Stripe config/client. The
+redirect helper rejects disabled calls. Stripe mode also blocks legacy delivery
+and revision actions, and hides demo payment actions. Demo acceptance now requires
+a held payment and uses the effective automatic-acceptance deadline for the Tokyo
+payout cycle. None of these demo rows are trusted as real Stripe payment evidence.
+
+Payout allocations now use the same revision exclusion as the amount calculation.
+Merchant account changes invalidate stored control/reconciliation proofs.
+Worker result writes only advance a `reserved` batch, preserving results already
+recorded by webhooks. These are local safety fixes, not activation readiness:
+the account-lock/submission boundary and the missing services documented above
+still require a production design and verification.
+
+`npm run test:migrations` now also executes the independent atomic-workflow SQL
+regression suite (rollback, stale contract status, caller RLS and allowlists).
+
+The review also removes public demo-account/password controls from the deployed
+login UI. Test credentials now live only in the intercepted test fixture. If
+any formerly advertised account exists in the real Supabase project, revoke or
+rotate it separately: removing the UI cannot revoke credentials already public
+in Git history. No attempt was made to authenticate with those accounts.
+
+The existing-subscription admission check now consumes all Stripe API pages;
+an active contract older than the first 100 ended contracts still blocks a new
+Checkout. The review report and current validation are in
+`docs/code-review-main-2026-11-08.md`.

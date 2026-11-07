@@ -140,14 +140,7 @@ test("remote write refusal leaves messages unchanged and displays connection err
   await ready(page);
   await login(page, "creator");
   const thread = await apply(page, api.db.jobs[0].id);
-  await page.route("**/rest/v1/messages*", async (route) => {
-    if (route.request().method() !== "POST") return route.fallback();
-    return route.fulfill({
-      status: 403,
-      contentType: "application/json",
-      body: JSON.stringify({ message: "RLS denied" }),
-    });
-  });
+  api.failWorkflow("messages", "POST", "RLS denied");
   await expect(
     page.evaluate((id) => RMStore.sendMessage(id, "拒否"), thread.id),
   ).rejects.toThrow("失敗");
@@ -227,7 +220,7 @@ test("simultaneous read changes retry without losing another UUID", async ({
   ]);
 });
 
-test("committed remote payment is rehydrated when a following system message fails", async ({
+test("payment and contract roll back when a following system message fails", async ({
   page,
   api,
 }) => {
@@ -239,23 +232,42 @@ test("committed remote payment is rehydrated when a following system message fai
   await login(page, "creator");
   await page.evaluate((id) => RMStore.respondToContract(id, true), contract.id);
   await login(page, "company");
-  await page.route("**/rest/v1/messages*", async (route) => {
-    if (route.request().method() !== "POST") return route.fallback();
-    return route.fulfill({
-      status: 503,
-      contentType: "application/json",
-      body: JSON.stringify({ message: "message insert failed" }),
-    });
-  });
+  api.failWorkflow("messages", "POST", "message insert failed");
   await expect(
     page.evaluate((id) => RMStore.payContract(id), contract.id),
   ).rejects.toThrow("失敗");
-  expect(api.db.contracts[0].status).toBe("支払済（預かり中）");
-  expect(api.db.payments).toHaveLength(1);
+  expect(api.db.contracts[0].status).toBe("契約成立");
+  expect(api.db.payments).toHaveLength(0);
   expect(
     await page.evaluate(() => RMStore.getCollection("payments").length),
-  ).toBe(1);
+  ).toBe(0);
   expect(
     await page.evaluate(() => RMStore.getCollection("contracts")[0].status),
-  ).toBe("支払済（預かり中）");
+  ).toBe("契約成立");
+});
+
+test("sign-out during workflow hydration prevents a stale actor from writing", async ({ page, api }) => {
+  await ready(page);
+  await login(page, "creator");
+  const thread = await apply(page, api.db.jobs[0].id);
+  let release;
+  const gate = new Promise((resolve) => { release = resolve; });
+  let held = false;
+  await page.route("**/rest/v1/messages*", async (route) => {
+    if (!held && route.request().method() === "GET") {
+      held = true;
+      await gate;
+    }
+    await route.fallback();
+  });
+  const started = page.waitForRequest((req) => req.url().includes("/rest/v1/messages") && req.method() === "GET");
+  const result = page.evaluate(async (id) => {
+    try { await RMStore.sendMessage(id, "ログアウト中に送らない"); return "sent"; }
+    catch (error) { return error.message; }
+  }, thread.id);
+  await started;
+  try { await page.evaluate(() => RMStore.logout()); }
+  finally { release(); }
+  expect(await result).toContain("セッションまたはデータ");
+  expect(api.db.messages).toHaveLength(2);
 });

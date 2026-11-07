@@ -130,10 +130,10 @@ const test = base.extend({
     const db = database();
     const calls = [];
     const passwords = {
-      admin: "admin123",
-      company: "demo1234",
-      creator: "demo1234",
-      pending: "demo1234",
+      admin: "fixture-admin-password",
+      company: "fixture-user-password",
+      creator: "fixture-user-password",
+      pending: "fixture-user-password",
     };
     const emails = Object.fromEntries(
       Object.entries(ids).map(([name, id]) => [`${name}@reviewmatch.demo`, id]),
@@ -180,9 +180,8 @@ const test = base.extend({
           contentType: "application/javascript",
         }),
     );
-    await context.route(
-      "https://kcgxyqfwwhcvjhizootc.supabase.co/**",
-      async (route) => {
+    let workflowFailure = null;
+    async function handle(route) {
         const req = route.request();
         const url = new URL(req.url());
         const method = req.method();
@@ -233,6 +232,33 @@ const test = base.extend({
           ).sub;
         } catch {}
         if (url.pathname === "/auth/v1/user") return reply(authUser(id));
+        if (url.pathname === "/rest/v1/rpc/apply_reviewmatch_workflow") {
+          const snapshot = clone(db);
+          try {
+            for (const op of body.p_operations) {
+              const opMethod = op.insert ? "POST" : "PATCH";
+              if (workflowFailure?.table === op.table && workflowFailure.method === opMethod)
+                throw new Error(workflowFailure.message);
+              const opUrl = new URL(`/rest/v1/${op.table}`, url.origin);
+              if (!op.insert) {
+                opUrl.searchParams.set("id", `eq.${op.id}`);
+                if (op.previous_status) opUrl.searchParams.set("status", `eq.${op.previous_status}`);
+              }
+              let response;
+              await handle({ request: () => ({
+                url: () => opUrl.href, method: () => opMethod,
+                postDataJSON: () => op.values, headers: () => req.headers(),
+              }), fulfill: async (result) => { response = result; } });
+              if (response.status >= 400) throw new Error(JSON.parse(response.body).message);
+              if (!op.insert && !JSON.parse(response.body).length)
+                throw new Error("Workflow changed or access denied");
+            }
+            return reply(null);
+          } catch (error) {
+            for (const name of Object.keys(snapshot)) db[name] = snapshot[name];
+            return reply({ message: error.message }, 409);
+          }
+        }
         const table = url.pathname.split("/").pop();
         if (!db[table])
           return reply({ message: `Unexpected table ${table}` }, 500);
@@ -397,11 +423,14 @@ const test = base.extend({
         }
         const single = req.headers().accept?.includes("vnd.pgrst.object");
         return reply(single ? rows[0] : rows);
-      },
-    );
+      }
+    await context.route("https://kcgxyqfwwhcvjhizootc.supabase.co/**", handle);
     await use({
       db,
       calls,
+      failWorkflow: (table, method, message = `${table} write refused`) => {
+        workflowFailure = table ? { table, method, message } : null;
+      },
       ids,
       session,
       fail: (message) => {
@@ -429,7 +458,7 @@ async function login(page, account) {
   await page.evaluate(async (name) => {
     await RMStore.login(
       `${name}@reviewmatch.demo`,
-      name === "admin" ? "admin123" : "demo1234",
+      name === "admin" ? "fixture-admin-password" : "fixture-user-password",
     );
     updateHeader();
     route();
