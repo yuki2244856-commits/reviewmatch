@@ -178,7 +178,7 @@
           created_at: "createdAt",
           next_renewal_date: "nextRenewalDate",
           trial_used: "trialUsed",
-          trial_ends_at: "trialEndsAt",
+          trial_end_date: "trialEndsAt",
         };
 
         function fromRow(row, kind) {
