@@ -1619,7 +1619,337 @@
         },
       ];
       const main = document.getElementById("main");
-      const homeHTML = main.innerHTML;
+      const homeHTML = `
+      <section class="hero">
+        <div class="container">
+          <div class="hero-grid relative">
+            <div>
+              <span class="pill"
+                ><span>●</span> つくる力が、ブランドの可能性になる。</span
+              >
+              <h1 class="hero-heading">
+                レビュー制作も、<br />SNS運用も。<br /><span
+                  >企業とクリエイター</span
+                ><span class="hero-heading-phrase">をつなぐ。</span>
+              </h1>
+              <p class="hero-copy">
+                その「好き」と「得意」が、商品の新しい価値になる。<br />レビュー動画・UGC制作から、SNS運用まで。<br />企業とクリエイターの、いい出会いをReviewMatchで。
+              </p>
+              <div class="actions">
+                <button class="btn primary" data-register="company">
+                  無料で案件を掲載 <span>↗</span>
+                </button>
+                <button class="btn" data-register="creator">
+                  無料で仕事を探す <span>→</span>
+                </button>
+              </div>
+              <ul class="hero-examples" aria-label="ReviewMatchの利用例">
+                <li>新商品のレビュー動画を依頼</li>
+                <li>UGCで商品の使い方を発信</li>
+                <li>SNS運用を継続依頼</li>
+              </ul>
+              <div class="checks">
+                <span>✓ 企業は30日間無料トライアル</span
+                ><span>✓ クリエイターはずっと無料</span>
+              </div>
+            </div>
+            <div
+              class="hero-art"
+              role="img"
+              aria-label="商品レビューを制作するクリエイターと企業がマッチングするイメージ"
+            >
+              <div class="art-grid"></div>
+              <div class="art-orbit"></div>
+              <div class="mock-phone">
+                <div class="phone-top"></div>
+                <div class="phone-scene">
+                  <svg
+                    viewBox="0 0 180 195"
+                    width="100%"
+                    height="100%"
+                    aria-hidden="true"
+                  >
+                    <ellipse cx="90" cy="160" rx="60" ry="12" fill="#b5c9c0" />
+                    <path
+                      d="M43 105V75a47 47 0 0 1 94 0v30"
+                      fill="none"
+                      stroke="#283d44"
+                      stroke-width="15"
+                    />
+                    <rect
+                      x="30"
+                      y="83"
+                      width="30"
+                      height="60"
+                      rx="14"
+                      fill="#3e565d"
+                    />
+                    <rect
+                      x="120"
+                      y="83"
+                      width="30"
+                      height="60"
+                      rx="14"
+                      fill="#3e565d"
+                    />
+                    <rect
+                      x="37"
+                      y="89"
+                      width="15"
+                      height="47"
+                      rx="7"
+                      fill="#718a87"
+                    />
+                    <rect
+                      x="128"
+                      y="89"
+                      width="15"
+                      height="47"
+                      rx="7"
+                      fill="#718a87"
+                    />
+                  </svg>
+                  <span class="play">▷</span>
+                </div>
+                <div style="margin: 0 13px; font-size: 9px; font-weight: 700">
+                  日常に、いい音を。
+                </div>
+                <div class="phone-lines"></div>
+              </div>
+              <div class="float-card float-creator">
+                <div
+                  class="hero-creator-profile"
+                  style="display: flex; gap: 10px; align-items: center"
+                >
+                  <span class="avatar">美</span>
+                  <div>
+                    <strong class="hero-creator-name" style="font-size: 12px"
+                      >美咲 / UGCクリエイター</strong
+                    >
+                    <div
+                      class="hero-creator-badge"
+                      style="font-size: 9px; color: #2563eb"
+                    >
+                      ✦ 認定レビュークリエイター
+                    </div>
+                  </div>
+                </div>
+                <div style="font-size: 10px; margin-top: 12px; color: #718096">
+                  制作スキルで、選ばれる。
+                </div>
+                <div style="font-size: 12px; color: #dfac46">
+                  ★★★★★ <span style="color: #14253d">4.9</span>
+                </div>
+              </div>
+              <div class="match">It's a good match! ✦</div>
+              <div class="float-card float-project">
+                <span class="tag">レビュー動画制作</span>
+                <div style="font-size: 12px; font-weight: 700; margin: 9px 0">
+                  ワイヤレスヘッドホンの魅力を<br />あなたの視点で届けませんか？
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                  "
+                >
+                  <strong style="color: #2563eb; font-size: 18px"
+                    >¥15,000</strong
+                  ><span class="pill" style="font-size: 9px; padding: 2px 8px"
+                    >募集中</span
+                  >
+                </div>
+              </div>
+              <div class="art-label">GOOD PRODUCTS. GREAT CREATORS.</div>
+            </div>
+          </div>
+          <div class="metrics">
+            <div class="metric">
+              <strong>2,400<span>人＋</span></strong>
+              <p>登録クリエイター</p>
+            </div>
+            <div class="metric">
+              <strong>1,200<span>件＋</span></strong>
+              <p>累計マッチング件数</p>
+            </div>
+            <div class="metric">
+              <strong>98<span>%</span></strong>
+              <p>企業満足度</p>
+            </div>
+          </div>
+          <p
+            class="small muted"
+            style="text-align: right; margin: 0; font-size: 9px"
+          >
+            ※サービスの利用イメージを示すサンプル数値です。
+          </p>
+        </div>
+      </section>
+      <section class="section soft">
+        <div class="container">
+          <div class="section-heading">
+            <div>
+              <span class="eyebrow">FIND YOUR NEXT PROJECT</span>
+              <h2>あなたの得意が、活きる案件。</h2>
+              <p>気になる商品から、新しいチャレンジを見つけよう。</p>
+            </div>
+            <a class="text-link" href="jobs.html"
+              >すべての案件を見る <span style="margin-left: 20px">→</span></a
+            >
+          </div>
+          <div id="featured-jobs" class="grid"></div>
+        </div>
+      </section>
+      <section class="section">
+        <div class="container">
+          <span class="eyebrow">WHY REVIEWMATCH?</span>
+          <h2>フォロワー数より、<br />あなたの「つくる力」。</h2>
+          <p class="muted" style="font-size: 14px">
+            いい商品と、いいクリエイター。お互いの可能性を、もっと広げるために。
+          </p>
+          <div class="features">
+            <article>
+              <div class="feature-icon">✦</div>
+              <h3>フォロワー0人から、活躍。</h3>
+              <p>
+                評価するのは、制作スキルと伝える力。フォロワー数に左右されない出会いを。
+              </p>
+            </article>
+            <article>
+              <div class="feature-icon">▷</div>
+              <h3>レビュー・UGC・SNSに特化。</h3>
+              <p>
+                商品のリアルな魅力を伝える制作と、継続的なSNS運用に特化しています。
+              </p>
+            </article>
+            <article>
+              <div class="feature-icon">↗</div>
+              <h3>学んで、つくって、次の一歩へ。</h3>
+              <p>
+                無料の基礎研修とスキルチェック。認定制度で、レビュー制作からSNS運用へ。
+              </p>
+            </article>
+            <article>
+              <div class="feature-icon">⌘</div>
+              <h3>出会いから、支払いまで。</h3>
+              <p>
+                案件掲載・応募・契約・納品・支払いを、ひとつのプラットフォームで管理。
+              </p>
+            </article>
+          </div>
+          <div class="split-banner">
+            <article class="banner-card">
+              <span class="eyebrow">FOR BUSINESS</span>
+              <h3>商品のファンになる、そのきっかけを。</h3>
+              <p class="muted small">
+                制作スキルを比較して、ブランドに合うパートナーと出会う。
+              </p>
+              <a class="text-link" href="service.html"
+                >企業向けのサービスを見る →</a
+              >
+            </article>
+            <article class="banner-card" style="background: #eef5ff">
+              <span class="eyebrow">FOR CREATORS</span>
+              <h3>「つくるのが好き」を、仕事に。</h3>
+              <p class="muted small">
+                まずは一本のレビューから。実績を重ねて継続案件へ。
+              </p>
+              <button class="text-link" data-register="creator">
+                無料で仕事を探す →
+              </button>
+            </article>
+          </div>
+        </div>
+      </section>
+      <section class="section trust-section" aria-labelledby="trust-heading">
+        <div class="container">
+          <span class="eyebrow">BUILT FOR A BETTER MATCH</span>
+          <h2 id="trust-heading">安心して使える理由</h2>
+          <p class="muted">
+            企業とクリエイターが、条件を確かめて進められる仕組み。
+          </p>
+          <p class="small muted">
+            以下はサービス仕様の説明です。このデモサイトでは、審査・契約・支払いは実行されません。
+          </p>
+          <div class="trust-cards">
+            <article class="trust-card">
+              <span class="eyebrow">01 / SKILLS FIRST</span>
+              <h3>フォロワー0人でも参加可能</h3>
+              <p>
+                フォロワー数ではなく、制作スキルと実績で評価。得意な表現や制作内容から、相性のよい相手を探せます。
+              </p>
+            </article>
+            <article class="trust-card">
+              <span class="eyebrow">02 / PROJECT REVIEW</span>
+              <h3>掲載前に、案件内容を審査</h3>
+              <p>
+                AIによる一次審査と、人間による二次審査で、運営が掲載前の案件内容を確認する仕組みです。
+              </p>
+            </article>
+            <article class="trust-card">
+              <span class="eyebrow">03 / CLEAR PAYMENT</span>
+              <h3>報酬と条件を、事前に明示</h3>
+              <p>
+                報酬・納期・利用条件を確認して契約。納品後48時間以内に検収し、月末締め翌月末払いで報酬を支払います。
+              </p>
+            </article>
+            <article class="trust-card">
+              <span class="eyebrow">04 / PR DISCLOSURE</span>
+              <h3>PR表記を必須に</h3>
+              <p>
+                ステマ規制への対応として、広告・商品提供に伴うコンテンツにはPR表記を必須とし、表記をチェックする仕組みです。
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+      <section class="section soft">
+        <div class="container">
+          <div class="section-heading">
+            <div>
+              <span class="eyebrow">GET STARTED WITH CONFIDENCE</span>
+              <h2>はじめる前に、知っておきたいこと。</h2>
+              <p>企業は月額0円から。クリエイターは、すべて無料。</p>
+            </div>
+            <a class="text-link" href="pricing.html">料金プランを詳しく見る →</a>
+          </div>
+          <div class="faq">
+            <details>
+              <summary>企業向けの料金プランは？</summary>
+              <p>
+                フリーは月額0円・掲載1件/月、スタンダードは月額9,800円（税込）・掲載10件/月、プロは月額29,800円（税込）・掲載無制限。全プラン登録後30日間無料です。成約手数料・オプション料金は別途必要です。商品の発送料は企業負担です。
+              </p>
+            </details>
+            <details>
+              <summary>フォロワーがいなくても参加できますか？</summary>
+              <p>
+                はい。フォロワー0人から参加でき、制作スキルで評価します。無料の基礎研修とスキルチェックで、初心者のスタートも応援します。
+              </p>
+            </details>
+          </div>
+        </div>
+      </section>
+      <section class="section" style="padding-top: 0">
+        <div class="container">
+          <div class="cta">
+            <span class="eyebrow" style="color: #60a5fa"
+              >LET'S MAKE A GOOD MATCH.</span
+            >
+            <h2>いい出会いから、いいコンテンツを。</h2>
+            <p>あなたの次の一歩を、ReviewMatchではじめませんか。</p>
+            <div class="actions" style="justify-content: center">
+              <button class="btn primary" data-register="company">
+                無料で案件を掲載 ↗</button
+              ><button class="btn white" data-register="creator">
+                無料で仕事を探す →
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+      `;
+      const currentPage = document.body.dataset.page;
       const modal = document.getElementById("modal");
       const yen = (value) => "¥" + Number(value).toLocaleString("ja-JP");
       const options = (list, all) =>
@@ -1656,7 +1986,7 @@
         job = displayJob(job);
         return `
           <article class="card job-card">
-            <a class="job-card-link" href="#job/${job.id}" aria-label="${job.title}の詳細">
+            <a class="job-card-link" href="job.html?id=${encodeURIComponent(job.id)}" aria-label="${job.title}の詳細">
               ${productArt(job.art)}
               <div class="card-body">
                 <div class="job-tags"><span class="tag">${job.role}</span>${job.companyId ? "" : '<span class="tag sample-tag">サンプル</span>'}</div>
@@ -1721,7 +2051,7 @@
             "つくる力と、ブランドをつなぐ。",
             "レビュー制作からSNS運用まで。目的に合うパートナーと出会えます。",
           ) +
-          `<section class="section"><div class="container">${tabs("利用者別サービス", ["企業の方", "クリエイターの方"])}<div id="service-content"></div></div></section><section class="section soft"><div class="container"><span class="eyebrow">PRICING</span><h2>目的に合わせて、選べる3つのプラン。</h2><p class="muted">全プラン登録後30日間無料。クリエイターは完全無料です。</p>${renderPlans()}<p class="small muted" style="margin-top:20px">${feeSummary}<br>${feeNote}<br><a class="text-link" href="#pricing">料金の詳細とシミュレーター →</a></p></div></section>`;
+          `<section class="section"><div class="container">${tabs("利用者別サービス", ["企業の方", "クリエイターの方"])}<div id="service-content"></div></div></section><section class="section soft"><div class="container"><span class="eyebrow">PRICING</span><h2>目的に合わせて、選べる3つのプラン。</h2><p class="muted">全プラン登録後30日間無料。クリエイターは完全無料です。</p>${renderPlans()}<p class="small muted" style="margin-top:20px">${feeSummary}<br>${feeNote}<br><a class="text-link" href="pricing.html">料金の詳細とシミュレーター →</a></p></div></section>`;
         const update = (index) => {
           const audience = index === 0 ? "company" : "creator";
           document.getElementById("service-content").innerHTML =
@@ -1845,12 +2175,12 @@
               "案件が見つかりません",
               "案件一覧から、ほかの案件を探してみてください。",
             ) +
-            '<div class="container section"><a class="btn primary" href="#jobs">案件一覧へ戻る</a></div>';
+            '<div class="container section"><a class="btn primary" href="jobs.html">案件一覧へ戻る</a></div>';
           return;
         }
         main.innerHTML =
           head("PROJECT DETAILS", job.title, job.company) +
-          `<section class="section"><div class="container"><a href="#jobs" class="text-link">← 案件一覧へ戻る</a><div class="detail-layout" style="margin-top:25px"><article><div class="panel">${tabs("案件の詳細", ["案件情報", "企業情報", "応募方法"])}<div class="detail-copy" id="detail-content"></div></div></article><aside><div class="panel"><span class="tag">${job.role}</span><div class="money" style="margin:20px 0">${yen(job.budget)}<small> ${job.monthly ? "/ 月" : "/ 件"}</small></div><p class="small muted">募集締切：${job.deadline}<br>カテゴリ：${job.category}<br>${job.productSupport} / オンライン対応<br>対応SNS：${job.sns.join(" / ")}</p><button class="btn primary" style="width:100%" data-apply="${job.id}">この案件に応募する →</button><p class="small muted" style="margin:12px 0 0">${job.companyId ? "※ブラウザ内のデモ案件です。" : "※サンプル案件です。"}応募は承認済みクリエイターのログイン時に、このブラウザ内へ保存されます。</p></div></aside></div><h2 style="margin-top:60px">こちらの案件もおすすめ</h2><div class="grid">${jobs
+          `<section class="section"><div class="container"><a href="jobs.html" class="text-link">← 案件一覧へ戻る</a><div class="detail-layout" style="margin-top:25px"><article><div class="panel">${tabs("案件の詳細", ["案件情報", "企業情報", "応募方法"])}<div class="detail-copy" id="detail-content"></div></div></article><aside><div class="panel"><span class="tag">${job.role}</span><div class="money" style="margin:20px 0">${yen(job.budget)}<small> ${job.monthly ? "/ 月" : "/ 件"}</small></div><p class="small muted">募集締切：${job.deadline}<br>カテゴリ：${job.category}<br>${job.productSupport} / オンライン対応<br>対応SNS：${job.sns.join(" / ")}</p><button class="btn primary" style="width:100%" data-apply="${job.id}">この案件に応募する →</button><p class="small muted" style="margin:12px 0 0">${job.companyId ? "※ブラウザ内のデモ案件です。" : "※サンプル案件です。"}応募は承認済みクリエイターのログイン時に、このブラウザ内へ保存されます。</p></div></aside></div><h2 style="margin-top:60px">こちらの案件もおすすめ</h2><div class="grid">${jobs
             .filter(
               (item) => item.id !== id && item.category === source.category,
             )
@@ -1981,7 +2311,7 @@
         update(0);
       }
       function route() {
-        let routeName = location.hash.slice(1) || "home";
+        const routeName = currentPage;
         if (storeError) {
           main.innerHTML = `<section class="section"><div class="container panel">
             <h1>デモデータを読み込めません</h1><p role="alert">${escapeHTML(storeError)}</p>
@@ -1993,12 +2323,12 @@
         const adminDenied =
           routeName === "admin" && RMStore.currentUser()?.role !== "admin";
         if (adminDenied) {
-          history.replaceState(null, "", "#mypage");
-          routeName = "mypage";
+          location.replace("mypage.html?notice=admin-required");
+          return;
         }
-        if (routeName === "chat" || routeName.startsWith("chat/")) renderChat();
+        if (routeName === "chat") renderChat();
         else if (routeName === "admin") renderAdmin();
-        else if (routeName === "mypage" || routeName === "mypage/create-job")
+        else if (routeName === "mypage")
           renderMyPage();
         else if (routeName === "home") {
           main.innerHTML = homeHTML;
@@ -2008,17 +2338,20 @@
             .join("");
         } else if (routeName === "service") renderService();
         else if (routeName === "jobs") renderJobs();
-        else if (routeName.startsWith("job/"))
-          renderDetail(Number(routeName.split("/")[1]));
+        else if (routeName === "job")
+          renderDetail(Number(new URLSearchParams(location.search).get("id")));
         else if (routeName === "creators") renderCreators();
         else if (routeName === "pricing") renderPricing();
         else if (routeName === "flow") renderFlow();
         else if (routeName === "faq") renderFAQ();
         else {
-          location.hash = "home";
+          location.replace("index.html");
           return;
         }
-        if (adminDenied) {
+        if (
+          routeName === "mypage" &&
+          new URLSearchParams(location.search).get("notice") === "admin-required"
+        ) {
           main.insertAdjacentHTML(
             "afterbegin",
             '<p class="container" role="alert">管理者権限が必要です</p>',
@@ -2028,35 +2361,22 @@
         document
           .getElementById("menu-button")
           .setAttribute("aria-expanded", "false");
-        document.querySelectorAll("nav a").forEach((link) => {
-          link.classList.toggle("active", link.hash === "#" + routeName);
-          if (link.hash === "#" + routeName)
-            link.setAttribute("aria-current", "page");
-          else link.removeAttribute("aria-current");
-        });
+        updateActiveNavigation();
         if (modal.open) modal.close();
         window.scrollTo({ top: 0, behavior: "instant" });
-        const pageTitles = {
-          admin: "管理者画面",
-          "mypage/create-job": "案件を作成",
-          mypage: "マイページ",
-          home: "商品レビュー動画・UGC制作のマッチングサービス",
-          service: "サービス紹介",
-          jobs: "案件一覧",
-          creators: "クリエイター一覧",
-          pricing: "料金プラン",
-          flow: "利用の流れ",
-          faq: "よくある質問",
-        };
-        document.title = `ReviewMatch（レビューマッチ）｜${pageTitles[routeName] || "案件詳細"}`;
         revealSections();
-        if (routeName === "mypage/create-job") {
+        focusCreateJob();
+      }
+
+      function focusCreateJob() {
+        if (currentPage === "mypage" && location.hash === "#create-job") {
           document.getElementById("create-job")?.scrollIntoView();
           document
             .getElementById("create-title")
             ?.focus({ preventScroll: true });
         }
       }
+
       let observer;
       function revealSections() {
         if (observer) observer.disconnect();
@@ -2134,17 +2454,27 @@
           ${type === "password" ? `<div class="password-control">${input}<button type="button" class="password-toggle" aria-label="パスワードを表示" aria-pressed="false">表示</button></div>` : input}
           <span class="error" id="${id}-error" aria-live="polite"></span>`;
       }
+      function updateActiveNavigation() {
+        document.querySelectorAll("nav a").forEach((link) => {
+          link.classList.toggle("active", link.dataset.page === currentPage);
+          if (link.dataset.page === currentPage)
+            link.setAttribute("aria-current", "page");
+          else link.removeAttribute("aria-current");
+        });
+      }
+
       function updateHeader() {
         const actions = document.getElementById("account-actions");
         const user = storeError ? null : RMStore.currentUser();
         actions.innerHTML = user
           ? `<span class="account-name">${escapeHTML(user.displayName)}</span>
-             <a class="btn" href="#chat">チャット <span class="tag">${chatUnreadTotal()}</span></a>
-             <a class="btn" href="#mypage">マイページ</a>
-             ${user.role === "admin" ? '<a class="btn" href="#admin">管理者画面</a>' : ""}
+             <a class="btn" href="chat.html" data-page="chat">チャット <span class="tag">${chatUnreadTotal()}</span></a>
+             <a class="btn" href="mypage.html" data-page="mypage">マイページ</a>
+             ${user.role === "admin" ? '<a class="btn" href="admin.html" data-page="admin">管理者画面</a>' : ""}
              <button class="btn" data-logout>ログアウト</button>`
           : `<button class="btn" data-login>ログイン</button>
              <button class="btn primary" data-register="creator">無料ではじめる <span>↗</span></button>`;
+        updateActiveNavigation();
       }
 
       function showLogin() {
@@ -2225,8 +2555,8 @@
         refreshData();
         updateHeader();
         modal.close();
-        if (location.hash === "#mypage") route();
-        else location.hash = "mypage";
+        if (currentPage === "mypage") route();
+        else location.assign("mypage.html");
       }
 
       function requireApproval() {
@@ -2564,7 +2894,7 @@
                           : allJobs.find((entry) => entry.id === item.jobId)
                               ?.title;
                       return `<p>${escapeHTML(name || "未登録")} · ${escapeHTML(item.status)} · ${escapeHTML(chatDate(item.createdAt))}
-                ${thread ? `<a class="text-link" href="#chat/${thread.id}">チャットへ</a>` : ""}</p>`;
+                ${thread ? `<a class="text-link" href="chat.html?id=${encodeURIComponent(thread.id)}">チャットへ</a>` : ""}</p>`;
                     })
                     .join("")
                 : "<p>応募はまだありません。</p>"
@@ -2579,7 +2909,7 @@
                   (item) => `
               <p>${escapeHTML(allJobs.find((job) => job.id === item.jobId)?.title || "案件")}
                 · ${yen(item.amount)} · 納期 ${escapeHTML(item.deadline)} · ${escapeHTML(item.deliverable)}
-                <a class="text-link" href="#chat/${item.conversationId}">チャットへ</a></p>
+                <a class="text-link" href="chat.html?id=${encodeURIComponent(item.conversationId)}">チャットへ</a></p>
                 ${paymentActions(item, user)}
             `,
                 )
@@ -2597,7 +2927,7 @@
         }
         const threads = RMStore.getConversationsForUser();
         const selected = threads.find(
-          (item) => item.id === location.hash.split("/")[1],
+          (item) => item.id === new URLSearchParams(location.search).get("id"),
         );
         if (selected) RMStore.markConversationRead(selected.id);
         updateHeader();
@@ -2636,7 +2966,7 @@
                       const contract = contracts
                         .filter((item) => item.conversationId === thread.id)
                         .at(-1);
-                      return `<a class="chat-thread ${thread.id === selected?.id ? "is-current" : ""}" href="#chat/${thread.id}">
+                      return `<a class="chat-thread ${thread.id === selected?.id ? "is-current" : ""}" href="chat.html?id=${encodeURIComponent(thread.id)}">
                     <strong>${escapeHTML(chatName(thread, user))}</strong>
                     <span>${escapeHTML(allJobs.find((item) => item.id === thread.jobId)?.title || "案件")}</span>
                     <span>${escapeHTML((latest?.body || "").slice(0, 60))}</span>
@@ -2650,7 +2980,7 @@
                 ${
                   selected
                     ? `
-                  <a class="text-link chat-back" href="#chat">← 一覧へ戻る</a>
+                  <a class="text-link chat-back" href="chat.html">← 一覧へ戻る</a>
                   <h2>${escapeHTML(chatName(selected, user))}</h2>
                   <p>${escapeHTML(job?.title || "案件")}</p>
                   <div class="chat-notice">外部連絡先（LINE・メール等）への誘導禁止。投稿時のPR表記必須。</div>
@@ -2876,7 +3206,7 @@
             </div>
             ${
               admin
-                ? `<div class="panel"><a class="btn primary" href="#admin">管理者画面へ</a></div>`
+                ? `<div class="panel"><a class="btn primary" href="admin.html">管理者画面へ</a></div>`
                 : `
               <h2>${company ? "企業" : "クリエイター"}ダッシュボード</h2>
               <div class="account-metrics">${metrics
@@ -2912,7 +3242,7 @@
               </div>
               ${activityHTML(user, applications, contracts)}
               ${financeHTML(user)}
-              ${company ? companyJobsHTML(user, ownJobs) : '<a class="btn primary" href="#jobs">案件を探す →</a>'}
+              ${company ? companyJobsHTML(user, ownJobs) : '<a class="btn primary" href="jobs.html">案件を探す →</a>'}
             `
             }
             <div class="panel"><h2>デモデータ</h2>
@@ -3370,8 +3700,10 @@
           }
           if (RMStore.currentUser().role === "company") {
             modal.close();
-            if (location.hash === "#mypage/create-job") route();
-            else location.hash = "mypage/create-job";
+            if (currentPage === "mypage") {
+              history.replaceState(null, "", "#create-job");
+              route();
+            } else location.assign("mypage.html#create-job");
           } else {
             openModal(
               "案件掲載",
@@ -3408,7 +3740,7 @@
           );
           openModal(
             "すでに応募済みです",
-            `<p>すでに応募済みです。</p><a class="btn primary" href="#chat/${thread.id}" onclick="modal.close()">チャットでやり取りする</a>`,
+            `<p>すでに応募済みです。</p><a class="btn primary" href="chat.html?id=${encodeURIComponent(thread.id)}" onclick="modal.close()">チャットでやり取りする</a>`,
           );
           return;
         }
@@ -3553,7 +3885,7 @@
               </form>
               ${
                 register
-                  ? `<p class="dialog-terms"><a href="#faq">利用規約</a>・<a href="#faq">プライバシーポリシー</a>に同意のうえ登録します</p>
+                  ? `<p class="dialog-terms"><a href="faq.html">利用規約</a>・<a href="faq.html">プライバシーポリシー</a>に同意のうえ登録します</p>
                 <p class="dialog-login" aria-live="polite">すでにアカウントをお持ちですか？ <button type="button" data-demo-login>ログイン</button></p>`
                   : ""
               }`;
@@ -3585,7 +3917,7 @@
                   register
                     ? '<button class="btn primary" type="button" data-mypage>マイページへ進む</button>'
                     : appliedConversation
-                      ? `<a class="btn primary" href="#chat/${appliedConversation.id}" onclick="modal.close()">チャットでやり取りする</a>`
+                      ? `<a class="btn primary" href="chat.html?id=${encodeURIComponent(appliedConversation.id)}" onclick="modal.close()">チャットでやり取りする</a>`
                       : '<button class="btn primary" type="button" data-close>閉じる</button>'
                 }
               </div>`;
@@ -3749,9 +4081,9 @@
             );
           }
         } else if (button.hasAttribute("data-plan-change")) {
-          if (location.hash !== "#mypage") {
-            history.pushState(null, "", "#mypage");
-            route();
+          if (currentPage !== "mypage") {
+            location.assign("mypage.html?action=change-plan");
+            return;
           }
           showPlanChange();
         } else if (button.hasAttribute("data-login")) showLogin();
@@ -3795,6 +4127,16 @@
             .classList.toggle("open");
           event.currentTarget.setAttribute("aria-expanded", String(open));
         });
-      window.addEventListener("hashchange", route);
+      window.addEventListener("pageshow", focusCreateJob);
+      window.addEventListener("hashchange", () => {
+        if (currentPage === "mypage" && location.hash === "#create-job") route();
+      });
       updateHeader();
       route();
+
+      if (
+        currentPage === "mypage" &&
+        new URLSearchParams(location.search).get("action") === "change-plan"
+      ) {
+        showPlanChange();
+      }
