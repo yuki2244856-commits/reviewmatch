@@ -11,6 +11,19 @@ export async function assertReviewMatchAccount(client: {
 }): Promise<void> {
   // Null selects the platform owning the runtime credential; never supply a connected-account override.
   const account = await client.accounts.retrieve(null);
-  if (account.id !== STRIPE_ACCOUNT_ID)
+  if (account.id !== STRIPE_ACCOUNT_ID) {
     throw new Error("Stripe platform account mismatch");
+  }
+}
+
+// Consume every page: an older active subscription can follow many canceled ones.
+export async function hasUnfinishedSubscription(
+  subscriptions: AsyncIterable<{ status: string }>,
+): Promise<boolean> {
+  for await (const subscription of subscriptions) {
+    if (!["canceled", "incomplete_expired"].includes(subscription.status)) {
+      return true;
+    }
+  }
+  return false;
 }

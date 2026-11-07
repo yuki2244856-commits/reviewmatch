@@ -27,6 +27,8 @@ test("Stripe mode blocks demo money mutations and removes demo card fields", asy
       () => RMStore.payContract("anything"),
       () => RMStore.changePlan("プロ"),
       () => RMStore.simulateReviewDeadline("anything"),
+      () => RMStore.deliverContract("anything", "https://example.test", "納品"),
+      () => RMStore.reviewDelivery("anything", false, "修正"),
     ];
     return Promise.all(
       actions.map(async (action) => {
@@ -39,7 +41,7 @@ test("Stripe mode blocks demo money mutations and removes demo card fields", asy
       }),
     );
   });
-  expect(failures).toEqual([true, true, true]);
+  expect(failures).toEqual([true, true, true, true, true]);
   expect(api.db.payments).toEqual([]);
   await expect(
     page.locator('input[placeholder="デモ用（入力不要）"]'),
@@ -85,6 +87,7 @@ test("subscription Checkout sends only plan/action with authenticated request", 
 });
 
 test("redirect rejects non-Stripe destinations", async ({ page, api }) => {
+  await enableStripe(page);
   await ready(page);
   const rejected = await page.evaluate(async () => {
     const client = {
@@ -141,3 +144,35 @@ test("Stripe finance explains held connected balance and acceptance-gated payout
   await expect(page.locator("main")).toContainText("月末締め・翌月末払い");
   expect(api.db.payments).toEqual([]);
 });
+
+test("disabled redirect never invokes an Edge Function", async ({ page, api }) => {
+  await ready(page);
+  const result = await page.evaluate(async () => {
+    let invoked = false;
+    try {
+      await ReviewMatchStripe.redirect({
+        auth: { getSession: async () => { invoked = true; return {}; } },
+      }, "subscription-checkout", { plan: "プロ" });
+    } catch (error) { return { invoked, message: error.message }; }
+  });
+  expect(result.invoked).toBe(false);
+  expect(result.message).toContain("無効");
+});
+
+for (const legalPage of ["tokusho", "terms", "privacy"]) {
+test(`${legalPage} loads Stripe mode and cannot auto-approve demo money`, async ({ page, api }) => {
+  await enableStripe(page);
+  api.db.contracts.push({ id: "legal-contract", company_id: api.ids.company,
+    creator_id: api.ids.creator, status: "納品済（検収中）",
+    delivery_at: "2026-01-01T00:00:00Z", review_deadline: "2026-01-03T00:00:00Z" });
+  await ready(page);
+  await login(page, "company");
+  await ready(page, `/${legalPage}.html`);
+  expect(await page.evaluate(() => ReviewMatchStripe.enabled)).toBe(true);
+  expect(api.db.contracts[0].status).toBe("納品済（検収中）");
+  expect(api.db.payouts).toEqual([]);
+  await expect(page.locator("main h1")).toContainText({
+    tokusho: "特定商取引法に基づく表記", terms: "利用規約", privacy: "プライバシーポリシー",
+  }[legalPage]);
+});
+}

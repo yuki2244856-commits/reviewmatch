@@ -98,7 +98,7 @@
           <section>
             <h2>1. 取得する情報</h2>
             <ul>
-              <li>アカウント情報：氏名または名称、メールアドレス、パスワード（暗号化して保存）、種別（企業／クリエイター）</li>
+              <li>アカウント情報：氏名または名称、メールアドレス、パスワード（Supabase Auth によりハッシュ化して管理）、種別（企業／クリエイター）</li>
               <li>プロフィール情報：会社情報、クリエイターの実績・対応SNS・SNSアカウントのURL、振込先口座情報（口座番号は下4桁のみを当サービスのシステムに保存します）</li>
               <li>取引に関する情報：応募、チャットの内容、契約、納品物、検収、決済および支払いの状況</li>
               <li>アクセスに関する情報：閲覧したページ、訪問者を識別するID、アクセス日時。当サービスは、ブラウザのローカルストレージ等を用いてこれらを保存・取得します</li>
@@ -210,6 +210,8 @@
     </footer>
     <dialog id="modal" aria-labelledby="modal-title"></dialog>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="stripe-config.js"></script>
+    <script src="stripe-client.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

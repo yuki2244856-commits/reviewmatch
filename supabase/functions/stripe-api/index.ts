@@ -2,15 +2,23 @@ import { checkoutIntegrationIdentifier } from "../_shared/checkout.ts";
 import {
   assertReviewMatchAccount,
   BILLING_PRICES,
+  hasUnfinishedSubscription,
 } from "../_shared/billing-config.ts";
 import { appOrigin, checked, cors, json, services } from "../_shared/stripe.ts";
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors() });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
-  if (req.headers.get("origin") && req.headers.get("origin") !== appOrigin())
+  if (req.headers.get("origin") && req.headers.get("origin") !== appOrigin()) {
     return json({ error: "Origin denied" }, 403);
+  }
   try {
+    // Frontend configuration is public and cannot disable direct HTTP callers.
+    if (Deno.env.get("STRIPE_BILLING_ENABLED") !== "true") {
+      return json({
+        error: "Stripe API is disabled pending deployment verification",
+      }, 409);
+    }
     const { db, stripe } = services();
     const token = req.headers
       .get("authorization")
@@ -26,8 +34,9 @@ Deno.serve(async (req: Request) => {
         .eq("id", user.id)
         .single(),
     );
-    if (!profile || profile.status !== "approved")
+    if (!profile || profile.status !== "approved") {
       return json({ error: "Approved account required" }, 403);
+    }
     const body = await req.json();
     if (
       !body ||
@@ -37,8 +46,9 @@ Deno.serve(async (req: Request) => {
         "subscription-checkout",
         "contract-checkout",
       ].includes(body.action)
-    )
+    ) {
       return json({ error: "Unknown action" }, 400);
+    }
     await assertReviewMatchAccount(stripe);
     const origin = appOrigin();
     const returnUrl = `${origin}/mypage.html`;
@@ -52,8 +62,9 @@ Deno.serve(async (req: Request) => {
         409,
       );
     }
-    if (profile.role !== "company")
+    if (profile.role !== "company") {
       return json({ error: "Company account required" }, 403);
+    }
     if (body.action === "contract-checkout") {
       // Charge admission needs verified manual controls and trusted orders; bank payout uses its own gated worker.
       return json(
@@ -95,7 +106,7 @@ Deno.serve(async (req: Request) => {
     }
     if (body.action === "subscription-checkout") {
       const prices: Readonly<Record<string, string>> = BILLING_PRICES;
-      if (!Object.hasOwn(prices, body.plan))
+      if (!Object.hasOwn(prices, body.plan)) {
         return json(
           {
             error:
@@ -103,16 +114,14 @@ Deno.serve(async (req: Request) => {
           },
           400,
         );
+      }
       // Includes incomplete and delinquent subscriptions: never create a second subscription to bypass one.
-      const subscriptions = await stripe.subscriptions.list({
-        customer: mapping.customer_id,
-        status: "all",
-        limit: 100,
-      });
       if (
-        subscriptions.data.some(
-          (s) => !["canceled", "incomplete_expired"].includes(s.status),
-        )
+        await hasUnfinishedSubscription(stripe.subscriptions.list({
+          customer: mapping.customer_id,
+          status: "all",
+          limit: 100,
+        }))
       ) {
         return json(
           { error: "Use billing portal to manage your existing subscription" },
@@ -131,15 +140,16 @@ Deno.serve(async (req: Request) => {
         throw new Error("Configured price must be active monthly JPY");
       }
       const expectedAmount = body.plan === "スタンダード" ? 9800 : 29800;
-      if (price.unit_amount !== expectedAmount)
+      if (price.unit_amount !== expectedAmount) {
         throw new Error("Configured price does not match advertised price");
+      }
       const [attempt] = checked(
         await db.rpc("claim_stripe_checkout", {
           p_user_id: user.id,
           p_plan: body.plan,
         }),
       );
-      if (!attempt || attempt.plan !== body.plan)
+      if (!attempt || attempt.plan !== body.plan) {
         return json(
           {
             error:
@@ -147,6 +157,7 @@ Deno.serve(async (req: Request) => {
           },
           409,
         );
+      }
       const session = await stripe.checkout.sessions.create(
         {
           mode: "subscription",
@@ -167,7 +178,7 @@ Deno.serve(async (req: Request) => {
         { idempotencyKey: `subscription-checkout:${attempt.attempt_id}` },
       );
       // No trial here: adding a trial safely requires a durable one-time eligibility claim.
-      if (session.status !== "open" || !session.url)
+      if (session.status !== "open" || !session.url) {
         return json(
           {
             error:
@@ -175,6 +186,7 @@ Deno.serve(async (req: Request) => {
           },
           409,
         );
+      }
       return json({ url: session.url });
     }
     return json({ error: "Unknown action" }, 400);

@@ -46,7 +46,8 @@ function seedPayment(api, contract, status = "預かり中") {
   return payment;
 }
 
-async function refuse(page, table, method) {
+async function refuse(page, table, method, api) {
+  if (method === "POST") { api.failWorkflow(table, method); return; }
   await page.route(`**/rest/v1/${table}*`, (route) => {
     if (route.request().method() !== method) return route.fallback();
     return route.fulfill({
@@ -322,7 +323,7 @@ test("server finance overrides legacy local records; reviews remain local and ad
 });
 
 for (const table of ["payments", "payouts"]) {
-  test(`${table} insert failure rehydrates committed contract and does not invent a local finance row`, async ({
+  test(`${table} insert failure rolls back contract and finance together`, async ({
     page,
     api,
   }) => {
@@ -332,7 +333,7 @@ for (const table of ["payments", "payouts"]) {
     if (table === "payouts") seedPayment(api, contract);
     await ready(page);
     await login(page, "company");
-    await refuse(page, table, "POST");
+    await refuse(page, table, "POST", api);
     await expect(
       page.evaluate(
         async ({ id, table }) => {
@@ -344,7 +345,7 @@ for (const table of ["payments", "payouts"]) {
     ).rejects.toThrow("失敗");
     expect(api.db[table]).toEqual([]);
     expect(api.db.contracts[0].status).toBe(
-      table === "payments" ? "支払済（預かり中）" : "完了",
+      table === "payments" ? "契約成立" : "納品済（検収中）",
     );
     expect(
       await page.evaluate((name) => RMStore.getCollection(name), table),
@@ -359,20 +360,20 @@ for (const table of ["payments", "payouts"]) {
   });
 }
 
-test("plan payment failure reflects committed subscription, retains error notice and has no local payment", async ({
+test("plan payment failure rolls back subscription and retains error notice", async ({
   page,
   api,
 }) => {
   await ready(page);
   await login(page, "company");
-  await refuse(page, "payments", "POST");
+  await refuse(page, "payments", "POST", api);
   await expect(page.evaluate(() => RMStore.changePlan("プロ"))).rejects.toThrow(
     "失敗",
   );
-  expect(api.db.subscriptions[0].plan).toBe("プロ");
+  expect(api.db.subscriptions[0].plan).toBe("スタンダード");
   expect(
     await page.evaluate(() => RMStore.getCollection("subscriptions")[0].plan),
-  ).toBe("プロ");
+  ).toBe("スタンダード");
   expect(await page.evaluate(() => RMStore.getCollection("payments"))).toEqual(
     [],
   );
@@ -476,7 +477,7 @@ test("payout account UI saves only the last four digits and retains validation a
   expect(api.db.creator_profiles[0].payout_bank).toBe("デモ銀行");
 });
 
-test("committed payout survives a later message failure and repeated automatic checks do not duplicate it", async ({
+test("message failure rolls back payout; retry commits exactly one payout", async ({
   page,
   api,
 }) => {
@@ -484,21 +485,51 @@ test("committed payout survives a later message failure and repeated automatic c
   seedPayment(api, contract);
   await ready(page);
   await login(page, "company");
-  await refuse(page, "messages", "POST");
+  await refuse(page, "messages", "POST", api);
   await expect(
     page.evaluate((id) => RMStore.reviewDelivery(id, true), contract.id),
   ).rejects.toThrow("失敗");
-  expect(api.db.contracts[0].status).toBe("完了");
-  expect(api.db.payouts).toHaveLength(1);
-  expect(
-    await page.evaluate(() => RMStore.getCollection("payouts")[0].id),
-  ).toBe(api.db.payouts[0].id);
-  expect(
-    await page.evaluate(() => RMStore.getCollection("payments")[0].status),
-  ).toBe("支払確定");
+  expect(api.db.contracts[0].status).toBe("納品済（検収中）");
+  expect(api.db.payouts).toHaveLength(0);
+  expect(await page.evaluate(() => RMStore.getCollection("payouts"))).toEqual([]);
+  expect(api.db.payments[0].status).toBe("預かり中");
   await expect(page.locator("#supabase-notice")).toContainText(
     "messages write refused",
   );
+  api.failWorkflow(null);
+  await page.evaluate(() => RMStore.runAutoApprovals());
   await page.evaluate(() => RMStore.runAutoApprovals());
   expect(api.db.payouts).toHaveLength(1);
+});
+
+test("acceptance without a held payment cannot create an unfunded payout", async ({ page, api }) => {
+  const contract = seedContract(api, { status: "納品済（検収中）" });
+  await ready(page);
+  await login(page, "company");
+  await expect(page.evaluate((id) => RMStore.reviewDelivery(id, true), contract.id))
+    .rejects.toThrow("決済状態");
+  expect(api.db.payouts).toEqual([]);
+  expect(api.db.contracts[0].status).toBe("納品済（検収中）");
+});
+
+test("late automatic acceptance uses the effective deadline month in Tokyo", async ({ page, api }) => {
+  const contract = seedContract(api, { status: "納品済（検収中）" });
+  contract.delivery_at = "2026-09-28T14:59:59Z";
+  contract.review_deadline = "2026-09-30T14:59:59Z";
+  seedPayment(api, contract);
+  await ready(page);
+  await login(page, "company");
+  await page.evaluate(() => RMStore.runAutoApprovals());
+  expect(api.db.payouts[0].payout_date).toBe("2026-10-31");
+});
+
+test("free plan cannot purchase the paid-plan priority option", async ({ page, api }) => {
+  api.db.subscriptions = [];
+  const contract = seedContract(api);
+  await ready(page);
+  await login(page, "company");
+  await expect(page.evaluate((id) => RMStore.payContract(id, true), contract.id))
+    .rejects.toThrow("スタンダード・プロ");
+  expect(api.db.payments).toEqual([]);
+  expect(api.db.contracts[0].status).toBe("契約成立");
 });

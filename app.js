@@ -350,7 +350,7 @@
             }),
           );
           if (version !== hydrationVersion || (authUser?.id || null) !== identity)
-            return;
+            return false;
           names.forEach((name, index) => {
             remote[name] = rows[index].map((row) => fromRow(row, name));
             if (name === "subscriptions" && window.ReviewMatchStripe?.enabled) {
@@ -380,6 +380,7 @@
           if (sessionUser) sessionUser.email = user.email || "";
           document.getElementById("supabase-notice")?.remove();
           startRealtime();
+          return true;
         }
 
         let pageViewStarted = false;
@@ -757,6 +758,7 @@
             budget > 100000000 ||
             !/^\d{4}-\d{2}-\d{2}$/.test(values.deadline || "") ||
             !Number.isFinite(Date.parse(values.deadline)) ||
+            new Date(values.deadline).toISOString().slice(0, 10) !== values.deadline ||
             !sns.length ||
             sns.some((name) => !jobSNS.includes(name)) ||
             !["商品提供あり", "商品提供なし"].includes(values.productSupport)
@@ -768,7 +770,7 @@
           );
           const job = {
             companyId: user.id,
-            company: company.companyName,
+            company: company?.companyName || user.displayName,
             title: values.title.trim(),
             role: values.role,
             category: values.category,
@@ -783,7 +785,7 @@
             createdAt: new Date().toISOString(),
             monthly: values.role === roles[3],
             art: "appliance",
-            industry: company.industry || "未登録",
+            industry: company?.industry || "未登録",
             location: "オンライン対応",
             rating: 0,
             reviews: 0,
@@ -861,8 +863,11 @@
         };
         let workflowQueue = Promise.resolve();
         function workflow(change) {
+          const actorId = authUser?.id;
           const operation = workflowQueue.then(async () => {
-            await hydrate();
+            if (!actorId || authUser?.id !== actorId || !(await hydrate()) ||
+                authUser?.id !== actorId)
+              throw new Error("セッションまたはデータが更新されました。再試行してください。");
             const before = load();
             const next = copy(before);
             const result = change(next);
@@ -891,6 +896,7 @@
               }
             }
             try {
+              const operations = [];
               for (const [table, columns] of Object.entries(workflowColumns)) {
                 for (const record of next[table]) {
                   const previous = before[table].find(
@@ -903,7 +909,10 @@
                       .map((key) => [key, record[key]]),
                   );
                   if (!previous) {
-                    await request(client().from(table).insert(toRow(values, table)));
+                    operations.push({
+                      table, insert: true, id: record.id,
+                      values: toRow(values, table),
+                    });
                   } else {
                     const changes = Object.fromEntries(
                       Object.entries(values).filter(
@@ -912,26 +921,26 @@
                       ),
                     );
                     if (!Object.keys(changes).length) continue;
-                    let query = client()
-                      .from(table)
-                      .update(toRow(changes, table))
-                      .eq("id", record.id);
-                    if (table === "contracts")
-                      query = query.eq("status", previous.status);
-                    const updated = await request(query.select("id"));
-                    if (!updated.length)
-                      throw new Error(
-                        "契約が更新されています。再読み込みしてください。",
-                      );
+                    operations.push({
+                      table, insert: false, id: record.id,
+                      values: toRow(changes, table),
+                      ...(table === "contracts" ? { previous_status: previous.status } : {}),
+                    });
                   }
                 }
+              }
+              // One database transaction: any denied write or stale contract rolls back the whole change.
+              if (operations.length) {
+                await request(client().rpc("apply_reviewmatch_workflow", {
+                  p_operations: operations,
+                }));
               }
               save(next);
               await hydrate();
               return copy(result ?? null);
             } catch (error) {
               showConnectionError(error);
-              // Multi-table REST writes are not atomic; reflect committed rows on failure.
+              // A lost response may follow a committed transaction; reload the authoritative state.
               await hydrate().catch(() => {});
               showConnectionError(error);
               throw error;
@@ -1180,6 +1189,7 @@
             const { user, conversation } = participant(data, contract.conversationId);
             if (
               user.role !== "creator" ||
+              user.status !== "approved" ||
               user.id !== contract.creatorId ||
               contract.status !== "提示中"
             ) {
@@ -1240,6 +1250,10 @@
               data.jobs.find((item) => item.id === contract.jobId),
               contract.amount,
             );
+            if (priority && !data.subscriptions.some((item) =>
+              item.userId === contract.companyId &&
+              ["スタンダード", "プロ"].includes(item.plan)))
+              throw new Error("優先掲載はスタンダード・プロで利用できます。");
             const priorityFee = priority ? 2000 : 0;
             data.payments.push({
               id: crypto.randomUUID(),
@@ -1265,6 +1279,8 @@
         }
 
         async function deliverContract(id, url, message) {
+          if (window.ReviewMatchStripe?.enabled)
+            throw new Error("デモの納品・検収操作は無効です。案件決済は準備中です。");
           return workflow((data) => {
             const { contract, conversation } = contractActor(data, id, "creator", [
               "支払済（預かり中）",
@@ -1311,9 +1327,12 @@
           const payment = data.payments.find(
             (item) => item.contractId === contract.id && item.status === "預かり中",
           );
-          if (data.payouts.some((item) => item.contractId === contract.id))
+          if (!payment || data.payouts.some((item) => item.contractId === contract.id))
             throw new Error("決済状態を確認してください。");
-          const now = new Date();
+          // Automatic approval is effective at the deadline, even if this browser opens later.
+          const now = automatic
+            ? new Date(contract.reviewDeadline || Date.parse(contract.deliveredAt) + 48 * 3600000)
+            : new Date();
           const month = new Intl.DateTimeFormat("sv-SE", {
             timeZone: "Asia/Tokyo",
             year: "numeric",
@@ -1348,6 +1367,8 @@
         }
 
         async function reviewDelivery(id, approve, reason = "") {
+          if (window.ReviewMatchStripe?.enabled)
+            throw new Error("デモの納品・検収操作は無効です。案件決済は準備中です。");
           return workflow((data) => {
             const { contract, conversation } = contractActor(data, id, "company", [
               "納品済（検収中）",
@@ -1380,7 +1401,7 @@
                   ).toISOString(),
               );
           const user = currentUser();
-          if (user?.role !== "company") return;
+          if (user?.role !== "company" || user.status !== "approved") return;
           if (
             !load().contracts.some(
               (item) => item.companyId === user.id && expired(item),
@@ -1650,7 +1671,7 @@
           ],
           [
             "このサイトから実際に応募できますか？",
-            "このサイトはサンプルです。登録・応募・お問い合わせフォームはデモ表示のみで、外部送信やデータ保存は行いません。",
+            "承認済みクリエイターでログインすると応募できます。登録・ログイン時の認証情報と、ログイン後の応募内容は Supabase に送信・保存されます。お問い合わせフォームはデモ表示のみです。",
           ],
         ],
       };
@@ -2280,7 +2301,7 @@
         }
         main.innerHTML =
           head("PROJECT DETAILS", job.title, job.company) +
-          `<section class="section"><div class="container"><a href="jobs.html" class="text-link">← 案件一覧へ戻る</a><div class="detail-layout" style="margin-top:25px"><article><div class="panel">${tabs("案件の詳細", ["案件情報", "企業情報", "応募方法"])}<div class="detail-copy" id="detail-content"></div></div></article><aside><div class="panel"><span class="tag">${job.role}</span><div class="money" style="margin:20px 0">${yen(job.budget)}<small> ${job.monthly ? "/ 月" : "/ 件"}</small></div><p class="small muted">募集締切：${job.deadline}<br>カテゴリ：${job.category}<br>${job.productSupport} / オンライン対応<br>対応SNS：${job.sns.join(" / ")}</p><button class="btn primary" style="width:100%" data-apply="${job.id}">この案件に応募する →</button><p class="small muted" style="margin:12px 0 0">${job.companyId ? "※ブラウザ内のデモ案件です。" : "※サンプル案件です。"}応募は承認済みクリエイターのログイン時に、このブラウザ内へ保存されます。</p></div></aside></div><h2 style="margin-top:60px">こちらの案件もおすすめ</h2><div class="grid">${jobs
+          `<section class="section"><div class="container"><a href="jobs.html" class="text-link">← 案件一覧へ戻る</a><div class="detail-layout" style="margin-top:25px"><article><div class="panel">${tabs("案件の詳細", ["案件情報", "企業情報", "応募方法"])}<div class="detail-copy" id="detail-content"></div></div></article><aside><div class="panel"><span class="tag">${job.role}</span><div class="money" style="margin:20px 0">${yen(job.budget)}<small> ${job.monthly ? "/ 月" : "/ 件"}</small></div><p class="small muted">募集締切：${job.deadline}<br>カテゴリ：${job.category}<br>${job.productSupport} / オンライン対応<br>対応SNS：${job.sns.join(" / ")}</p><button class="btn primary" style="width:100%" data-apply="${job.id}">この案件に応募する →</button><p class="small muted" style="margin:12px 0 0">${job.companyId ? "※ブラウザ内のデモ案件です。" : "※サンプル案件です。"}承認済みクリエイターのログイン時の応募は、Supabase へ送信・保存されます。</p></div></aside></div><h2 style="margin-top:60px">こちらの案件もおすすめ</h2><div class="grid">${jobs
             .filter((item) => item.id !== id && item.category === source.category)
             .slice(0, 3)
             .map(jobCard)
@@ -2591,34 +2612,9 @@
               <button class="btn primary" type="submit">ログイン</button>
             </form>
             <p class="dialog-login">アカウントをお持ちでない方は <button data-register="creator">無料登録</button></p>
-            <aside class="demo-accounts" aria-label="デモ用アカウント">
-              <h3>デモ用アカウント</h3>
-              <p class="small muted">クリックすると入力できます。このブラウザ内だけで動くデモです。</p>
-              ${[
-                      ["管理者", "admin", "admin123"],
-                      ["企業・スタンダード", "company", "demo1234"],
-                      ["認定クリエイター", "creator", "demo1234"],
-                      ["審査中クリエイター", "pending", "demo1234"],
-                    ]
-                      .map(
-                        ([label, account, password]) => `
-                <button type="button" data-demo-account="${account}" data-demo-password="${password}">
-                    <strong>${label}</strong><br>${account}@reviewmatch.demo / ${password}
-                </button>
-              `,
-                      )
-                      .join("")}
-            </aside>
+
           </section>`;
         modal.querySelector("#modal-title").focus();
-        modal.querySelectorAll("[data-demo-account]").forEach((button) => {
-          button.addEventListener("click", () => {
-            document.getElementById("login-email").value =
-              `${button.dataset.demoAccount}@reviewmatch.demo`;
-            document.getElementById("login-password").value =
-              button.dataset.demoPassword;
-          });
-        });
         modal.querySelector(".password-toggle").addEventListener("click", (event) => {
           const input = document.getElementById("login-password");
           const visible = input.type === "password";
@@ -2734,6 +2730,8 @@
       }
 
       function paymentActions(contract, user) {
+        if (window.ReviewMatchStripe?.enabled)
+          return '<p>案件決済・納品・検収は準備中です。</p>';
         const id = escapeHTML(contract.id);
         let actions = `<p>状態：${escapeHTML(contract.status)}</p>`;
         if (contract.deliveryUrl) {
@@ -2865,12 +2863,15 @@
             : String(job?.role || "").includes("SNS運用")
               ? "15%"
               : "10%";
+        const priorityAllowed = RMStore.getCollection("subscriptions").some((item) =>
+          item.userId === contract.companyId && ["スタンダード", "プロ"].includes(item.plan));
         const fields =
           action === "pay"
             ? `
           <p>報酬：${yen(contract.amount)}（クリエイター受取額）</p>
           <p>企業負担手数料（${feeLabel}）：${yen(fee)}</p>
-          <label><input type="checkbox" id="priority-option">優先掲載を追加（${yen(2000)} / 件）</label>
+          <label><input type="checkbox" id="priority-option" ${priorityAllowed ? "" : "disabled"}>優先掲載を追加（${yen(2000)} / 件）</label>
+          ${priorityAllowed ? "" : "<p>優先掲載はスタンダード・プロで利用できます。</p>"}
           <p id="priority-detail">優先掲載：なし ${yen(0)}</p>
           <p>合計：<strong id="payment-total">${yen(contract.amount + fee)}</strong></p>
           <p>デモ決済です。実際には請求されません。カード情報は保存されません</p>
@@ -3379,7 +3380,7 @@
                 `
                   }
             <div class="panel"><h2>デモデータ</h2>
-              <p class="muted">登録情報はこのブラウザ内に保存されます。実際の個人情報やパスワードを入力しないでください。</p>
+              <p class="muted">登録情報は Supabase へ送信・保存されます。デモのため、プロフィールに実際の個人情報を入力しないでください。</p>
               <button class="btn" data-reset-demo>デモデータをリセット</button>
             </div>
           </div></section>`;
@@ -3862,7 +3863,7 @@
           );
           openModal(
             "すでに応募済みです",
-            `<p>すでに応募済みです。</p><a class="btn primary" href="chat.html?id=${encodeURIComponent(thread.id)}" onclick="modal.close()">チャットでやり取りする</a>`,
+            `<p>すでに応募済みです。</p><a class="btn primary" href="chat.html?id=${encodeURIComponent(thread?.id || "")}" onclick="modal.close()">チャットでやり取りする</a>`,
           );
           return;
         }
@@ -3871,7 +3872,7 @@
         const demoNote = register
           ? "アカウントとプロフィールは Supabase に保存されます。"
           : applicant
-            ? "応募内容はこのブラウザ内に保存されます。"
+            ? "応募内容は Supabase へ送信・保存されます。"
             : "デモフォームです。入力内容は送信・保存されません。";
         const titleForStage = () =>
           stage === 2
@@ -4007,7 +4008,7 @@
               </form>
               ${
                       register
-                        ? `<p class="dialog-terms"><a href="faq.html">利用規約</a>・<a href="faq.html">プライバシーポリシー</a>に同意のうえ登録します</p>
+                        ? `<p class="dialog-terms"><a href="terms.html">利用規約</a>・<a href="privacy.html">プライバシーポリシー</a>に同意のうえ登録します</p>
                 <p class="dialog-login" aria-live="polite">すでにアカウントをお持ちですか？ <button type="button" data-demo-login>ログイン</button></p>`
                         : ""
                     }`;

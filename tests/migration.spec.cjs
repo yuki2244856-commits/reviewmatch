@@ -49,13 +49,15 @@ test("all 11 pages render without JavaScript errors; public catalog filters and 
   expect(errors).toEqual([]);
 });
 
-test("demo login uses Auth, survives reload, and logout clears session", async ({
+test("login uses Auth without publishing account passwords, survives reload, and logout clears session", async ({
   page,
   api,
 }) => {
   await ready(page, "/mypage.html");
   await page.locator("main [data-login]").click();
-  await page.locator('[data-demo-account="company"]').click();
+  await expect(page.locator("[data-demo-account], [data-demo-password]")).toHaveCount(0);
+  await page.locator("#login-email").fill("company@reviewmatch.demo");
+  await page.locator("#login-password").fill("fixture-user-password");
   await expect(page.locator("#login-email")).toHaveValue(
     "company@reviewmatch.demo",
   );
@@ -498,4 +500,16 @@ test("successful sign-out clears UI even when public catalog refresh fails", asy
   await expect(page.locator("#account-actions [data-login]")).toBeVisible();
   await expect(page.locator("#supabase-notice")).toBeVisible();
   expect(await page.evaluate(() => RMStore.currentUser())).toBe(null);
+});
+
+test("job creation tolerates a missing company profile and rejects normalized invalid dates", async ({ page, api }) => {
+  api.db.company_profiles = [];
+  await ready(page);
+  await login(page, "company");
+  await expect(page.evaluate((job) => RMStore.createJob(job), {
+    ...jobValues, deadline: "2026-02-30",
+  })).rejects.toThrow("募集締切");
+  const job = await page.evaluate((values) => RMStore.createJob(values), jobValues);
+  expect(job.company).toBe("company");
+  expect(job.status).toBe("審査中");
 });
