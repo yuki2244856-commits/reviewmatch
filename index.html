@@ -71,6 +71,14 @@
         --muted: #697587;
         --line: #e5eaf1;
       }
+      .storage-notice {
+        padding: 10px 20px;
+        border-bottom: 1px solid var(--line);
+        background: #eff6ff;
+        color: var(--navy);
+        font-size: 13px;
+        line-height: 1.7;
+      }
       * {
         box-sizing: border-box;
       }
@@ -2357,6 +2365,11 @@
         </nav>
       </div>
     </header>
+    <aside id="storage-notice" class="storage-notice" role="status" hidden>
+      <div class="container">
+        この環境ではデータを保存できないため、メモリ上で動作しています。再読み込みすると入力内容はリセットされます。
+      </div>
+    </aside>
     <main id="main" tabindex="-1">
       <section class="hero">
         <div class="container">
@@ -3155,6 +3168,70 @@
       const RMStore = (() => {
         const key = "reviewmatch_store_v1";
         const version = 1;
+        const storage = (() => {
+          const memory = new Map();
+          let persistent = null;
+
+          function useMemory() {
+            persistent = null;
+            document.getElementById("storage-notice").hidden = false;
+          }
+
+          // Accessing the localStorage property itself can throw in WebViews.
+          try {
+            const candidate = window.localStorage;
+            const probeKey = `${key}_probe_${crypto.randomUUID()}`;
+            try {
+              candidate.setItem(probeKey, probeKey);
+              if (candidate.getItem(probeKey) !== probeKey) {
+                throw new Error("Storage probe failed");
+              }
+            } finally {
+              candidate.removeItem(probeKey);
+            }
+            persistent = candidate;
+          } catch {
+            useMemory();
+          }
+
+          return {
+            available: () => persistent !== null,
+            getItem(name) {
+              if (persistent) {
+                try {
+                  const value = persistent.getItem(name);
+                  if (value === null) memory.delete(name);
+                  else memory.set(name, value);
+                  return value;
+                } catch {
+                  useMemory();
+                }
+              }
+              return memory.get(name) ?? null;
+            },
+            setItem(name, value) {
+              if (persistent) {
+                try {
+                  persistent.setItem(name, value);
+                } catch {
+                  useMemory();
+                }
+              }
+              // Mirror successful reads/writes for failures later in the session.
+              memory.set(name, value);
+            },
+            removeItem(name) {
+              if (persistent) {
+                try {
+                  persistent.removeItem(name);
+                } catch {
+                  useMemory();
+                }
+              }
+              memory.delete(name);
+            },
+          };
+        })();
         const collections = [
           "users",
           "companyProfiles",
@@ -3258,29 +3335,15 @@
         }
 
         function save(next) {
-          // Commit memory only after storage succeeds, avoiding partial UI updates.
           const snapshot = copy(next);
-          try {
-            localStorage.setItem(key, JSON.stringify(snapshot));
-          } catch {
-            throw new Error(
-              "保存できませんでした。ブラウザの保存設定・空き容量を確認してください。",
-            );
-          }
+          storage.setItem(key, JSON.stringify(snapshot));
           state = snapshot;
           return copy(state);
         }
 
         function load() {
           if (state) return copy(state);
-          let raw;
-          try {
-            raw = localStorage.getItem(key);
-          } catch {
-            throw new Error(
-              "デモデータを読み込めません。ブラウザの保存設定を確認してください。",
-            );
-          }
+          const raw = storage.getItem(key);
           if (!raw) return save(seed());
           try {
             const parsed = JSON.parse(raw);
@@ -4127,6 +4190,7 @@
         }
 
         return {
+          storageAvailable: storage.available,
           calcFee,
           payContract,
           deliverContract,
