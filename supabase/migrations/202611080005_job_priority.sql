@@ -1,5 +1,5 @@
 begin;
-alter table public.jobs add column priority boolean not null default false;
+alter table public.jobs add column if not exists priority boolean not null default false;
 
 create or replace function public.enforce_job_priority()
 returns trigger

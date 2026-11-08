@@ -1,3 +1,4 @@
+import { submitWithPayoutLease } from "../_shared/payout-submission.ts";
 import {
   HELD_PROJECT_PAYMENTS_ENABLED,
   heldPayoutRequest,
@@ -23,13 +24,17 @@ Deno.serve(async (req: Request) => {
     return new Response("Unauthorized", { status: 401 });
   }
   const { stripe, db } = services();
-  let batchId: string | undefined;
   try {
     await assertReviewMatchAccount(stripe);
     const { accountId } = await req.json();
     if (typeof accountId !== "string") {
       throw new Error("Missing creator account");
     }
+    const leaseToken = checked(
+      await db.rpc("claim_payout_worker", {
+        p_account_id: accountId,
+      }),
+    );
     const creator = checked(
       await db
         .from("stripe_accounts")
@@ -87,9 +92,10 @@ Deno.serve(async (req: Request) => {
         p_now: now,
       }),
     );
-    batchId = batch.id;
     if (batch.state === "submitted" || batch.state === "paid") {
-      return Response.json({ state: batch.state, batch_id: batch.id });
+      throw new Error(
+        "Existing payout requires reconciliation before lease recovery",
+      );
     }
     if (
       batch.state !== "reserved" ||
@@ -97,6 +103,14 @@ Deno.serve(async (req: Request) => {
     ) {
       throw new Error("Reconciliation required before retry");
     }
+    const evidenceArgs = {
+      p_account_id: accountId,
+      p_token: leaseToken,
+      p_batch_id: batch.id,
+    };
+    const evidence = checked(
+      await db.rpc("payout_worker_evidence", evidenceArgs),
+    );
     const allocations = checked(
       await db
         .from("stripe_payout_allocations")
@@ -137,14 +151,48 @@ Deno.serve(async (req: Request) => {
     if (request.params.amount !== batch.amount_jpy) {
       throw new Error("Allocation amount mismatch");
     }
-    const payout = await stripe.payouts.create(request.params, request.options);
-    checked(
-      await db
-        .from("stripe_payout_batches")
-        .update({ state: "submitted", stripe_payout_id: payout.id })
-        .eq("id", batch.id)
-        .eq("state", "reserved"),
-    );
+    // Re-read external readiness immediately before the final DB fence and Stripe effect.
+    const freshAccount = await stripe.v2.core.accounts.retrieve(accountId, {
+      include: ["configuration.merchant"],
+    });
+    const freshSchedule = await stripe.balanceSettings.retrieve({}, {
+      stripeAccount: accountId,
+    });
+    const freshBalance = await stripe.balance.retrieve({}, {
+      stripeAccount: accountId,
+    });
+    if (
+      freshAccount.closed || freshAccount.livemode ||
+      freshAccount.configuration?.merchant?.capabilities?.card_payments
+          ?.status !== "active" ||
+      freshAccount.configuration?.merchant?.capabilities?.stripe_balance
+          ?.payouts?.status !== "active" ||
+      freshSchedule.payments?.payouts?.schedule?.interval !== "manual" ||
+      (freshBalance.available.find((b) => b.currency === "jpy")?.amount ?? 0) <
+        batch.amount_jpy + batch.reserve_jpy
+    ) {
+      throw new Error("Stripe payout evidence changed");
+    }
+    await submitWithPayoutLease({
+      assertEvidence: async () => {
+        checked(
+          await db.rpc("assert_payout_worker_evidence", {
+            ...evidenceArgs,
+            p_evidence: evidence,
+          }),
+        );
+      },
+      submit: () => stripe.payouts.create(request.params, request.options),
+      finish: async (payout) => {
+        checked(
+          await db.rpc("finish_payout_worker", {
+            ...evidenceArgs,
+            p_evidence: evidence,
+            p_payout_id: payout.id,
+          }),
+        );
+      },
+    });
     // A webhook can finish/fail the payout before the create request returns.
     // Report the stored state, and never overwrite its terminal result above.
     const recorded = checked(
@@ -154,13 +202,7 @@ Deno.serve(async (req: Request) => {
     if (!recorded) throw new Error("Missing payout batch result");
     return Response.json({ batch_id: batch.id, state: recorded.state });
   } catch {
-    if (batchId) {
-      await db
-        .from("stripe_payout_batches")
-        .update({ state: "uncertain" })
-        .eq("id", batchId)
-        .eq("state", "reserved");
-    }
+    // Keep the account lease, even after expiry: an unknown Stripe result must be reconciled.
     return new Response("Payout blocked; reconcile before retry", {
       status: 503,
     });

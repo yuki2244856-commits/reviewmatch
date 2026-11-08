@@ -242,7 +242,7 @@ deno test --node-modules-dir=none supabase/functions/_shared/billing-config.test
 deno check --node-modules-dir=none supabase/functions/stripe-api/index.ts supabase/functions/stripe-webhook/index.ts supabase/functions/stripe-connect-webhook/index.ts supabase/functions/stripe-payout-worker/index.ts supabase/functions/stripe-payout-webhook/index.ts
 ```
 
-Tests use mocked/local data only. No deployment, remote testing, PR or activation is part of this revision.
+Tests use mocked/local data only. No deployment, remote testing or activation is part of this revision.
 
 ## References
 
@@ -281,9 +281,9 @@ Apply migrations `202611080001_atomic_workflow.sql` and
 `202611080002_held_payout_safety.sql` **before** serving the updated `app.js`.
 The frontend now requires `apply_reviewmatch_workflow`; there is deliberately no
 fallback to partial multi-table REST writes. The RPC is SECURITY INVOKER and
-preserves existing table grants and RLS. The original application tables and
-policies are not defined in this repository; validate them in staging before
-applying the migration. This RPC adds atomicity, not new financial authorization.
+preserves existing table grants and RLS. The original application tables and policies are now recorded in
+`202611010000_base_schema.sql` for new environments; reconstructed details still
+need validation against the original DDL in staging. This RPC adds atomicity, not new financial authorization.
 
 Billing API activation additionally requires the server-side Edge Function secret
 `STRIPE_BILLING_ENABLED=true`. When absent or any other value, POST returns 409
@@ -303,8 +303,8 @@ Payout allocations now use the same revision exclusion as the amount calculation
 Merchant account changes invalidate stored control/reconciliation proofs.
 Worker result writes only advance a `reserved` batch, preserving results already
 recorded by webhooks. These are local safety fixes, not activation readiness:
-the account-lock/submission boundary and the missing services documented above
-still require a production design and verification.
+the worker now holds a fenced account lease through submission; the missing
+services documented above still require production verification.
 
 `npm run test:migrations` now also executes the independent atomic-workflow SQL
 regression suite (rollback, stale contract status, caller RLS and allowlists).
@@ -324,3 +324,66 @@ Checkout. The review report and current validation are in
 
 プランの Price は `tax_behavior: "inclusive"`（税込）に設定すること。プラン料金・成約手数料は税込表示とする。
 有料プランの Checkout は `subscription_data.trial_period_days: 30` とし、初回課金は登録から30日後、以後1か月ごととする。スターターの有効化は引き続きオフ。
+
+
+## 第2弾レビュー修正と運用手順（2026-11-08）
+
+### 適用順と有効化境界
+
+第1弾まで適用済みの環境は `202611080006` → `080007` → `080008` → `080009` → `080010` の順で適用し、その後Edge Functionを更新します。
+旧状態適用RPCのservice_role実行権を `080009` で剥奪するため、Webhook更新中の一時的な失敗はStripeの再配信で回復させます。
+新規環境の全順序はREADMEの一覧を参照してください。既存環境では基盤ベースラインを実行しません。
+この修正では実DBへの適用・デプロイ・Stripe操作を行いません。すべての有効化ゲートはオフのままです。
+
+デモの `auto_approve_expired_reviews()` はpg_cronの `0 * * * *` で実行します。
+契約行ロックと状態比較更新によりページ訪問時の処理とも競合を制御し、実効承認時刻は `review_deadline`、払い日は日本時間で翌月末です。
+`stripe_held_orders` に紐づく契約は対象外です。預かり中のデモ支払いがない／既に報酬がある不整合行は処理せず運営が確認します。
+
+**Stripe held order の自動承認には別の定期実行の仕組みが必要です。**
+`auto_approve_held_orders` を呼ぶ運用ジョブ、認証、監視、再試行を有効化前に実装してください。
+デモのcronはこれを呼びません。ワーカー呼び出し時だけの承認では定期実行の代替になりません。
+
+### 留保期限まで81日未満の注文
+
+サービス専用の読取関数 `held_orders_near_deadline()` を運営の監視に組み込みます。
+検出条件は **holding_deadline - 現在時刻 < 81日**（期限切れも含む）で、支払済み／返金済みは除外します。
+「決済から81日経過」ではありません。テスト用には `p_now` を指定できます。
+現在はコード・SQLのスターターのみで、ジョブ登録・実行や外部通知は行いません。
+
+1. 注文ID・契約ID・接続先アカウント・期限・承認状態・修正／紛争／返金状態を確認し、Stripeの国別実上限と照合します。
+2. 承認済みで通常の支払条件・残高・手数料／返金準備金・証跡を満たす注文は、期限前に既存の出金台帳を通じて支払いを実行し、銀行結果まで照合します。
+3. 未承認、修正中、通常の翌月末サイクルでは間に合わない注文は運営から当事者と調整し、キャンセル／返金を進めます。期限回避を理由に強制承認や期日前支払いをしません。
+4. 返金はアカウントロック下で `request_held_refund` により留保し、既存の返金リクエスト／Chargeと安定した冪等キーを使います。direct chargeの接続先コンテキストで全額返金し、application feeも返却します。手数料不足分の資金を確認し、Stripeの返金確定まで照合します。
+5. 出金予約／指示済みなら先にワーカーを停止し、出金状態・キャンセル可否を照合します。結果不明のまま返金や二重出金を行いません。期限切れ・紛争・資金不足は個別対応にエスカレーションします。
+
+自動返金・例外的な支払日の繰上げ・Stripe承認を要する代替手段の採用は未実装です。
+
+### Webhookの同一秒競合
+
+Billing subscription／Accounts v2／connected payoutの各ハンドラーは、対象リソースの60秒リースを取得した後、Stripeから最新状態を取得します。
+別ワーカーは取得段階に進まず、5xxで再配信を求めます。適用RPCは同じリソースのadvisory lockを取り、トークン・有効期限を検証します。
+保存した `(event.created, event.id COLLATE "C")` 以下のイベントは適用しません。同一秒はIDの辞書順で安定させますが、IDから実際の更新順を推定しません。
+適用する内容は署名イベント内の古いスナップショットではなく、リース取得後に再取得した状態です。
+期限切れ／置換されたトークンによる保存と他ワーカーのリース解除を拒否し、旧状態RPCへの直接実行を禁止します。
+
+### 出金ワーカーのリースと証跡
+
+`claim_payout_worker` はアカウント単位で2分のリースを取得します。
+予約後・割当読取前にアカウント／全注文／バッチ／割当の証跡を取得し、Stripeの能力・manual schedule・利用可能残高も出金直前に取り直します。
+出金指示の前後でDB証跡・リース・検証期限を再確認し、最後のDB確定も同じ証跡の一致を要求します。
+期限切れ・別トークン・証跡変更は安全に停止し、エラー時はリースを保持します。
+Webhookが先にバッチを完了させた場合も書き戻さず停止し、結果の照合を求めます。
+
+運営による回復手順:
+
+1. 当該アカウントのワーカー起動を停止し、既存ワーカーが終了したことを確認します。
+2. バッチID／冪等キーでStripeの出金を照合し、未確定・成功・失敗のどれかとDBの割当状態を確定します。23時間を過ぎたバッチの自動再送は行いません。
+3. 不整合・外部出金・返金・紛争を解消し、排他的出金制御と資金照合の証跡を再取得します。
+4. 記録を残し、運営のサービス権限で対象アカウントの該当トークンのリースのみを解除します。期限切れだけでは自動取得し直せません。
+
+Stripe APIとDBの間に分散トランザクションはありません。外部での権限変更等の完全な排除には有効化前のPlatform Controls確認が引き続き必要です。
+
+### フロント公開前の計画
+
+全ページのsupabase-jsは、確認時にCDNの `@2` が解決した **2.119.0** に固定しました。
+Tailwindは今回は変更せず、公開前にビルド時生成への移行とCSP設計を行います。SRIの適用対象・固定アセットの更新方針もその時に決めます。

@@ -1,3 +1,4 @@
+import { serializedResourceEvent } from "../_shared/resource-event.ts";
 import {
   assertReviewMatchAccount,
   STRIPE_ACCOUNT_ID,
@@ -9,8 +10,9 @@ import {
 import { checked, required, services, Stripe } from "../_shared/stripe.ts";
 
 Deno.serve(async (req: Request) => {
-  if (req.method !== "POST")
+  if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
+  }
   const { db, stripe } = services();
   let event: Stripe.Event;
   try {
@@ -29,36 +31,59 @@ Deno.serve(async (req: Request) => {
   try {
     if (event.livemode) return new Response("Mode mismatch", { status: 400 });
     // Platform Billing is intentionally separate from creator direct charges.
-    if (event.account && event.account !== STRIPE_ACCOUNT_ID)
+    if (event.account && event.account !== STRIPE_ACCOUNT_ID) {
       return new Response("Connected events need their own handler", {
         status: 400,
       });
+    }
     await assertReviewMatchAccount(stripe);
     const subscriptionId = subscriptionIdForBillingEvent(event);
     if (subscriptionId) {
-      const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
-        expand: ["latest_invoice"],
+      const key = `subscription:${subscriptionId}`;
+      await serializedResourceEvent({
+        claim: async () =>
+          checked(await db.rpc("claim_stripe_resource", { p_key: key })),
+        retrieve: async () => {
+          const subscription = await stripe.subscriptions.retrieve(
+            subscriptionId,
+            {
+              expand: ["latest_invoice"],
+            },
+          );
+          const customerId = typeof subscription.customer === "string"
+            ? subscription.customer
+            : subscription.customer.id;
+          const mapping = checked(
+            await db
+              .from("stripe_customers")
+              .select("user_id")
+              .eq("customer_id", customerId)
+              .single(),
+          );
+          if (!mapping) throw new Error("Unmapped Stripe customer");
+          return subscriptionState(subscription, mapping.user_id);
+        },
+        apply: async (token, state) => {
+          checked(
+            await db.rpc("finish_stripe_resource_event", {
+              p_key: key,
+              p_token: token,
+              p_event_id: event.id,
+              p_created: event.created,
+              p_kind: "subscription",
+              p_state: state,
+            }),
+          );
+        },
+        release: async (token) => {
+          checked(
+            await db.rpc("release_stripe_resource", {
+              p_key: key,
+              p_token: token,
+            }),
+          );
+        },
       });
-      const customerId =
-        typeof subscription.customer === "string"
-          ? subscription.customer
-          : subscription.customer.id;
-      const mapping = checked(
-        await db
-          .from("stripe_customers")
-          .select("user_id")
-          .eq("customer_id", customerId)
-          .single(),
-      );
-      if (!mapping) throw new Error("Unmapped Stripe customer");
-      checked(
-        await db.rpc("apply_stripe_event", {
-          p_event_id: event.id,
-          p_created: event.created,
-          p_kind: "subscription",
-          p_state: subscriptionState(subscription, mapping.user_id),
-        }),
-      );
     } else if (
       [
         "charge.dispute.created",
