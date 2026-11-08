@@ -217,6 +217,7 @@ test("UUID-based application, chat, contract, payment, delivery, review and remo
   page,
   api,
 }) => {
+  api.db.jobs[0].priority = true;
   await ready(page, "/mypage.html");
   await login(page, "creator");
   const thread = await page.evaluate(

@@ -232,6 +232,11 @@ const test = base.extend({
           ).sub;
         } catch {}
         if (url.pathname === "/auth/v1/user") return reply(authUser(id));
+        if (url.pathname === "/rest/v1/rpc/get_my_payout_account") {
+          if (!id) return reply({ message: "permission denied" }, 403);
+          return reply(db.creator_profiles.filter((row) => row.user_id === id).map((row) =>
+            Object.fromEntries(Object.entries(row).filter(([key]) => key.startsWith("payout_")))));
+        }
         if (url.pathname === "/rest/v1/rpc/apply_reviewmatch_workflow") {
           const snapshot = clone(db);
           try {
@@ -420,6 +425,13 @@ const test = base.extend({
           };
           db[table].push(row);
           rows = [row];
+        }
+        if (table === "creator_profiles") {
+          const columns = (url.searchParams.get("select") || "*").split(",");
+          if (method === "GET" && (columns.includes("*") || columns.some((key) => key.startsWith("payout_"))))
+            return reply({ message: "permission denied for table creator_profiles" }, 403);
+          rows = rows.map((row) => Object.fromEntries(Object.entries(row).filter(([key]) =>
+            !key.startsWith("payout_") && (columns.includes("*") || columns.includes(key)))));
         }
         const single = req.headers().accept?.includes("vnd.pgrst.object");
         return reply(single ? rows[0] : rows);

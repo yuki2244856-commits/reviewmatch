@@ -209,6 +209,13 @@
         const remote = Object.fromEntries(remoteNames.map((name) => [name, []]));
         let authUser = null;
         let sessionUser = null;
+        let myPayoutAccount = null;
+        let postingSubscriptions = [];
+        const publicCreatorColumns = [
+          "id", "user_id", "name", "role_title", "genre", "sns", "skill",
+          "works", "followers", "rating", "price", "certified", "bio",
+          "youtube_url", "tiktok_url", "instagram_url", "x_url",
+        ].join(",");
         let state;
         const copy = (value) => JSON.parse(JSON.stringify(value));
         const normalizeEmail = (email) => email.trim().toLowerCase();
@@ -302,7 +309,7 @@
           return supabaseClient;
         }
 
-        async function request(query) {
+        async function request(query, { preserveMessage = false } = {}) {
           try {
             const { data, error } = await query;
             if (error) throw error;
@@ -310,7 +317,9 @@
           } catch (error) {
             showConnectionError(error);
             throw new Error(
-              `Supabase の処理に失敗しました：${error.message || "接続を確認してください。"}`,
+              preserveMessage && error.message
+                ? error.message
+                : `Supabase の処理に失敗しました：${error.message || "接続を確認してください。"}`,
             );
           }
         }
@@ -318,6 +327,8 @@
         function clearRemote() {
           for (const name of remoteNames) remote[name] = [];
           sessionUser = null;
+          myPayoutAccount = null;
+          postingSubscriptions = [];
           startRealtime();
         }
 
@@ -346,11 +357,27 @@
           const rows = await Promise.all(
             tables.map((table, index) => {
               if (!user && ![2, 3].includes(index)) return [];
-              return request(client().from(table).select("*"));
+              return request(
+                client().from(table).select(
+                  table === "creator_profiles" ? publicCreatorColumns : "*",
+                ),
+              );
             }),
           );
           if (version !== hydrationVersion || (authUser?.id || null) !== identity)
             return false;
+          const [accounts, postingPlans] = await Promise.all([
+            user ? request(client().rpc("get_my_payout_account")) : [],
+            user && window.ReviewMatchStripe?.enabled
+              ? request(client().from("subscriptions").select("user_id,plan"))
+              : rows[4],
+          ]);
+          if (version !== hydrationVersion || (authUser?.id || null) !== identity)
+            return false;
+          myPayoutAccount = accounts[0] || null;
+          postingSubscriptions = postingPlans.map((row) =>
+            fromRow(row, "postingPlans"),
+          );
           names.forEach((name, index) => {
             remote[name] = rows[index].map((row) => fromRow(row, name));
             if (name === "subscriptions" && window.ReviewMatchStripe?.enabled) {
@@ -434,13 +461,15 @@
           const result = { ...copy(state), ...copy(remote) };
           result.session = sessionUser ? { userId: sessionUser.id } : null;
           for (const profile of result.creatorProfiles) {
-            profile.payoutAccount = profile.payout_last4
+            const account =
+              profile.userId === sessionUser?.id ? myPayoutAccount : null;
+            profile.payoutAccount = account?.payout_last4
               ? {
-                  bank: profile.payout_bank,
-                  branch: profile.payout_branch,
-                  type: profile.payout_type,
-                  last4: profile.payout_last4,
-                  holder: profile.payout_holder,
+                  bank: account.payout_bank,
+                  branch: account.payout_branch,
+                  type: account.payout_type,
+                  last4: account.payout_last4,
+                  holder: account.payout_holder,
                 }
               : undefined;
           }
@@ -655,9 +684,10 @@
                   .from(table)
                   .update(row)
                   .eq("user_id", user.id)
-                  .select()
+                  .select(company ? "*" : publicCreatorColumns)
                   .single()
-              : client().from(table).insert(row).select().single(),
+              : client().from(table).insert(row)
+                  .select(company ? "*" : publicCreatorColumns).single(),
           );
           const displayName = company ? values.contactName : values.name;
           await request(
@@ -721,7 +751,7 @@
               .from("creator_profiles")
               .update({ certified: !profile.badge })
               .eq("user_id", userId)
-              .select()
+              .select(publicCreatorColumns)
               .single(),
           );
           await hydrate();
@@ -738,12 +768,32 @@
           await hydrate();
         }
 
+        function postingPlan(userId) {
+          return postingSubscriptions.find((item) => item.userId === userId)?.plan
+            || "フリー";
+        }
+
         async function createJob(values) {
           const next = load();
           const user = next.users.find((item) => item.id === next.session?.userId);
           if (user?.role !== "company" || user.status !== "approved") {
             throw new Error("承認済み企業アカウントが必要です。");
           }
+          const plan = postingPlan(user.id);
+          const limit = plan === "プロ" ? Infinity : plan === "スタンダード" ? 10 : 1;
+          const tokyoMonth = (date) =>
+            new Intl.DateTimeFormat("sv-SE", {
+              timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit",
+            }).format(new Date(date));
+          const month = tokyoMonth(Date.now());
+          const count = next.jobs.filter((job) =>
+            job.companyId === user.id && job.createdAt &&
+            tokyoMonth(job.createdAt) === month,
+          ).length;
+          if (count >= limit)
+            throw new Error(`今月の案件掲載上限（${limit}件）に達しています。プランをご確認ください。`);
+          if (values.priority && !["スタンダード", "プロ"].includes(plan))
+            throw new Error("優先掲載はスタンダード・プロで利用できます。");
           const budget = Number(values.budget);
           const sns = values.sns || [];
           if (
@@ -770,6 +820,7 @@
           );
           const job = {
             companyId: user.id,
+            priority: Boolean(values.priority),
             company: company?.companyName || user.displayName,
             title: values.title.trim(),
             role: values.role,
@@ -792,6 +843,7 @@
           };
           const row = await request(
             client().from("jobs").insert(toRow(job, "jobs")).select().single(),
+            { preserveMessage: true },
           );
           await hydrate();
           return fromRow(row, "jobs");
@@ -1235,7 +1287,7 @@
           return { contract, conversation };
         }
 
-        async function payContract(id, priority = false) {
+        async function payContract(id) {
           if (window.ReviewMatchStripe?.enabled)
             throw new Error(
               "デモの決済・報酬操作は無効です。Stripe の管理機能をご利用ください。",
@@ -1250,11 +1302,9 @@
               data.jobs.find((item) => item.id === contract.jobId),
               contract.amount,
             );
-            if (priority && !data.subscriptions.some((item) =>
-              item.userId === contract.companyId &&
-              ["スタンダード", "プロ"].includes(item.plan)))
-              throw new Error("優先掲載はスタンダード・プロで利用できます。");
-            const priorityFee = priority ? 2000 : 0;
+            const priorityFee = data.jobs.find(
+              (item) => item.id === contract.jobId,
+            )?.priority ? 2000 : 0;
             data.payments.push({
               id: crypto.randomUUID(),
               kind: "案件",
@@ -1534,7 +1584,7 @@
                   payout_holder: values.holder.trim(),
                 })
                 .eq("user_id", user.id)
-                .select()
+                .select("user_id")
                 .single(),
             );
             await hydrate();
@@ -1573,6 +1623,7 @@
           toggleBadge,
           publishJob,
           createJob,
+          postingPlan,
           load,
           save,
           getCollection,
@@ -1599,7 +1650,10 @@
         );
       }
       function refreshData() {
-        jobs = RMStore.getCollection("jobs").filter((job) => job.status === "掲載中");
+        jobs = RMStore.getCollection("jobs").filter((job) => job.status === "掲載中")
+          .sort((a, b) =>
+            Number(Boolean(b.priority)) - Number(Boolean(a.priority)),
+          );
         creators = RMStore.getCollection("creatorProfiles").filter(
           (profile) =>
             !profile.userId ||
@@ -1617,7 +1671,7 @@
       const feeSummary =
         "成約手数料は制作案件10%・SNS運用支援15%（いずれも企業負担）。商品提供のみの案件は500円/件、優先掲載は2,000円/件です。";
       const feeNote =
-        "プラン料金は税込、成約手数料・オプション料金は別途です。手数料と商品の発送料は企業負担です。";
+        "プラン料金・成約手数料・オプション料金は税込表示です。成約手数料・オプション料金と商品の発送料は企業負担、Stripe 決済手数料はクリエイター負担です。";
       const faqData = {
         company: [
           [
@@ -1627,15 +1681,15 @@
           [
             "どんな費用がかかりますか？",
             window.ReviewMatchStripe?.enabled
-              ? "月額はフリー0円、スタンダード9,800円、プロ29,800円（税込）。無料トライアルはありません。プラン料金は税込、成約手数料・オプション料金は別途です。手数料と商品の発送料は企業負担です。"
-              : "月額はフリー0円、スタンダード9,800円、プロ29,800円（税込）。全プラン登録後30日間無料トライアルです。プラン料金は税込、成約手数料・オプション料金は別途です。手数料と商品の発送料は企業負担です。",
+              ? "月額はフリー0円、スタンダード9,800円、プロ29,800円（税込）。有料プランは登録後30日間無料。初回課金は登録から30日後、以後1か月ごとです。プラン料金・成約手数料・オプション料金は税込表示です。成約手数料・オプション料金と商品の発送料は企業負担、Stripe 決済手数料はクリエイター負担です。"
+              : "月額はフリー0円、スタンダード9,800円、プロ29,800円（税込）。全プラン登録後30日間無料トライアルです。プラン料金・成約手数料・オプション料金は税込表示です。成約手数料・オプション料金と商品の発送料は企業負担、Stripe 決済手数料はクリエイター負担です。",
           ],
           ["成約手数料はいくらですか？", feeSummary + feeNote],
           [
             "納品確認と支払いのタイミングは？",
             window.ReviewMatchStripe?.enabled
-              ? "Stripe のクリエイター残高で銀行出金を保留する予定です。検収承認（納品48時間後の自動承認を含む）後、月末締め・翌月末払いの対象となります。現在は準備中です。"
-              : "納品後48時間以内に検収してください。決済は月末締め翌月末払いです。",
+              ? "契約成立後、企業が納品前に支払い、代金は検収完了まで Stripe 上で留保されます。検収（自動承認を含む）で支払いが確定し、報酬は月末締め・翌月末払いです。現在は準備中です。"
+              : "契約成立後、企業が納品前に支払い、代金は検収完了まで Stripe 上で留保されます。検収（自動承認を含む）で支払いが確定し、報酬は月末締め・翌月末払いです。",
           ],
           [
             "制作物の利用条件はどう決めますか？",
@@ -1644,8 +1698,8 @@
           [
             "無料トライアルに手数料は含まれますか？",
             window.ReviewMatchStripe?.enabled
-              ? "Stripe のプラン契約に無料トライアルはありません。プラン料金は税込、成約手数料・オプション料金は別途です。手数料と商品の発送料は企業負担です。"
-              : "30日間は月額プラン料金が無料です。プラン料金は税込、成約手数料・オプション料金は別途です。手数料と商品の発送料は企業負担です。",
+              ? "Stripe のプラン契約に有料プランは登録後30日間無料。初回課金は登録から30日後、以後1か月ごとです。プラン料金・成約手数料・オプション料金は税込表示です。成約手数料・オプション料金と商品の発送料は企業負担、Stripe 決済手数料はクリエイター負担です。"
+              : "30日間は月額プラン料金が無料です。プラン料金・成約手数料・オプション料金は税込表示です。成約手数料・オプション料金と商品の発送料は企業負担、Stripe 決済手数料はクリエイター負担です。",
           ],
         ],
         creator: [
@@ -1655,7 +1709,7 @@
           ],
           [
             "クリエイターの利用料金は？",
-            "登録・研修・応募を含め、クリエイターは完全無料です。",
+            "登録・研修・応募を含め、クリエイターの登録・利用は無料。成約時は Stripe 決済手数料が差し引かれます。",
           ],
           [
             "初心者でも応募できますか？",
@@ -1663,7 +1717,7 @@
           ],
           [
             "報酬はいつ受け取れますか？",
-            "検収完了後、月末締め翌月末払いで報酬を受け取ります。",
+            "検収完了後、月末締め・翌月末払いで報酬を受け取ります。本番運用では報酬から Stripe 決済手数料が差し引かれます。デモの表示金額は手数料控除前の契約額です。",
           ],
           [
             "SNS運用の仕事にも挑戦できますか？",
@@ -1687,12 +1741,12 @@
             "チャットで条件交渉・契約確認",
             "制作物の利用範囲、修正回数、報酬などを双方で確認。",
           ],
-          ["選定・発注", "条件が合意できたクリエイターへ正式に発注します。"],
+          ["選定・発注・支払い", "契約成立後、企業が納品前に支払い、代金は検収完了まで Stripe 上で留保されます。検収（自動承認を含む）で支払いが確定し、報酬は月末締め・翌月末払いです。"],
           ["納品確認", "納品から48時間以内に内容を検収します。"],
-          ["決済", "月末締め翌月末払いでお支払い。" + feeSummary + feeNote],
+          ["報酬の確定・支払い", "検収（自動承認を含む）で支払いが確定。報酬は月末締め・翌月末払いです。" + feeSummary + feeNote],
         ],
         creator: [
-          ["無料登録", "名前・メールアドレスなどを登録。利用は完全無料です。"],
+          ["無料登録", "名前・メールアドレスなどを登録。登録・利用は無料。成約時は Stripe 決済手数料が差し引かれます。"],
           [
             "審査・無料の基礎研修＋スキルチェック",
             "基礎を学んでスキルをチェック。認定レビュークリエイターを目指せます。",
@@ -1703,7 +1757,7 @@
           ],
           ["条件交渉・契約", "報酬や納期、利用範囲をチャットで確認し、契約します。"],
           ["制作・納品", "契約内容に沿って制作し、プラットフォーム内で納品します。"],
-          ["報酬受取", "検収完了後、月末締め翌月末払いで報酬を受け取ります。"],
+          ["報酬受取", "検収完了後、月末締め・翌月末払いで報酬を受け取ります。本番運用では報酬から Stripe 決済手数料が差し引かれます。デモの表示金額は手数料控除前の契約額です。"],
         ],
       };
       const plans = [
@@ -2012,7 +2066,7 @@
               <span class="eyebrow">03 / CLEAR PAYMENT</span>
               <h3>報酬と条件を、事前に明示</h3>
               <p>
-                報酬・納期・利用条件を確認して契約。納品後48時間以内に検収し、月末締め翌月末払いで報酬を支払います。
+                契約成立後、企業が納品前に支払い、代金は検収完了まで Stripe 上で留保されます。検収（自動承認を含む）で支払いが確定し、報酬は月末締め・翌月末払いです。
               </p>
             </article>
             <article class="trust-card">
@@ -2039,7 +2093,7 @@
             <details>
               <summary>企業向けの料金プランは？</summary>
               <p>
-                フリーは月額0円・掲載1件/月、スタンダードは月額9,800円（税込）・掲載10件/月、プロは月額29,800円（税込）・掲載無制限。${window.ReviewMatchStripe?.enabled ? "有料プランの無料トライアルはありません。" : "全プラン登録後30日間無料です。"}成約手数料・オプション料金は別途必要です。商品の発送料は企業負担です。
+                フリーは月額0円・掲載1件/月、スタンダードは月額9,800円（税込）・掲載10件/月、プロは月額29,800円（税込）・掲載無制限。${window.ReviewMatchStripe?.enabled ? "有料プランは登録後30日間無料。初回課金は登録から30日後、以後1か月ごとです。" : "全プラン登録後30日間無料です。"}成約手数料・オプション料金は別途必要です。商品の発送料は企業負担です。
               </p>
             </details>
             <details>
@@ -2112,10 +2166,11 @@
               ${productArt(job.art)}
               <div class="card-body">
                 <div class="job-tags"><span class="tag">${job.role}</span>${job.companyId ? "" : '<span class="tag sample-tag">サンプル</span>'}</div>
-                <h3 class="job-card-title">${job.title}</h3>
+                <h3 class="job-card-title">${job.title}</h3>${job.priority ? '<span class="tag">優先掲載</span>' : ""}
                 <p class="job-company muted">${job.company}</p>
                 <p class="job-summary muted">${job.summary}</p>
                 <div class="money">${yen(job.budget)}<small> ${job.monthly ? "/ 月" : "/ 件"}</small></div>
+                <p class="small muted">本番運用では Stripe 決済手数料が差し引かれます。デモは控除前の契約額です。</p>
                 <div class="job-card-meta">
                   <span>募集締切 ${job.deadline.replaceAll("-", ".")}</span>
                   <span>対応SNS：${job.sns.join(" / ")}</span>
@@ -2174,7 +2229,7 @@
             "つくる力と、ブランドをつなぐ。",
             "レビュー制作からSNS運用まで。目的に合うパートナーと出会えます。",
           ) +
-          `<section class="section"><div class="container">${tabs("利用者別サービス", ["企業の方", "クリエイターの方"])}<div id="service-content"></div></div></section><section class="section soft"><div class="container"><span class="eyebrow">PRICING</span><h2>目的に合わせて、選べる3つのプラン。</h2><p class="muted">${window.ReviewMatchStripe?.enabled ? "有料プランの無料トライアルはありません。" : "全プラン登録後30日間無料。"}クリエイターは完全無料です。</p>${renderPlans()}<p class="small muted" style="margin-top:20px">${feeSummary}<br>${feeNote}<br><a class="text-link" href="pricing.html">料金の詳細とシミュレーター →</a></p></div></section>`;
+          `<section class="section"><div class="container">${tabs("利用者別サービス", ["企業の方", "クリエイターの方"])}<div id="service-content"></div></div></section><section class="section soft"><div class="container"><span class="eyebrow">PRICING</span><h2>目的に合わせて、選べる3つのプラン。</h2><p class="muted">${window.ReviewMatchStripe?.enabled ? "有料プランは登録後30日間無料。初回課金は登録から30日後、以後1か月ごとです。" : "全プラン登録後30日間無料。"}クリエイターの登録・利用は無料。成約時は Stripe 決済手数料が差し引かれます。</p>${renderPlans()}<p class="small muted" style="margin-top:20px">${feeSummary}<br>${feeNote}<br><a class="text-link" href="pricing.html">料金の詳細とシミュレーター →</a></p></div></section>`;
         const update = (index) => {
           const audience = index === 0 ? "company" : "creator";
           document.getElementById("service-content").innerHTML =
@@ -2214,11 +2269,12 @@
               job.budget <= max,
           );
           filtered.sort((a, b) =>
-            sort === "reward"
+            Number(Boolean(b.priority)) - Number(Boolean(a.priority)) ||
+            (sort === "reward"
               ? b.budget - a.budget
               : sort === "deadline"
                 ? a.deadline.localeCompare(b.deadline)
-                : b.id - a.id,
+                : (b.createdAt || "").localeCompare(a.createdAt || "")),
           );
           document.getElementById("job-count").textContent =
             `${filtered.length} 件の案件`;
@@ -2300,8 +2356,8 @@
           return;
         }
         main.innerHTML =
-          head("PROJECT DETAILS", job.title, job.company) +
-          `<section class="section"><div class="container"><a href="jobs.html" class="text-link">← 案件一覧へ戻る</a><div class="detail-layout" style="margin-top:25px"><article><div class="panel">${tabs("案件の詳細", ["案件情報", "企業情報", "応募方法"])}<div class="detail-copy" id="detail-content"></div></div></article><aside><div class="panel"><span class="tag">${job.role}</span><div class="money" style="margin:20px 0">${yen(job.budget)}<small> ${job.monthly ? "/ 月" : "/ 件"}</small></div><p class="small muted">募集締切：${job.deadline}<br>カテゴリ：${job.category}<br>${job.productSupport} / オンライン対応<br>対応SNS：${job.sns.join(" / ")}</p><button class="btn primary" style="width:100%" data-apply="${job.id}">この案件に応募する →</button><p class="small muted" style="margin:12px 0 0">${job.companyId ? "※ブラウザ内のデモ案件です。" : "※サンプル案件です。"}承認済みクリエイターのログイン時の応募は、Supabase へ送信・保存されます。</p></div></aside></div><h2 style="margin-top:60px">こちらの案件もおすすめ</h2><div class="grid">${jobs
+          head("PROJECT DETAILS", job.title, job.company) + (job.priority ? '<div class="container"><span class="tag">優先掲載</span></div>' : "") +
+          `<section class="section"><div class="container"><a href="jobs.html" class="text-link">← 案件一覧へ戻る</a><div class="detail-layout" style="margin-top:25px"><article><div class="panel">${tabs("案件の詳細", ["案件情報", "企業情報", "応募方法"])}<div class="detail-copy" id="detail-content"></div></div></article><aside><div class="panel"><span class="tag">${job.role}</span><p class="small muted">本番運用では報酬から Stripe 決済手数料が差し引かれます。デモの表示金額は手数料控除前の契約額です。</p><div class="money" style="margin:20px 0">${yen(job.budget)}<small> ${job.monthly ? "/ 月" : "/ 件"}</small></div><p class="small muted">募集締切：${job.deadline}<br>カテゴリ：${job.category}<br>${job.productSupport} / オンライン対応<br>対応SNS：${job.sns.join(" / ")}</p><button class="btn primary" style="width:100%" data-apply="${job.id}">この案件に応募する →</button><p class="small muted" style="margin:12px 0 0">${job.companyId ? "※ブラウザ内のデモ案件です。" : "※サンプル案件です。"}承認済みクリエイターのログイン時の応募は、Supabase へ送信・保存されます。</p></div></aside></div><h2 style="margin-top:60px">こちらの案件もおすすめ</h2><div class="grid">${jobs
             .filter((item) => item.id !== id && item.category === source.category)
             .slice(0, 3)
             .map(jobCard)
@@ -2312,7 +2368,7 @@
               ? `<h2 style="font-size:var(--text-h2)">制作内容</h2><p>${job.detail}</p><h3>応募条件</h3><p>${job.condition}</p><p class="small muted">利用媒体・期間・二次利用の条件は、契約前にチャットで合意してください。</p>`
               : index === 1
                 ? `<h2 style="font-size:var(--text-h2)">${job.company}</h2><p>業種：${job.industry}\n所在地：${job.location}\n評価：★ ${job.rating} / 5（${job.reviews}件のレビュー）</p><p>${job.companyId ? escapeHTML(RMStore.getCollection("companyProfiles").find((profile) => profile.userId === source.companyId)?.description || "会社概要は未登録です。") : "使う人の毎日を豊かにする商品づくりに取り組む、架空のサンプル企業です。"}</p>`
-                : `<h2 style="font-size:var(--text-h2)">あなたの得意を、教えてください。</h2><p>応募フォームに氏名・メール・自己PR・制作実績URLを入力してください。審査（基礎研修＋スキルチェック）通過後に応募できる想定のデモです。</p><p>条件交渉 → 契約確認 → 制作・納品 → 検収（48時間以内） → 報酬受取（月末締め翌月末払い）。</p><button class="btn primary" data-apply="${job.id}">応募フォームを開く →</button>`;
+                : `<h2 style="font-size:var(--text-h2)">あなたの得意を、教えてください。</h2><p>応募フォームに氏名・メール・自己PR・制作実績URLを入力してください。審査（基礎研修＋スキルチェック）通過後に応募できる想定のデモです。</p><p>条件交渉 → 契約確認 → 企業の支払い（Stripe 上で留保） → 制作・納品 → 検収（48時間以内） → 報酬受取（月末締め翌月末払い）。</p><button class="btn primary" data-apply="${job.id}">応募フォームを開く →</button>`;
         };
         bindTabs(main, update);
         update(0);
@@ -2349,8 +2405,8 @@
             "SIMPLE PRICING",
             "出会いを広げる、シンプルな料金。",
             window.ReviewMatchStripe?.enabled
-              ? "有料プランの無料トライアルはありません。クリエイターは完全無料。"
-              : "企業は全プラン30日間無料トライアル。クリエイターは完全無料。",
+              ? "有料プランは登録後30日間無料。初回課金は登録から30日後、以後1か月ごとです。クリエイターの登録・利用は無料。成約時は Stripe 決済手数料が差し引かれます。"
+              : "企業は全プラン30日間無料トライアル。クリエイターの登録・利用は無料。成約時は Stripe 決済手数料が差し引かれます。",
           ) +
           `<section class="section"><div class="container">${renderPlans()}<div class="panel" style="margin-top:25px"><h3>成約手数料・オプション</h3><p class="small muted" style="margin-bottom:0">${feeSummary}<br>${feeNote}<br>優先掲載はスタンダード・プロで利用可能。${window.ReviewMatchStripe?.enabled ? "成約手数料・オプション料金は別途発生します。" : "トライアル中も成約手数料・オプション料金は発生します。"}</p></div><h2 style="margin-top:65px">料金シミュレーター</h2><p class="muted">月の掲載数から、最適なプランと費用の目安をチェック。</p><div class="simulator"><div class="sim-fields"><label for="sim-count">月の掲載案件数<input type="number" id="sim-count" min="1" max="10000" value="5" required></label><label for="sim-plan">比較するプラン<select id="sim-plan">${plans.map((plan, index) => `<option value="${index}" ${index === 1 ? "selected" : ""}>${plan.name}</option>`).join("")}</select></label><label for="sim-priority">優先掲載の件数<input type="number" id="sim-priority" min="0" max="10000" value="0" required></label><p class="small muted" id="sim-warning" role="status"></p></div><div class="sim-result" aria-live="polite" id="sim-result"></div></div></div></section>`;
         const update = () => {
@@ -2761,7 +2817,7 @@
         if (window.ReviewMatchStripe?.enabled) {
           const action =
             user.role === "creator" ? "connect-onboarding" : "billing-portal";
-          return `<div class="panel"><h2>Stripe（テストモード）</h2>
+          return `<div class="panel"><h2>Stripe（テストモード）</h2><p>本番運用では報酬から Stripe 決済手数料が差し引かれます。デモの表示金額は手数料控除前の契約額です。</p>
             <p>案件決済の「預かり中」は Stripe のクリエイター残高で銀行への出金を保留する予定の状態です。検収承認後、月末締め・翌月末払いの対象となります。機能は準備中・無効です。</p>
             <button class="btn" data-stripe-action="${action}">${user.role === "creator" ? "Stripe で受取設定" : "請求・契約を管理"}</button>
             ${user.role === "company" ? '<button class="btn" data-stripe-action="subscription-checkout" data-plan="スタンダード">スタンダード 月額 ¥9,800</button><button class="btn" data-stripe-action="subscription-checkout" data-plan="プロ">プロ 月額 ¥29,800</button>' : ""}
@@ -2824,7 +2880,7 @@
             <button class="btn primary" type="submit">口座を登録</button>
             <p role="alert" id="account-error"></p>
           </form></div>
-          <div class="panel"><h2>受取履歴</h2>${dataTable(
+          <div class="panel"><h2>受取履歴</h2><p class="small muted">本番運用では報酬から Stripe 決済手数料が差し引かれます。デモの表示金額は手数料控除前の契約額です。</p>${dataTable(
                   ["金額", "支払予定日", "ステータス"],
                   payouts.map((item) => [
                     yen(item.amount),
@@ -2863,17 +2919,14 @@
             : String(job?.role || "").includes("SNS運用")
               ? "15%"
               : "10%";
-        const priorityAllowed = RMStore.getCollection("subscriptions").some((item) =>
-          item.userId === contract.companyId && ["スタンダード", "プロ"].includes(item.plan));
+        const priorityFee = job?.priority ? 2000 : 0;
         const fields =
           action === "pay"
             ? `
-          <p>報酬：${yen(contract.amount)}（クリエイター受取額）</p>
+          <p>報酬：${yen(contract.amount)}（Stripe 決済手数料控除前）</p>
           <p>企業負担手数料（${feeLabel}）：${yen(fee)}</p>
-          <label><input type="checkbox" id="priority-option" ${priorityAllowed ? "" : "disabled"}>優先掲載を追加（${yen(2000)} / 件）</label>
-          ${priorityAllowed ? "" : "<p>優先掲載はスタンダード・プロで利用できます。</p>"}
-          <p id="priority-detail">優先掲載：なし ${yen(0)}</p>
-          <p>合計：<strong id="payment-total">${yen(contract.amount + fee)}</strong></p>
+          <p>優先掲載：${job?.priority ? "あり" : "なし"} ${yen(priorityFee)}（案件作成時に選択）</p>
+          <p>合計：<strong id="payment-total">${yen(contract.amount + fee + priorityFee)}</strong></p>
           <p>デモ決済です。実際には請求されません。カード情報は保存されません</p>
           <label>カード番号<input autocomplete="off" inputmode="numeric" placeholder="デモ用（入力不要）"></label>
           <label>有効期限<input autocomplete="off" placeholder="MM/YY"></label>
@@ -2894,16 +2947,6 @@
           </form>`,
         );
         document
-          .getElementById("priority-option")
-          ?.addEventListener("change", (event) => {
-            const priorityFee = event.target.checked ? 2000 : 0;
-            document.getElementById("priority-detail").textContent =
-              `優先掲載：${event.target.checked ? "あり" : "なし"}${yen(priorityFee)}`;
-            document.getElementById("payment-total").textContent = yen(
-              contract.amount + fee + priorityFee,
-            );
-          });
-        document
           .getElementById("payment-form")
           .addEventListener("submit", async (event) => {
             event.preventDefault();
@@ -2911,10 +2954,7 @@
             try {
               // Card inputs have no names and never enter FormData or the store.
               if (action === "pay")
-                await RMStore.payContract(
-                  id,
-                  document.getElementById("priority-option").checked,
-                );
+                await RMStore.payContract(id);
               else if (action === "deliver") {
                 const values = new FormData(event.currentTarget);
                 await RMStore.deliverContract(id, values.get("url"), values.get("message"));
@@ -2938,7 +2978,7 @@
         if (window.ReviewMatchStripe?.enabled) {
           openModal(
             "Stripe プラン管理（テストモード）",
-            `<p>初回契約は下の有料プランから選択してください。既存契約の変更・解約は請求管理で行います。無料トライアルはありません。</p>
+            `<p>初回契約は下の有料プランから選択してください。既存契約の変更・解約は請求管理で行います。有料プランは登録後30日間無料。初回課金は登録から30日後、以後1か月ごとです。</p>
             <button class="btn" data-stripe-action="subscription-checkout" data-plan="スタンダード">スタンダード 月額 ¥9,800</button>
             <button class="btn" data-stripe-action="subscription-checkout" data-plan="プロ">プロ 月額 ¥29,800</button>
             <button class="btn" data-stripe-action="billing-portal">請求・契約を管理</button><p data-stripe-feedback role="alert"></p>`,
@@ -3342,6 +3382,7 @@
                       ? `<div class="panel"><a class="btn primary" href="admin.html">管理者画面へ</a></div>`
                       : `
               <h2>${company ? "企業" : "クリエイター"}ダッシュボード</h2>
+              ${company ? "" : '<p class="small muted">本番運用では報酬から Stripe 決済手数料が差し引かれます。デモの表示金額は手数料控除前の契約額です。</p>'}
               <div class="account-metrics">${metrics
                       .map(
                         ([label, value]) => `
@@ -3581,6 +3622,8 @@
                   <label for="create-condition">応募条件</label>
                   <textarea id="create-condition" name="condition" required maxlength="3000"></textarea>
                 </div>
+                <label><input type="checkbox" name="priority" ${["スタンダード", "プロ"].includes(RMStore.postingPlan(user.id)) ? "" : "disabled"}>優先掲載を利用する（成約時に2,000円）</label>
+                <p class="small muted">優先掲載はスタンダード・プロで利用できます。フリーでは選択できません。</p>
                 <p id="job-create-feedback" role="status" aria-live="polite"></p>
                 <button class="btn primary" type="submit">審査に提出する</button>
               </form>
