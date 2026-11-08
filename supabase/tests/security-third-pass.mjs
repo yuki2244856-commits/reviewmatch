@@ -361,28 +361,57 @@ assert.equal(profile.user_id, creator);
 assert.equal(profile.certified, false);
 assert.equal(Number(profile.rating), 4.5);
 assert.equal(profile.name, "Updated");
-// S05: cancelled paid plans use the free quota; active trials keep their plan entitlement.
-await actor(company);
-await db.query(
-  "insert into subscriptions(user_id,plan,status,trial_used) values ($1,'プロ','解約済',true)",
-  [company],
-);
-await assert.rejects(
-  () =>
-    db.query("insert into jobs(company_id,title) values ($1,'Cancelled')", [
+// S05: real application statuses and the legacy default retain plan quotas.
+for (const status of ["有効", "トライアル中", "契約中", "解約済み"]) {
+  await db.exec("reset role");
+  await db.query("delete from jobs where company_id=$1 and id<>$2", [
+    company,
+    job,
+  ]);
+  await db.query("delete from subscriptions where user_id=$1", [company]);
+  await actor(company);
+  await db.query(
+    `insert into subscriptions(user_id,plan,status,trial_end_date)
+     values ($1,'スタンダード',$2,current_date+30)`,
+    [company, status],
+  );
+  const limit = status === "解約済み" ? 1 : 10;
+  // The original job already consumes one slot this month.
+  for (let count = 1; count < limit; count++) {
+    await db.query("insert into jobs(company_id,title) values ($1,$2)", [
       company,
-    ]),
-  /掲載上限/,
-);
-await db.query(
-  "update subscriptions set plan='スタンダード',status='契約中',trial_end_date=now()+interval '1 day' where user_id=$1",
-  [company],
-);
-await db.query(
-  "insert into jobs(company_id,title) values ($1,'Active trial')",
-  [company],
-);
-// Auto approval still runs through trusted service path (same constraints apply).
+      `${status} posting ${count + 1}`,
+    ]);
+  }
+  await assert.rejects(
+    () =>
+      db.query("insert into jobs(company_id,title) values ($1,'Over quota')", [
+        company,
+      ]),
+    /掲載上限/,
+  );
+}
+// Multiple active rows: newest created_at wins; equal timestamps use id.
+await db.exec("reset role");
+await db.query("delete from subscriptions where user_id=$1", [company]);
+for (const [id, plan, createdAt] of [
+  [uid(30), "フリー", "2026-01-01"],
+  [uid(31), "フリー", "2026-01-02"],
+  [uid(32), "プロ", "2026-01-02"],
+]) {
+  await db.query(
+    `insert into subscriptions(id,user_id,plan,status,created_at)
+     values ($1,$2,$3,'有効',$4)`,
+    [id, company, plan, createdAt],
+  );
+}
+await actor(company);
+for (let count = 1; count <= 11; count++) {
+  await db.query("insert into jobs(company_id,title) values ($1,'Pro posting')", [
+    company,
+  ]);
+}
+// Reproduce pg_cron: postgres role with no authenticated user.
 await db.exec("reset role");
 await db.query(
   "update contracts set status='納品済（検収中）',review_deadline=now()-interval '1 second' where id=$1",
@@ -392,9 +421,33 @@ await db.query(
   "insert into payments(contract_id,company_id,kind,amount,status) values ($1,$2,'案件',0,'預かり中')",
   [uid(16), company],
 );
+await db.exec("set role postgres; select set_config('test.uid','',false)");
+assert.deepEqual(
+  (await db.query("select current_setting('role') role, auth.uid() uid")).rows[0],
+  { role: "postgres", uid: null },
+);
 assert.equal(
   (await db.query("select auto_approve_expired_reviews() n")).rows[0].n,
   1,
+);
+assert.equal(
+  (await db.query("select status from contracts where id=$1", [uid(16)]))
+    .rows[0].status,
+  "完了",
+);
+assert.deepEqual(
+  (
+    await db.query(
+      "select creator_id,amount,status from payouts where contract_id=$1",
+      [uid(16)],
+    )
+  ).rows,
+  [{ creator_id: creator, amount: 0, status: "未払い" }],
+);
+assert.equal(
+  (await db.query("select status from payments where contract_id=$1", [uid(16)]))
+    .rows[0].status,
+  "支払確定",
 );
 assert.equal(
   (await db.query("select auto_approve_expired_reviews() n")).rows[0].n,

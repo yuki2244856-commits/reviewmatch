@@ -12,8 +12,12 @@ begin
   -- All inserts for the same company serialize, including its first posting.
   -- The lock lives until commit/rollback, not just until this trigger returns.
   perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(new.company_id::text, 0));
-  select s.plan into current_plan from public.subscriptions s
-    where s.user_id = new.company_id and s.status = '契約中';
+  select s.plan into current_plan
+  from public.subscriptions s
+  where s.user_id = new.company_id
+    and s.status in ('有効', 'トライアル中', '契約中')
+  order by s.created_at desc, s.id desc
+  limit 1;
   posting_limit := case current_plan when 'プロ' then null when 'スタンダード' then 10 else 1 end;
   month_start := date_trunc('month', statement_timestamp() at time zone 'Asia/Tokyo') at time zone 'Asia/Tokyo';
   -- Creation time is server-owned; a REST client cannot backdate past the quota.

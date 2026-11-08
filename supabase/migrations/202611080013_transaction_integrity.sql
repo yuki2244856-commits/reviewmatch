@@ -13,7 +13,7 @@ language plpgsql security definer set search_path = '' as $$
 declare c public.contracts; v public.conversations; a public.applications;
   expected_fee integer; expected_priority integer; actor uuid := auth.uid();
 begin
-  if current_setting('role') in ('none', 'service_role') or public.is_admin() then return new; end if;
+  if current_setting('role') in ('none', 'service_role', 'postgres') or public.is_admin() then return new; end if;
   if not public.is_approved_user(actor) then raise exception 'Approved user required'; end if;
   if tg_table_name = 'contracts' then
     if tg_op = 'INSERT' then
@@ -106,7 +106,7 @@ create or replace function public.check_contract_ledger() returns trigger
 language plpgsql security definer set search_path = '' as $$
 declare c public.contracts; cid uuid;
 begin
-  if current_setting('role') in ('none','service_role') or public.is_admin() then return null; end if;
+  if current_setting('role') in ('none', 'service_role', 'postgres') or public.is_admin() then return null; end if;
   if tg_table_name='contracts' then cid := new.id; else cid := new.contract_id; end if;
   if cid is null then return null; end if;
   select * into c from public.contracts where id=cid;
