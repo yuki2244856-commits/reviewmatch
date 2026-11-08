@@ -64,7 +64,9 @@ await db.query(
     [admin],
   );
 });
+await db.query("select set_config('test.uid',$1,false)", [admin]);
 await db.exec("update profiles set status='approved'");
+await db.query("select set_config('test.uid','',false)");
 await db.query(
   "insert into jobs(id,company_id,title,status) values ($1,$2,'Test','掲載中')",
   [uid(10), company],
@@ -355,7 +357,7 @@ await db.exec("set role authenticated");
 assert.equal((await db.query("select * from contracts")).rows.length > 0, true);
 await assert.rejects(
   () =>
-    db.query("insert into payments(company_id,kind) values ($1,'案件')", [
+    db.query("insert into payments(company_id,kind) values ($1,'プラン')", [
       company,
     ]),
   /row-level security/,
