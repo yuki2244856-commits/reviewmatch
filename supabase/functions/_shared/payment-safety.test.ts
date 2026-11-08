@@ -2,6 +2,7 @@ import type Stripe from "npm:stripe@23.1.0";
 import { BILLING_PRICES, STRIPE_ACCOUNT_ID } from "./billing-config.ts";
 import {
   checkoutIntegrationIdentifier,
+  subscriptionCheckoutData,
   directChargeCheckout,
   type TrustedDirectOrder,
 } from "./checkout.ts";
@@ -169,3 +170,11 @@ Deno.test(
     }
   },
 );
+
+Deno.test("paid subscription Checkout starts a 30-day trial with the existing billing mode", () => {
+  const data = subscriptionCheckoutData("company-id", "スタンダード");
+  assert(data.trial_period_days === 30);
+  assert(data.billing_mode?.type === "flexible");
+  assert(data.metadata?.user_id === "company-id");
+  assert(data.metadata?.plan === "スタンダード");
+});

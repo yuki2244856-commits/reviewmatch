@@ -68,6 +68,7 @@ for (const [role, amount, fee, priority] of [
     api,
   }) => {
     api.db.jobs[0].role = role;
+    api.db.jobs[0].priority = priority;
     const contract = seedContract(api, { amount });
     await ready(page, "/mypage.html");
     await login(page, "company");
@@ -231,6 +232,7 @@ test("plan payments preserve trial, paid and free records; remote history preven
   api.db.subscriptions = [];
   await page.reload();
   await expect(page.locator("#supabase-notice")).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => RMStore.currentUser()?.id)).toBe(ids.company);
   expect(await page.evaluate(() => RMStore.planQuote("プロ"))).toEqual({
     trial: false,
     amount: 29800,
@@ -297,10 +299,14 @@ test("server finance overrides legacy local records; reviews remain local and ad
   }));
   expect(data.payments.map((row) => row.id)).toEqual(["payment"]);
   expect(data.payouts.map((row) => row.id)).toEqual(["payout"]);
-  expect(data.account).toMatchObject({ bank: "サーバー銀行", last4: "0987" });
-  expect(data.accounts).toEqual([
-    { userId: ids.creator, account: data.account },
-  ]);
+  expect(data.account).toBeUndefined();
+  expect(data.accounts).toEqual([]);
+  await ready(page);
+  await login(page, "creator");
+  expect(await page.evaluate(() => RMStore.getCollection("payoutAccounts")))
+    .toEqual([{ userId: ids.creator, account: {
+      bank: "サーバー銀行", last4: "0987",
+    } }]);
   expect(data.reviews[0].id).toBe("local-review");
   expect(Object.keys(data.stored).sort()).toEqual(["reviews", "version"]);
   await ready(page);
@@ -523,13 +529,12 @@ test("late automatic acceptance uses the effective deadline month in Tokyo", asy
   expect(api.db.payouts[0].payout_date).toBe("2026-10-31");
 });
 
-test("free plan cannot purchase the paid-plan priority option", async ({ page, api }) => {
+test("payment ignores caller priority option and uses the creation flag after downgrade", async ({ page, api }) => {
   api.db.subscriptions = [];
+  api.db.jobs[0].priority = true;
   const contract = seedContract(api);
   await ready(page);
   await login(page, "company");
-  await expect(page.evaluate((id) => RMStore.payContract(id, true), contract.id))
-    .rejects.toThrow("スタンダード・プロ");
-  expect(api.db.payments).toEqual([]);
-  expect(api.db.contracts[0].status).toBe("契約成立");
+  await page.evaluate((id) => RMStore.payContract(id, false), contract.id);
+  expect(api.db.payments[0].priority_fee).toBe(2000);
 });

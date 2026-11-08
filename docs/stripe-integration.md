@@ -319,3 +319,8 @@ The existing-subscription admission check now consumes all Stripe API pages;
 an active contract older than the first 100 ended contracts still blocks a new
 Checkout. The review report and current validation are in
 `docs/code-review-main-2026-11-08.md`.
+
+## 税込料金と無料トライアル（実装時の必須事項）
+
+プランの Price は `tax_behavior: "inclusive"`（税込）に設定すること。プラン料金・成約手数料は税込表示とする。
+有料プランの Checkout は `subscription_data.trial_period_days: 30` とし、初回課金は登録から30日後、以後1か月ごととする。スターターの有効化は引き続きオフ。

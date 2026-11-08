@@ -1,4 +1,7 @@
-import { checkoutIntegrationIdentifier } from "../_shared/checkout.ts";
+import {
+  checkoutIntegrationIdentifier,
+  subscriptionCheckoutData,
+} from "../_shared/checkout.ts";
 import {
   assertReviewMatchAccount,
   BILLING_PRICES,
@@ -168,16 +171,13 @@ Deno.serve(async (req: Request) => {
             "reviewmatch_billing",
             attempt.attempt_id,
           ),
-          subscription_data: {
-            billing_mode: { type: "flexible" },
-            metadata: { user_id: user.id, plan: body.plan },
-          },
+          subscription_data: subscriptionCheckoutData(user.id, body.plan),
           success_url: `${returnUrl}?stripe=processing`,
           cancel_url: `${returnUrl}?stripe=canceled`,
         },
         { idempotencyKey: `subscription-checkout:${attempt.attempt_id}` },
       );
-      // No trial here: adding a trial safely requires a durable one-time eligibility claim.
+      // Starter remains disabled; trial eligibility hardening is required before production activation.
       if (session.status !== "open" || !session.url) {
         return json(
           {

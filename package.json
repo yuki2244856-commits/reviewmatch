@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "test": "playwright test",
-    "test:migrations": "node supabase/tests/held-ledger.mjs && node supabase/tests/atomic-workflow.mjs"
+    "test:migrations": "node supabase/tests/held-ledger.mjs && node supabase/tests/atomic-workflow.mjs && node supabase/tests/posting-privacy.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.15",

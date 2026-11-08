@@ -97,3 +97,15 @@ export async function directChargeCheckout(
   };
   return { params, options };
 }
+
+// Shared by the disabled starter and its regression test.
+export function subscriptionCheckoutData(
+  userId: string,
+  plan: string,
+): Stripe.Checkout.SessionCreateParams.SubscriptionData {
+  return {
+    trial_period_days: 30,
+    billing_mode: { type: "flexible" },
+    metadata: { user_id: userId, plan },
+  };
+}
