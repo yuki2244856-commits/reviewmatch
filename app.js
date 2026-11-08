@@ -1483,15 +1483,7 @@
             throw new Error(
               "デモの決済・報酬操作は無効です。Stripe の管理機能をご利用ください。",
             );
-          return workflow((data) => {
-            const { contract } = contractActor(data, id, "company", [
-              "納品済（検収中）",
-            ]);
-            contract.reviewDeadline = new Date(Date.now() - 1).toISOString();
-            contract.deliveredAt = new Date(
-              Date.parse(contract.deliveredAt) - 48 * 60 * 60 * 1000,
-            ).toISOString();
-          });
+          throw new Error("検収期限はサーバーで管理されています。期限後に自動承認されます。");
         }
 
         function planQuote(plan) {
@@ -2185,7 +2177,7 @@
                 <div class="money">${yen(job.budget)}<small> ${job.monthly ? "/ 月" : "/ 件"}</small></div>
                 <p class="small muted">本番運用では Stripe 決済手数料が差し引かれます。デモは控除前の契約額です。</p>
                 <div class="job-card-meta">
-                  <span>募集締切 ${job.deadline.replaceAll("-", ".")}</span>
+                  <span>${job.deadline ? `募集締切 ${job.deadline.replaceAll("-", ".")}` : "締切なし"}</span>
                   <span>対応SNS：${job.sns.join(" / ")}</span>
                     <span>${job.productSupport}</span>
                 </div>
@@ -2810,8 +2802,7 @@
           actions += `<p>検収期限：${escapeHTML(chatDate(new Date(Date.parse(contract.deliveredAt) + 48 * 60 * 60 * 1000).toISOString()))}</p>`;
           if (user.id === contract.companyId) {
             actions += `<button class="btn primary" data-payment-action="approve" data-id="${id}">検収して承認する</button>
-              <button class="btn" data-payment-action="return" data-id="${id}">差戻す（修正依頼）</button>
-              <button class="btn" data-payment-action="simulate" data-id="${id}">（デモ）48時間経過を再現</button>`;
+              <button class="btn" data-payment-action="return" data-id="${id}">差戻す（修正依頼）</button>`;
           }
         }
         if (user.id === contract.companyId && contract.status === "契約成立") {
@@ -3136,7 +3127,6 @@
                 "支払済（預かり中）",
                 "納品済（検収中）",
                 "修正依頼中",
-                "完了",
               ].includes(item.status),
           );
         main.innerHTML = `

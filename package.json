@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "test": "playwright test",
-    "test:migrations": "node supabase/tests/held-ledger.mjs && node supabase/tests/atomic-workflow.mjs && node supabase/tests/posting-privacy.mjs && node supabase/tests/review-batch-two.mjs",
+    "test:migrations": "node supabase/tests/held-ledger.mjs && node supabase/tests/atomic-workflow.mjs && node supabase/tests/posting-privacy.mjs && node supabase/tests/review-batch-two.mjs && node supabase/tests/security-third-pass.mjs",
     "test:edge": "deno test --node-modules-dir=none supabase/functions/_shared/*.test.ts"
   },
   "devDependencies": {
