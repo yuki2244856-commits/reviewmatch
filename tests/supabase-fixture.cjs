@@ -170,7 +170,7 @@ const test = base.extend({
       };
     }
     await context.route(
-      "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2",
+      "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0",
       (route) =>
         route.fulfill({
           path: path.join(
@@ -432,6 +432,16 @@ const test = base.extend({
             return reply({ message: "permission denied for table creator_profiles" }, 403);
           rows = rows.map((row) => Object.fromEntries(Object.entries(row).filter(([key]) =>
             !key.startsWith("payout_") && (columns.includes("*") || columns.includes(key)))));
+        }
+        if (method === "GET") {
+          const order = url.searchParams.get("order");
+          if (order) {
+            const key = order.split(".")[0];
+            rows.sort((a, b) => String(a[key]).localeCompare(String(b[key])));
+          }
+          const offset = Number(url.searchParams.get("offset") || 0);
+          const limit = Number(url.searchParams.get("limit") || 1000);
+          rows = rows.slice(offset, offset + limit);
         }
         const single = req.headers().accept?.includes("vnd.pgrst.object");
         return reply(single ? rows[0] : rows);

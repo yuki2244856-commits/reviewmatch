@@ -332,6 +332,22 @@
           startRealtime();
         }
 
+        async function fetchAllRows(table, columns = "*") {
+          const primaryKey = table === "company_profiles"
+            ? "user_id"
+            : table === "stripe_subscriptions" ? "subscription_id" : "id";
+          const rows = [];
+          for (let offset = 0; ; offset += 1000) {
+            const page = await request(
+              client().from(table).select(columns)
+                .order(primaryKey, { ascending: true })
+                .range(offset, offset + 999),
+            );
+            rows.push(...page);
+            if (page.length < 1000) return rows;
+          }
+        }
+
         let hydrationVersion = 0;
         async function hydrate(user = authUser) {
           const version = ++hydrationVersion;
@@ -357,10 +373,8 @@
           const rows = await Promise.all(
             tables.map((table, index) => {
               if (!user && ![2, 3].includes(index)) return [];
-              return request(
-                client().from(table).select(
-                  table === "creator_profiles" ? publicCreatorColumns : "*",
-                ),
+              return fetchAllRows(
+                table, table === "creator_profiles" ? publicCreatorColumns : "*",
               );
             }),
           );
@@ -369,7 +383,7 @@
           const [accounts, postingPlans] = await Promise.all([
             user ? request(client().rpc("get_my_payout_account")) : [],
             user && window.ReviewMatchStripe?.enabled
-              ? request(client().from("subscriptions").select("user_id,plan"))
+              ? fetchAllRows("subscriptions", "user_id,plan")
               : rows[4],
           ]);
           if (version !== hydrationVersion || (authUser?.id || null) !== identity)
@@ -1184,7 +1198,6 @@
                     "支払済（預かり中）",
                     "納品済（検収中）",
                     "修正依頼中",
-                    "完了",
                   ].includes(item.status),
               )
             ) {

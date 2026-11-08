@@ -416,7 +416,7 @@ test("SDK failure produces a usable error state instead of a blank page", async 
   context,
 }) => {
   await context.route(
-    "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2",
+    "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0",
     (route) => route.abort(),
   );
   const errors = [];
