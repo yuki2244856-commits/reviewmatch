@@ -44,7 +44,7 @@ begin
         (actor = old.company_id and old.status = '納品済（検収中）' and new.status in ('完了','修正依頼中'))
       ) then raise exception 'Invalid contract transition'; end if;
       if new.status = '納品済（検収中）' and old.status in ('支払済（預かり中）','修正依頼中') then
-        if new.delivery_url !~ '^https?://' or new.delivery_url is null or length(new.delivery_url)>2000
+        if new.delivery_url !~* '^https?://' or new.delivery_url is null or length(new.delivery_url)>2000
           or nullif(trim(new.delivery_message),'') is null or length(new.delivery_message)>5000 then
           raise exception 'Invalid delivery'; end if;
         new.delivery_at := statement_timestamp(); new.review_deadline := new.delivery_at + interval '48 hours';

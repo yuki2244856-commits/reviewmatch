@@ -3,11 +3,12 @@ begin;
 create or replace function public.protect_profiles_fields() returns trigger
 language plpgsql security definer set search_path = '' as $$
 begin
-  if not public.is_admin() then
-    new.role := old.role;
-    new.status := old.status;
-    new.review_note := old.review_note;
+  if auth.uid() is null or public.is_admin() then
+    return new;
   end if;
+  new.role := old.role;
+  new.status := old.status;
+  new.review_note := old.review_note;
   return new;
 end;
 $$;
@@ -17,11 +18,12 @@ create trigger trg_protect_profiles before update on public.profiles
 create or replace function public.protect_creator_profiles_fields() returns trigger
 language plpgsql security definer set search_path = '' as $$
 begin
-  if not public.is_admin() then
-    new.user_id := old.user_id;
-    new.certified := old.certified;
-    new.rating := old.rating;
+  if auth.uid() is null or public.is_admin() then
+    return new;
   end if;
+  new.user_id := old.user_id;
+  new.certified := old.certified;
+  new.rating := old.rating;
   return new;
 end;
 $$;
@@ -31,9 +33,10 @@ create trigger trg_protect_creator_profiles before update on public.creator_prof
 create or replace function public.protect_jobs_fields() returns trigger
 language plpgsql security definer set search_path = '' as $$
 begin
-  if not public.is_admin() then
-    new.created_at := old.created_at;
+  if auth.uid() is null or public.is_admin() then
+    return new;
   end if;
+  new.created_at := old.created_at;
   return new;
 end;
 $$;
@@ -47,12 +50,13 @@ create policy jobs_update on public.jobs for update to authenticated
 create or replace function public.protect_messages_fields() returns trigger
 language plpgsql security definer set search_path = '' as $$
 begin
-  if not public.is_admin() then
-    -- Preserve all content, including future columns. Only append the caller's receipt.
-    new := old;
-    if not (auth.uid() = any(coalesce(old.read_by, '{}'::uuid[]))) then
-      new.read_by := array_append(coalesce(old.read_by, '{}'::uuid[]), auth.uid());
-    end if;
+  if auth.uid() is null or public.is_admin() then
+    return new;
+  end if;
+  -- Preserve all content, including future columns. Only append the caller's receipt.
+  new := old;
+  if not (auth.uid() = any(coalesce(old.read_by, '{}'::uuid[]))) then
+    new.read_by := array_append(coalesce(old.read_by, '{}'::uuid[]), auth.uid());
   end if;
   return new;
 end;

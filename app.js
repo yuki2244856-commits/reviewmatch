@@ -2278,7 +2278,8 @@
             (sort === "reward"
               ? b.budget - a.budget
               : sort === "deadline"
-                ? a.deadline.localeCompare(b.deadline)
+                ? Number(!a.deadline) - Number(!b.deadline) ||
+                  (a.deadline || "").localeCompare(b.deadline || "")
                 : (b.createdAt || "").localeCompare(a.createdAt || "")),
           );
           document.getElementById("job-count").textContent =
@@ -2362,7 +2363,7 @@
         }
         main.innerHTML =
           head("PROJECT DETAILS", job.title, job.company) + (job.priority ? '<div class="container"><span class="tag">優先掲載</span></div>' : "") +
-          `<section class="section"><div class="container"><a href="jobs.html" class="text-link">← 案件一覧へ戻る</a><div class="detail-layout" style="margin-top:25px"><article><div class="panel">${tabs("案件の詳細", ["案件情報", "企業情報", "応募方法"])}<div class="detail-copy" id="detail-content"></div></div></article><aside><div class="panel"><span class="tag">${job.role}</span><p class="small muted">本番運用では報酬から Stripe 決済手数料が差し引かれます。デモの表示金額は手数料控除前の契約額です。</p><div class="money" style="margin:20px 0">${yen(job.budget)}<small> ${job.monthly ? "/ 月" : "/ 件"}</small></div><p class="small muted">募集締切：${job.deadline}<br>カテゴリ：${job.category}<br>${job.productSupport} / オンライン対応<br>対応SNS：${job.sns.join(" / ")}</p><button class="btn primary" style="width:100%" data-apply="${job.id}">この案件に応募する →</button><p class="small muted" style="margin:12px 0 0">${job.companyId ? "※ブラウザ内のデモ案件です。" : "※サンプル案件です。"}承認済みクリエイターのログイン時の応募は、Supabase へ送信・保存されます。</p></div></aside></div><h2 style="margin-top:60px">こちらの案件もおすすめ</h2><div class="grid">${jobs
+          `<section class="section"><div class="container"><a href="jobs.html" class="text-link">← 案件一覧へ戻る</a><div class="detail-layout" style="margin-top:25px"><article><div class="panel">${tabs("案件の詳細", ["案件情報", "企業情報", "応募方法"])}<div class="detail-copy" id="detail-content"></div></div></article><aside><div class="panel"><span class="tag">${job.role}</span><p class="small muted">本番運用では報酬から Stripe 決済手数料が差し引かれます。デモの表示金額は手数料控除前の契約額です。</p><div class="money" style="margin:20px 0">${yen(job.budget)}<small> ${job.monthly ? "/ 月" : "/ 件"}</small></div><p class="small muted">募集締切：${job.deadline || "締切なし"}<br>カテゴリ：${job.category}<br>${job.productSupport} / オンライン対応<br>対応SNS：${job.sns.join(" / ")}</p><button class="btn primary" style="width:100%" data-apply="${job.id}">この案件に応募する →</button><p class="small muted" style="margin:12px 0 0">${job.companyId ? "※ブラウザ内のデモ案件です。" : "※サンプル案件です。"}承認済みクリエイターのログイン時の応募は、Supabase へ送信・保存されます。</p></div></aside></div><h2 style="margin-top:60px">こちらの案件もおすすめ</h2><div class="grid">${jobs
             .filter((item) => item.id !== id && item.category === source.category)
             .slice(0, 3)
             .map(jobCard)
@@ -3560,7 +3561,7 @@
             escapeHTML(job.title),
             escapeHTML(job.status),
             yen(job.budget),
-            escapeHTML(job.deadline),
+            escapeHTML(job.deadline || "締切なし"),
           ]),
           "自社案件",
         );
@@ -3781,7 +3782,7 @@
                 escapeHTML(job.company),
                 escapeHTML(job.status),
                 yen(job.budget),
-                escapeHTML(job.deadline),
+                escapeHTML(job.deadline || "締切なし"),
                 `<div class="admin-actions" data-job-id="${job.id}">
               ${job.status !== "掲載中" ? '<button class="btn" data-job-status="掲載中">公開する</button>' : ""}
                 ${job.status !== "非公開" ? '<button class="btn" data-job-status="非公開">非公開にする</button>' : ""}
@@ -4012,7 +4013,7 @@
                       apply
                         ? `<dl class="dialog-project-meta">
                 <div><dt>報酬</dt><dd class="project-reward">${yen(job.budget)}<small>${job.monthly ? " / 月" : " / 件"}</small></dd></div>
-                <div><dt>募集締切</dt><dd>${job.deadline}</dd></div>
+                <div><dt>募集締切</dt><dd>${job.deadline || "締切なし"}</dd></div>
                 <div><dt>企業名</dt><dd>${job.company}</dd></div>
               </dl>`
                         : `<ul class="dialog-benefits">${benefits.map((text) => `<li>${text}</li>`).join("")}</ul>`

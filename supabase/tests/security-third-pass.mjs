@@ -180,6 +180,21 @@ await assert.rejects(
   /Invalid payment update/,
 );
 await actor(creator);
+for (const deliveryUrl of [
+  null,
+  "ftp://example.com/video",
+  "javascript:alert(1)",
+]) {
+  await assert.rejects(
+    () =>
+      apply([
+        change("納品済（検収中）", "支払済（預かり中）", {
+          delivery_url: deliveryUrl,
+        }),
+      ]),
+    /Invalid delivery/,
+  );
+}
 await apply([
   change("納品済（検収中）", "支払済（預かり中）", {
     delivery_url: "https://example.com/video",
@@ -198,10 +213,15 @@ await apply([change("修正依頼中", "納品済（検収中）")]);
 await actor(creator);
 await apply([
   change("納品済（検収中）", "修正依頼中", {
-    delivery_url: "https://example.com/revised",
+    delivery_url: "HTTPS://example.com/revised",
     delivery_message: "Revised",
   }),
 ]);
+assert.equal(
+  (await db.query("select delivery_url from contracts where id=$1", [contract]))
+    .rows[0].delivery_url,
+  "HTTPS://example.com/revised",
+);
 await actor(company);
 await assert.rejects(
   () => apply([change("完了", "納品済（検収中）")]),
@@ -361,6 +381,63 @@ assert.equal(profile.user_id, creator);
 assert.equal(profile.certified, false);
 assert.equal(Number(profile.rating), 4.5);
 assert.equal(profile.name, "Updated");
+// Maintenance sessions and administrators may update all four protected tables.
+// Roll back each case so the workflow and quota fixtures remain unchanged.
+for (const role of ["postgres", "service_role", "admin"]) {
+  await db.exec("reset role; begin");
+  // Model Supabase service_role privileges separately from the trigger bypass.
+  await db.exec(`
+    alter role service_role bypassrls;
+    grant usage on schema public, auth to service_role;
+    grant select, update on all tables in schema public to service_role;
+  `);
+  await db.query("select set_config('test.uid',$1,true)", [
+    role === "admin" ? admin : "",
+  ]);
+  await db.exec(`set local role ${role === "admin" ? "authenticated" : role}`);
+  assert.equal(
+    (await db.query("select auth.uid() uid")).rows[0].uid,
+    role === "admin" ? admin : null,
+  );
+  const updatedProfile = await db.query(
+    `update profiles set role='creator',status='pending',review_note='Maintenance'
+     where id=$1 returning role,status,review_note`,
+    [company],
+  );
+  assert.deepEqual(
+    updatedProfile.rows,
+    [{ role: "creator", status: "pending", review_note: "Maintenance" }],
+    role,
+  );
+  const updatedCreator = await db.query(
+    `update creator_profiles set user_id=$1,certified=true,rating=5
+     where user_id=$2 returning user_id,certified,rating`,
+    [company, creator],
+  );
+  assert.equal(updatedCreator.rows[0].user_id, company, role);
+  assert.equal(updatedCreator.rows[0].certified, true, role);
+  assert.equal(Number(updatedCreator.rows[0].rating), 5, role);
+  const updatedJob = await db.query(
+    "update jobs set created_at='2000-01-01' where id=$1 returning created_at",
+    [job],
+  );
+  assert.equal(
+    new Date(updatedJob.rows[0].created_at).getUTCFullYear(),
+    2000,
+    role,
+  );
+  const updatedMessage = await db.query(
+    `update messages set body='Maintenance',read_by=$1 where id=$2
+     returning body,read_by`,
+    [[admin], uid(20)],
+  );
+  assert.deepEqual(
+    updatedMessage.rows,
+    [{ body: "Maintenance", read_by: [admin] }],
+    role,
+  );
+  await db.exec("rollback");
+}
 // S05: real application statuses and the legacy default retain plan quotas.
 for (const status of ["有効", "トライアル中", "契約中", "解約済み"]) {
   await db.exec("reset role");
