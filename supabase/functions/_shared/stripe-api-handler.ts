@@ -10,6 +10,8 @@ import {
 } from "./billing-config.ts";
 import { appOrigin, checked, cors, json, services } from "./stripe.ts";
 
+import { contractCheckout, contractRefund } from "./project-payments.ts";
+
 import { connectOnboarding } from "./connect-onboarding.ts";
 
 export function createStripeApiHandler(dependencies = {
@@ -61,6 +63,7 @@ export function createStripeApiHandler(dependencies = {
           "billing-portal",
           "subscription-checkout",
           "contract-checkout",
+          "contract-refund",
         ].includes(body.action)
       ) {
         return json({ error: "Unknown action" }, 400);
@@ -78,15 +81,17 @@ export function createStripeApiHandler(dependencies = {
       if (profile.role !== "company") {
         return json({ error: "Company account required" }, 403);
       }
-      if (body.action === "contract-checkout") {
-        // Charge admission needs verified manual controls and trusted orders; bank payout uses its own gated worker.
-        return json(
-          {
-            error:
-              "Held project payments remain disabled; manual payout controls, ledger reconciliation and legal review are required",
-          },
-          409,
-        );
+      if (["contract-checkout", "contract-refund"].includes(body.action)) {
+        if (
+          typeof body.contractId !== "string" ||
+          !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+            .test(body.contractId)
+        ) {
+          return json({ error: "Valid contractId required" }, 400);
+        }
+        return body.action === "contract-checkout"
+          ? await contractCheckout({ db, stripe }, user.id, body.contractId)
+          : await contractRefund({ db, stripe }, user.id, body.contractId);
       }
       let mapping = checked(
         await db

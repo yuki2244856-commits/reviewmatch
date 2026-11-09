@@ -15,7 +15,7 @@ integration-guide request succeeded. The planner did not certify escrow legality
 or the bespoke ledger: those details below are engineering analysis checked against Stripe documentation.
 
 The original planning phase performed no remote test, deployment, Stripe resource creation or account-setting change.
-The 2026-11-09 change implements Connect onboarding for PR review only; no live DB apply or function deployment is performed.
+The 2026-11-09 changes implement Connect onboarding and project payments for PR review only; no live DB apply or function deployment is performed.
 
 ## Charge choice and funds location
 
@@ -129,20 +129,23 @@ Accounts v2 の fees_collector=stripe は v1 の fee payer=account と同等で�
 
 ### 本番有効化前に残る確認
 
-- **本番モードでの再検証は未確認**。本番設定・適用後 dashboard・manual 設定の更新／読み戻しを再検証します。
+- **本番モードでの再検証は未確認**。verified_untilの発行に使う `livemode === false` 条件と
+  test専用ランタイムを、本番化時に明示的に見直し、dashboard・manualの更新／読み戻しを再検証します。
+- 美咲等のテストアカウントでオンボーディング完了が `card_payments.status = active` になることを実証します。
+- 第6弾のprocessing_fee算出前提を、連結アカウントのfee_detailsと実際の残高増分で照合します。
 - プラットフォーム設定「アカウントによる入金スケジュールの管理を許可します」はユーザー実測で現在オン、
   新規登録アカウントのみに適用。切るかどうかを本番有効化前に判断します。本タスクで設定は変更しません。
 - クリエイター向け残高表示（組み込みコンポーネント）は今後の実装です。
 - ユーザーのワークベンチ実測でテストモードの作成成功を確認（前述）。修正後の Edge Function による
-  manual 更新・読み戻し・リンク発行までの一連の成功は **未確認**です。
-  今回の修正作業では実アカウント操作を行わず、SDK 23.1.0 の型とモックで検証します。
+  manual更新・読み戻し・リンク発行までの実環境テストは第5弾レビュー側で合格済みです。
+  第6弾では実アカウント操作を行わず、SDK 23.1.0の型・モック・ローカルDBで検証します。
 - Stripe の冪等キー保持期間を越えて、作成成功後の DB 保存失敗から復旧する場合は、
   metadata.user_id と Stripe 側リソースを照合して既存アカウントを復旧してから再実行します。
   キーだけで永久に重複作成を防げるとは扱いません。
 
-`contract-checkout` の 409 と `HELD_PROJECT_PAYMENTS_ENABLED = false` は維持します。
-Connect 登録の実装はプロジェクト課金・出金を有効にせず、既存 Billing の挙動も変更しません。
-新規マイグレーションは不要です。実 DB 適用・関数デプロイはこの作業の対象外です。
+第5弾時点ではcontract-checkoutは409でした。第6弾の課金・台帳・検収接続と新規マイグレーションは後述します。
+`HELD_PROJECT_PAYMENTS_ENABLED = false` とフロントenabled=falseは引き続き維持します。
+実DB適用・関数デプロイはこの作業の対象外です。
 
 ## Acceptance and payout cycle
 
@@ -407,9 +410,8 @@ Checkout. The review report and current validation are in
 契約行ロックと状態比較更新によりページ訪問時の処理とも競合を制御し、実効承認時刻は `review_deadline`、払い日は日本時間で翌月末です。
 `stripe_held_orders` に紐づく契約は対象外です。預かり中のデモ支払いがない／既に報酬がある不整合行は処理せず運営が確認します。
 
-**Stripe held order の自動承認には別の定期実行の仕組みが必要です。**
-`auto_approve_held_orders` を呼ぶ運用ジョブ、認証、監視、再試行を有効化前に実装してください。
-デモのcronはこれを呼びません。ワーカー呼び出し時だけの承認では定期実行の代替になりません。
+第6弾でheld order用の `complete_project_reviews` と専用の毎時cron登録を追加しました（後述）。
+デモcronはこれを呼びません。レビュー側で適用後の登録・稼働・監視を確認してください。
 
 ### 留保期限まで81日未満の注文
 
@@ -456,3 +458,163 @@ Stripe APIとDBの間に分散トランザクションはありません。dashb
 
 全ページのsupabase-jsは、確認時にCDNの `@2` が解決した **2.119.0** に固定しました。
 Tailwindは今回は変更せず、公開前にビルド時生成への移行とCSP設計を行います。SRIの適用対象・固定アセットの更新方針もその時に決めます。
+
+## 第6弾：案件Checkout・実績台帳・検収・解放前返金（2026-11-09）
+
+この節が、過去の「contract-checkout は常に409」「案件決済は準備中」および
+「held order の自動承認ジョブは未実装」という記載を更新します。
+第5弾の実環境テスト合格・PR #31 マージを前提とします。今回の作業はコードとローカル検証のみです。
+
+### 注文インテントと課金
+
+`202611090002_project_payments.sql` で `stripe_project_intents` を追加します。
+Checkout作成前には実際のcharge・手数料・入金可能日時が不明であるため、
+NOT NULL制約を持つ `stripe_held_orders` の代わりに注文インテントを永続化します。
+契約行ロックと部分一意索引により、契約ごとの有効な `created`／`paid` は1件です。
+企業・クリエイター・連結アカウント・金額・手数料・種別をサーバーでスナップショットし、
+書き込みはservice_role、SELECTはその企業・クリエイターだけに許可します。
+
+`contract-checkout` は承認済み企業本人・「契約成立」の未払い契約だけを受け付けます。
+入力は `contractId`、金額はDBのcontracts／jobsから確定します。
+0円は500円、SNS運用を含む案件は15%、それ以外は10%を `app.js` と同じ丸めで計算します。
+通常案件は既存 `directChargeCheckout` を使い、DBのcard_payments active・manual・
+将来のexclusive verification期限を渡して再検証します。
+`total = 契約額 + 成約手数料`、`application_fee = 成約手数料` のdirect chargeです。
+優先掲載2,000円は案件作成時の別枠で、今回のCheckoutに含めません。
+従来デモの `payments.total` がpriority_feeを含む点とは意図的に異なります。
+
+再呼び出しではStripeから既存Sessionを取得します。openなら同じURL、completeなら処理中の409、
+expiredなら旧インテントを監査用に残して新しいUUIDで発行します。
+戻り先は `chat.html?id=<conversation_id>&stripe=processing|canceled` です。
+キャンセルURLへの移動自体は決済状態を変えません。開いているSessionは再利用し、失効後に再発行します。
+作成結果をDBに保存できなかった場合も同じUUID・冪等キーで復旧しますが、
+Session IDが不明なまま23時間を越えたものはStripeの冪等キー保持期間を信用して再作成せず、
+運営がorder_id metadataとStripeを照合して復旧するまで409で停止します。
+
+0円案件はプラットフォームで500円だけ課金し、application_feeもheld orderも作りません。
+`metadata.order_id` と `client_reference_id` で専用経路へ分岐し、既存Billingの
+subscription／checkout attempt処理に渡しません。
+支払い済みのfee_onlyインテントが台帳証跡となり、契約は同じ「支払済（預かり中）」へ進みます。
+取り分がないため、検収時は専用RPCで承認日時だけ記録し、0円のpayout行も銀行出金も作りません。
+fee_onlyのセルフサービス返金は今回のheld order返金APIの対象外です。
+
+### Webhookと実績の確定
+
+新規 `stripe-project-webhook` はraw body署名・test mode・event.accountを確認し、
+連結アカウントがインテントのアカウントと一致し、プラットフォーム自身でないことを検証します。
+既存connect／payout Webhookの役割や未知payoutでの証跡無効化は変更しません。
+通常案件のSession・PaymentIntent・展開済みCharge／balance_transactionは同じ連結アカウント文脈で取得します。
+Session完了通知の再配信時も最新Sessionを取得するため、古いunpaidスナップショットだけで状態を固定しません。
+paid・JPY・合計・application_fee・インテント参照を検証してから台帳を作成します。
+不一致・未確定のbalance transactionは5xxで再配信対象になります。
+
+`gross_jpy` は実請求総額、`paid_at` はcharge.created、`available_at` はbalance.available_onです。
+`holding_deadline` は既存の `holdingDeadline(paid_at)` により90日後です。
+`fee_details` のapplication_feeを除きstripe_feeだけをprocessing_feeとして合算し、
+`gross - application_fee - processing_fee = balance_transaction.net` を必須にします。
+Fixtureでは11,000円−1,000円−396円＝9,604円を固定しています。
+未知の手数料種別、通貨不一致、合計不一致は推測で処理せず停止します。
+
+冪等化は既存 `serializedResourceEvent` と60秒のresource leaseを再利用します。
+案件のアカウント単位（fee_onlyはインテント単位）でStripe読み戻しを直列化し、
+専用 `finish_project_event` がDB保存時に同じリースのtoken・期限・resource keyを検証します。
+期限切れ・置換済みワーカーは保存できません。
+既存finish RPCのsubscription/account/payout分類は変更せず、案件専用の入口を追加しました。
+独立したCheckout・返金・紛争をevent.createdの大小だけで捨てず、最新Stripe状態とDB状態ガードを使います。
+台帳のcontract_id／charge_id一意制約とstripe_eventsのevent_idを併用し、
+イベント受領・held order・インテント・契約遷移・支払い完了メッセージを1トランザクションで確定します。
+Stripe読み戻し中に競合したイベントや、決済確定前に到着した返金イベントは5xxで再試行します。
+紛争は最新dispute状態を取得し、disputed、勝訴時held、敗訴時blockedへ進めます。
+返金済み・出金予約済みなどの状態を紛争イベントでheldに戻すことはありません。
+
+### 納品・修正・検収と自動承認
+
+`check_contract_ledger` は従来デモのpayments／payouts検査を維持しつつ、
+held/payout_reserved/paid_outのheld orderを代替証跡にします。
+完了時は有効なheld orderのapproved_at、または支払い済みfee_onlyインテントのapproved_atを必須にします。
+返金・紛争・blockedなど無効なStripe証跡では完了できません。
+
+`sync_project_review` はSECURITY DEFINERですが、承認済み本人・企業／クリエイターの役割と
+現在の契約状態を検証します。納品時はDBトリガー確定のdelivery_atを同期し、再納品で修正フラグを解除します。
+修正依頼時はrevision_requestedを立てます。
+フロントはワークフロー後にこのRPCを呼び、通信失敗時は同じ状態から再試行できます。
+加えて契約更新トリガーでも同じ同期を実行し、ワークフローとRPCの間にcronが走る隙間をなくしています。
+このトリガーはStripe証跡のある契約だけに作用します。
+
+通常の手動検収は既存 `approve_held_order` → 契約ワークフローの「完了」の順です。
+Stripeモードではpayments確定・payouts作成を行いません。
+先に承認だけ成功した場合も同じ承認RPCを再実行して完了へ進めます。
+`complete_project_reviews()` をpg_cronの `reviewmatch-project-auto-approval`（毎時0分）から実行し、
+既存 `auto_approve_held_orders()`、fee_only承認、契約完了、
+「48時間経過により自動承認されました。契約完了（報酬確定）」のメッセージまでDB内で完結します。
+修正依頼中は対象外、due_onは既存 `held_payout_due_date` の日本時間翌月末です。
+既存デモcronはheld orderが存在する契約を除外し、paymentsのない契約も処理しません。
+ブラウザの自動承認もheld契約を除外します。
+
+### 解放前のキャンセル返金
+
+`contract-refund` は承認済み企業本人のみ、held/refund_pendingかつ未納品・未承認の注文だけです。
+既存 `request_held_refund` をアカウントロック下で実行し、同じ条件をDBでも再確認します。
+`cancellationRefund(charge_id, account_id, order_id)` により、連結アカウント文脈で
+全額・refund_application_fee=true・固定キー `held-refund:<order_id>:v1` を使います。
+Stripe呼び出しが失敗してもrefund_pendingから同じキーで再試行できます。
+API応答は処理中であり、返金確定には使いません。
+
+charge.refundedで実際の全額返金を読み戻して初めてheld order・インテントをrefunded、
+契約を新しい終端状態「返金済み」へ更新します。「完了」と区別して検収確定と誤認させないためです。
+未知の状態も文字列として表示する既存UIを使い、返金済みには決済操作ボタンを出しません。
+部分返金は今回未対応で、状態を変えず5xx再配信・運営照合対象にします。
+承認済み／出金予約済みへの外部返金も自動確定せず運営照合が必要です。
+Stripe処理手数料は返金で戻らない場合があり、クリエイター残高・返金準備金を実環境で照合してください。
+
+### レビュー側で実施する登録・適用
+
+1. 新規マイグレーションをレビュー後に適用し、stripe-api／stripe-webhook／stripe-project-webhookをデプロイします。
+2. Stripeの**連結アカウント**対象エンドポイント `/functions/v1/stripe-project-webhook` を登録します。
+   必須イベントは `checkout.session.completed`、`checkout.session.expired`、`charge.refunded`、
+   `charge.dispute.created`、`charge.dispute.closed` です。
+   動的決済手段の非同期成功にも対応するため **`checkout.session.async_payment_succeeded` も登録**してください。
+3. そのエンドポイントの署名シークレットを `STRIPE_PROJECT_WEBHOOK_SIGNING_SECRET` に設定します。
+   値をコード・docs・テスト・PRへ記載しません。
+4. 0円案件は既存のプラットフォームstripe-webhookへ届き、即時決済なら既登録の
+   checkout.session.completedで足ります。ただしCheckoutは動的決済手段を使うため、
+   非同期成功を確実に通知する **checkout.session.async_payment_succeededも既存エンドポイントへ追加**してください。
+   Billing以外の案件分岐でのみ取り込みます。
+5. cronの登録・稼働権限・実行履歴を確認し、テストモードで通常／0円／再送／返金／紛争と納品検収を検証します。
+
+`STRIPE_BILLING_ENABLED` はstripe-api共通の先行ゲートです。今回は新しい環境変数ゲートを増やしません。
+既存Billing/Connectでtrueの環境では、バックエンド適用後に案件APIもこのゲート配下で利用可能になります。
+フロントの `stripe-config.js enabled` はfalseのままです。レビュー側がバックエンドとWebhookを検証した後に
+切り替えます。署名済みWebhookはこのAPIゲートに依存せず、停止中でも既存の決済を取り込みます。
+`HELD_PROJECT_PAYMENTS_ENABLED = false` は出金ワーカーのゲートとして維持します。
+stripe-payout-workerは変更しておらず、今回の課金・承認・due_on設定から銀行出金が実行される経路はありません。
+出金の有効化は今回の範囲外です。
+
+### 公式資料と実環境での検証が必要な前提
+
+Stripe CLI 1.50.9のdocs参照は環境のネットワーク制限で失敗し、接続済みStripeドキュメント検索も
+認可取り消しのため利用できませんでした。Stripeの再接続はしていません。
+代わりに以下のStripe公式公開資料を確認しています。
+
+- [公式OpenAPI仕様](https://github.com/stripe/openapi/blob/master/openapi/spec3.json)：
+  Checkoutのpayment_intent_data.application_fee_amount、Refundのrefund_application_fee、
+  balance_transaction.netのamount−fee定義、fee_detailsの種別、Sessionのpayment_status。
+- [公式Node SDKの連結アカウント指定](https://github.com/stripe/stripe-node#configuring-for-connect)：
+  リクエストオプションstripeAccountがStripe-Accountヘッダーを設定すること。
+- [direct chargesの公式ガイド](https://docs.stripe.com/connect/direct-charges)と
+  [返金API](https://docs.stripe.com/api/refunds/create)は実環境レビュー時の照合先です。
+
+公式仕様はfee_detailsにapplication_fee／stripe_fee／payment_method_passthrough_fee／tax／withheld_taxが
+存在し得ることを示しますが、この構成・国・料金設定で必ずapplication_feeとstripe_feeだけになるとは保証しません。
+**実環境での検証が必要**：fees_collector=stripeの当該アカウントでapplication_feeの内訳とStripe処理手数料を確認し、
+請求総額−成約手数料−処理手数料が実際のクリエイターバランス増分と一致することを照合します。
+未知の費目を推測で処理しません。balance_transactionが遅延確定する場合の再配信回復も確認してください。
+本番有効化前の残件は前述「本番有効化前に残る確認」へ統合しています。
+
+### ローカル検証結果
+
+- `npm run test:edge`：105件成功。
+- `npm run test:migrations`：6本のスイート成功。新規案件決済スイートは49検証。
+- `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npm test -- --workers=4`：91件成功。
+
+実環境のマイグレーション適用・Secrets変更・デプロイ・Stripe設定変更・マージは行っていません。

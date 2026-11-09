@@ -17,3 +17,7 @@ verify_jwt = false
 [functions.stripe-payout-webhook]
 # Connected-account v1 payout snapshots; separate from platform Billing and v2 thin events.
 verify_jwt = false
+
+[functions.stripe-project-webhook]
+# Connected project charge snapshots, verified with their own raw-body signing secret.
+verify_jwt = false

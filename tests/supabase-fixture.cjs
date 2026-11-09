@@ -265,6 +265,8 @@ const test = base.extend({
           }
         }
         const table = url.pathname.split("/").pop();
+        // Stripe ledger evidence is queried on demand, outside the hydrated demo collections.
+        if (table === "stripe_held_orders" && method === "GET") return reply([]);
         if (!db[table])
           return reply({ message: `Unexpected table ${table}` }, 500);
         const user = db.profiles.find((row) => row.id === id);
