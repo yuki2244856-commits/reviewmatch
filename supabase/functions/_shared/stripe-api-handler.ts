@@ -12,6 +12,8 @@ import { appOrigin, checked, cors, json, services } from "./stripe.ts";
 
 import { contractCheckout, contractRefund } from "./project-payments.ts";
 
+import { payoutReconcile } from "./payout-reconcile.ts";
+
 import { connectOnboarding } from "./connect-onboarding.ts";
 
 export function createStripeApiHandler(dependencies = {
@@ -60,6 +62,7 @@ export function createStripeApiHandler(dependencies = {
         !body ||
         ![
           "connect-onboarding",
+          "payout-reconcile",
           "billing-portal",
           "subscription-checkout",
           "contract-checkout",
@@ -71,7 +74,13 @@ export function createStripeApiHandler(dependencies = {
       if (body.action === "connect-onboarding" && profile.role !== "creator") {
         return json({ error: "Creator account required" }, 403);
       }
+      if (body.action === "payout-reconcile" && profile.role !== "admin") {
+        return json({ error: "Admin account required" }, 403);
+      }
       await assertReviewMatchAccount(stripe);
+      if (body.action === "payout-reconcile") {
+        return await payoutReconcile({ db, stripe }, body.accountId);
+      }
       const origin = appOrigin();
       const returnUrl = `${origin}/mypage.html`;
       // Stable per-user keys make resource creation safe on retries and concurrent requests.

@@ -1,10 +1,10 @@
 import {
-  HELD_PROJECT_PAYMENTS_ENABLED,
-  payoutCycleDate,
-  mayAutoApprove,
-  heldPayoutRequest,
   cancellationRefund,
+  heldPayoutRequest,
+  heldProjectPaymentsEnabled,
   holdingDeadline,
+  mayAutoApprove,
+  payoutCycleDate,
   type ReleaseContext,
 } from "./held-payouts.ts";
 import { directChargeCheckout } from "./checkout.ts";
@@ -41,9 +41,21 @@ const context: ReleaseContext = {
     },
   ],
 };
-Deno.test("held project activation is hard disabled", () =>
-  assert(HELD_PROJECT_PAYMENTS_ENABLED === false),
-);
+Deno.test("held project activation requires the exact true environment value", () => {
+  const key = "HELD_PROJECT_PAYMENTS_ENABLED";
+  const previous = Deno.env.get(key);
+  try {
+    Deno.env.delete(key);
+    assert(!heldProjectPaymentsEnabled());
+    for (const value of ["true", "false", "TRUE", "1", "", " true "]) {
+      Deno.env.set(key, value);
+      assert(heldProjectPaymentsEnabled() === (value === "true"));
+    }
+  } finally {
+    if (previous === undefined) Deno.env.delete(key);
+    else Deno.env.set(key, previous);
+  }
+});
 Deno.test(
   "month-end payout cycle uses acceptance month in Japan, including leap/year boundaries",
   () => {
@@ -81,17 +93,19 @@ Deno.test(
 Deno.test(
   "unapproved, disputed, unavailable and not-yet-due allocations cannot release",
   () => {
-    for (const patch of [
-      { approvedAt: null },
-      { blocked: true },
-      { approvedAt: "2026-03-01T00:00:00Z" },
-      { availableAt: "2026-04-01T00:00:00Z" },
-    ]) {
+    for (
+      const patch of [
+        { approvedAt: null },
+        { blocked: true },
+        { approvedAt: "2026-03-01T00:00:00Z" },
+        { availableAt: "2026-04-01T00:00:00Z" },
+      ]
+    ) {
       rejects(() =>
         heldPayoutRequest({
           ...context,
           allocations: [{ ...context.allocations[0], ...patch }],
-        }),
+        })
       );
     }
   },
@@ -99,13 +113,15 @@ Deno.test(
 Deno.test(
   "release preserves reserves and requires exclusive manual controls and fresh reconciliation",
   () => {
-    for (const patch of [
-      { accountId: STRIPE_ACCOUNT_ID },
-      { availableJpy: 1699 },
-      { reconciled: false },
-      { payoutInterval: "daily" },
-      { controlsVerifiedUntil: "2026-03-01T00:00:00Z" },
-    ]) {
+    for (
+      const patch of [
+        { accountId: STRIPE_ACCOUNT_ID },
+        { availableJpy: 1699 },
+        { reconciled: false },
+        { payoutInterval: "daily" },
+        { controlsVerifiedUntil: "2026-03-01T00:00:00Z" },
+      ]
+    ) {
       rejects(() => heldPayoutRequest({ ...context, ...patch }));
     }
   },
@@ -121,7 +137,7 @@ Deno.test(
         ...context,
         now: "2026-05-03T00:00:00Z",
         controlsVerifiedUntil: "2099-01-01T00:00:00Z",
-      }),
+      })
     );
     rejects(() =>
       heldPayoutRequest({
@@ -132,7 +148,7 @@ Deno.test(
             holdingDeadline: "2026-03-30T00:00:00Z",
           },
         ],
-      }),
+      })
     );
   },
 );
@@ -150,7 +166,7 @@ Deno.test(
     );
     assert(refund.options.stripeAccount === "acct_creator");
     rejects(() =>
-      cancellationRefund("ch_verified", STRIPE_ACCOUNT_ID, "refund-request"),
+      cancellationRefund("ch_verified", STRIPE_ACCOUNT_ID, "refund-request")
     );
   },
 );
