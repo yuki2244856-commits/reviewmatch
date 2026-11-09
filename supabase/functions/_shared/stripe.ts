@@ -1,3 +1,4 @@
+import { expectedLivemode } from "./billing-config.ts";
 import Stripe from "npm:stripe@23.1.0";
 import { createClient } from "npm:@supabase/supabase-js@2.99.0";
 
@@ -8,11 +9,11 @@ export function required(name: string): string {
 }
 // Values are read only inside the Edge runtime. Never return or log credentials.
 export function services() {
-  // Fail before any API call if this test-only deployment is misconfigured.
-  if (required("STRIPE_MODE") !== "test") throw new Error("Test mode required");
   const credential = required("STRIPE_SECRET_KEY");
-  if (!/^(sk|rk)_test_/.test(credential))
-    throw new Error("Test-mode server credential required");
+  const mode = expectedLivemode() ? "live" : "test";
+  if (!new RegExp(`^(sk|rk)_${mode}_`).test(credential)) {
+    throw new Error("Stripe server credential mode mismatch");
+  }
   return {
     stripe: new Stripe(credential, {
       apiVersion: "2026-10-28.endive",

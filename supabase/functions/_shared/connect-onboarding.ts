@@ -1,3 +1,4 @@
+import { retrieveConnectControls } from "./connect-state.ts";
 import { checked, json, type services } from "./stripe.ts";
 import { MANUAL_PAYOUT_SETTINGS } from "./held-payouts.ts";
 import { STRIPE_ACCOUNT_ID } from "./billing-config.ts";
@@ -70,18 +71,7 @@ export async function connectOnboarding(
     await stripe.balanceSettings.update(MANUAL_PAYOUT_SETTINGS, {
       stripeAccount: accountId,
     });
-    const settings = await stripe.balanceSettings.retrieve({}, {
-      stripeAccount: accountId,
-    });
-    manual = settings.payments?.payouts?.schedule?.interval === "manual";
-    const account = await stripe.v2.core.accounts.retrieve(accountId, {
-      include: ["configuration.merchant", "defaults"],
-    });
-    // SDK 23.1.0: Account.dashboard describes the *applied* Dashboard access.
-    // It is top-level (not defaults.dashboard), not an include-dependent field.
-    // Missing/unknown values fail closed; creation defaults are never evidence.
-    noDashboard = account.id === accountId && account.dashboard === "none" &&
-      account.closed !== true && account.livemode === false;
+    ({ manual, noDashboard } = await retrieveConnectControls(stripe, accountId));
   } catch {
     return json(
       { error: "Unable to verify exclusive manual payout controls" },

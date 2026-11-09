@@ -1,3 +1,4 @@
+import { syncConnectState } from "./connect-state.ts";
 import { serializedResourceEvent } from "./resource-event.ts";
 import {
   checkoutIntegrationIdentifier,
@@ -51,7 +52,7 @@ export async function contractCheckout(
     ).maybeSingle(),
   );
   if (held) return json({ error: "Contract already paid" }, 409);
-  const account = checked(
+  let account = checked(
     await db.from("stripe_accounts").select("*").eq(
       "user_id",
       contract.creator_id,
@@ -61,6 +62,16 @@ export async function contractCheckout(
     return json({ error: "Creator v2 account required" }, 409);
   }
   if (contract.amount > 0) {
+    await syncConnectState(
+      { db, stripe },
+      contract.creator_id,
+      account.account_id,
+    );
+    account = checked(
+      await db.from("stripe_accounts").select("*")
+        .eq("user_id", contract.creator_id).maybeSingle(),
+    );
+    if (!account) return json({ error: "Creator v2 account required" }, 409);
     if (account.card_payments_status !== "active") {
       return json(
         { error: "Creator card payments capability must be active" },
@@ -431,6 +442,7 @@ async function applyProjectEvent(
       {},
       { stripeAccount: event.account },
     );
+    if (dispute.status === "charge_refunded") return true;
     state = dispute.status === "won"
       ? "held"
       : dispute.status === "lost"

@@ -1,3 +1,4 @@
+import { expectedLivemode } from "./billing-config.ts";
 import {
   assertReviewMatchAccount,
   STRIPE_ACCOUNT_ID,
@@ -26,7 +27,8 @@ export function createProjectWebhookHandler(dependencies = { services }) {
       return new Response("Invalid webhook", { status: 400 });
     }
     if (
-      event.livemode || !event.account || event.account === STRIPE_ACCOUNT_ID
+      event.livemode !== expectedLivemode() || !event.account ||
+      event.account === STRIPE_ACCOUNT_ID
     ) return new Response("Mode or account mismatch", { status: 400 });
     if (
       ![

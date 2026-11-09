@@ -1,3 +1,4 @@
+import { expectedLivemode } from "../_shared/billing-config.ts";
 import { serializedResourceEvent } from "../_shared/resource-event.ts";
 import {
   assertReviewMatchAccount,
@@ -24,7 +25,8 @@ Deno.serve(async (req: Request) => {
   }
   try {
     if (
-      event.livemode || !event.account || event.account === STRIPE_ACCOUNT_ID
+      event.livemode !== expectedLivemode() || !event.account ||
+      event.account === STRIPE_ACCOUNT_ID
     ) {
       return new Response("Connected test context required", { status: 400 });
     }
@@ -60,7 +62,7 @@ Deno.serve(async (req: Request) => {
           { stripeAccount: event.account },
         );
         if (
-          payout.livemode || payout.currency !== "jpy" ||
+          payout.livemode !== expectedLivemode() || payout.currency !== "jpy" ||
           !payout.metadata?.batch_id
         ) {
           throw new Error("Unallocated payout requires review");

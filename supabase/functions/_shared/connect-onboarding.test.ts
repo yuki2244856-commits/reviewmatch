@@ -19,6 +19,7 @@ function fixture(options: {
   role?: string;
   status?: string;
   interval?: string;
+  livemode?: boolean;
   dashboard?: string | null;
   enabled?: boolean;
   failure?: string;
@@ -137,7 +138,7 @@ function fixture(options: {
               dashboard: options.dashboard === undefined
                 ? "none"
                 : options.dashboard,
-              livemode: false,
+              livemode: options.livemode ?? false,
             };
           },
         },
@@ -350,5 +351,20 @@ Deno.test("production handler keeps STRIPE_BILLING_ENABLED exact-true gate befor
       if (value === undefined) Deno.env.delete(key!);
       else Deno.env.set(key!, value);
     }
+  }
+});
+
+Deno.test("live onboarding accepts live accounts and rejects test accounts", async () => {
+  const previous = Deno.env.get("STRIPE_MODE");
+  Deno.env.set("STRIPE_MODE", "live");
+  try {
+    const live = fixture({ livemode: true });
+    assert((await live.request()).status === 200);
+    const test = fixture({ livemode: false });
+    assert((await test.request()).status === 409);
+    assert(test.proof() === null && !test.calls.includes("link"));
+  } finally {
+    if (previous === undefined) Deno.env.delete("STRIPE_MODE");
+    else Deno.env.set("STRIPE_MODE", previous);
   }
 });
