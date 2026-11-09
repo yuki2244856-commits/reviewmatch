@@ -18,6 +18,7 @@ await db.exec(`
   $$;
 `);
 const directory = new URL("../migrations/", import.meta.url);
+let schemaAssertions = 0;
 for (const file of (await readdir(directory))
   .filter((x) => x.endsWith(".sql"))
   .sort()) {
@@ -26,7 +27,44 @@ for (const file of (await readdir(directory))
     "create extension if not exists pg_cron;",
     "-- pg_cron registration stubbed locally",
   );
+  if (file === "202611090003_contract_refunded_status.sql") {
+    // Production initially had this constraint outside the migration chain.
+    await db.exec(`
+      alter table public.contracts
+        add constraint contracts_status_check
+        check (
+          status in (
+            '提示中', '辞退', '契約成立', '支払済（預かり中）',
+            '納品済（検収中）', '修正依頼中', '完了'
+          )
+        );
+    `);
+    await assert.rejects(
+      () => db.query("insert into contracts(status) values ('返金済み')"),
+      /contracts_status_check/,
+    );
+    schemaAssertions++;
+  }
   await db.exec(sql);
+  if (file === "202611090003_contract_refunded_status.sql") {
+    const definition = () =>
+      db.query(`
+      select pg_get_constraintdef(oid) as definition
+      from pg_constraint
+      where conrelid = 'public.contracts'::regclass
+        and conname = 'contracts_status_check'
+    `);
+    const before = await definition();
+    // Reapplying after the equivalent production hotfix preserves its definition.
+    await db.exec(sql);
+    assert.deepEqual((await definition()).rows, before.rows);
+    schemaAssertions++;
+    await assert.rejects(
+      () => db.query("insert into contracts(status) values ('unknown')"),
+      /contracts_status_check/,
+    );
+    schemaAssertions++;
+  }
 }
 const uid = (n) => `20000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const buyer = uid(1),
@@ -467,6 +505,6 @@ await denied(
 await service();
 await db.query("select release_stripe_resource($1,$2)", [key, lease]);
 console.log(
-  `PASS: project payments ${assertions} assertions: actual ledger/replay, RLS, delivery/revision, manual/automatic approval, zero-amount fee, refund, expiry, lease fencing, cron and demo isolation`,
+  `PASS: project payments ${assertions} assertions and ${schemaAssertions} schema upgrade assertions: actual ledger/replay, RLS, delivery/revision, manual/automatic approval, zero-amount fee, refund, expiry, lease fencing, cron and demo isolation`,
 );
 await db.close();
