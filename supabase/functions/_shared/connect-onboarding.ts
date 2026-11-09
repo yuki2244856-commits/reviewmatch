@@ -19,13 +19,22 @@ export async function connectOnboarding(
   if (!mapping) {
     if (!user.email) return json({ error: "Creator email required" }, 409);
     const account = await stripe.v2.core.accounts.create({
+      // Accounts v2 requires explicit dashboard/responsibilities; platform defaults are not inherited.
+      // ReviewMatch: no creator Dashboard; Stripe collects fees directly from the creator
+      // (v2 fees_collector=stripe equals v1 fee payer=account) and bears negative-balance losses.
+      dashboard: "none",
+      defaults: {
+        responsibilities: {
+          fees_collector: "stripe",
+          losses_collector: "stripe",
+        },
+      },
       contact_email: user.email,
       identity: { country: "JP" },
       configuration: {
         merchant: { capabilities: { card_payments: { requested: true } } },
       },
       metadata: { user_id: user.id },
-      // Inherit dashboard and fee/loss responsibilities from platform-setup.
     }, { idempotencyKey: `connect-account:${user.id}:v1` });
     // Commit the mapping before settings/link creation so thin webhooks can resolve it.
     // A concurrent request must never overwrite an already committed mapping.

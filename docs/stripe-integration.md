@@ -61,11 +61,16 @@ Full Dashboard で出金スケジュールの排他管理を保証する設定�
 - ビジネスモデル: ダイレクト支払い。
 - `defaults.dashboard = none`（ダッシュボード設定側の名称）。
 - `defaults.responsibilities.losses_collector = stripe`（マイナス残高の責任は Stripe）。
-- `defaults.responsibilities.fees_collector = account`（Stripe がクリエイターから処理手数料を直接回収）。
+- 設定画面の `fees_collector = account` は **Accounts v1 の fee payer 表記**。Accounts v2 では
+  `defaults.responsibilities.fees_collector = stripe` が同等で、Stripe がクリエイターから直接手数料を回収します。
+  `losses_collector = stripe` は両世代とも Stripe がマイナス残高の責任を負う意味です。
 - ホスティング／組み込みオンボーディングが利用可能。
 
-コードは `stripe.v2.core.accounts.create` でこれらの既定値を継承し、dashboard・手数料・損失責任を
-上書きしません。`identity.country = JP`、`contact_email = 認証ユーザーのメール`、
+Accounts v2 の作成 API はプラットフォーム既定を継承せず、`dashboard` と
+`defaults.responsibilities.fees_collector`／`losses_collector` の明示が必須です。
+コードは ReviewMatch の決定に合わせ、`dashboard = none`、`fees_collector = stripe`、
+`losses_collector = stripe` を明示します。`requirements_collector` は指定しません。
+`identity.country = JP`、`contact_email = 認証ユーザーのメール`、
 `configuration.merchant.capabilities.card_payments.requested = true`、`metadata.user_id` を指定します。
 SDK 23.1.0 ではメールは identity 内ではなくトップレベルの `contact_email` です。
 アカウント作成の冪等キーは `connect-account:{user_id}:v1`。保存済みの v2 アカウントを再利用し、
@@ -73,6 +78,25 @@ v1 の既存行は自動移行せず 409 にします。新規作成時は `stri
 api_generation = v2 を先行 upsert し、並行リクエストで既存マッピングを上書きしません。
 DB 保存失敗時はリンクを発行しません。アカウント作成直後からマッピング保存までに到着した thin イベントは、
 未対応付けとして失敗し、保存後の Stripe 再配信で処理されます。
+
+### 必須パラメータ不足の修正エビデンス（2026-11-09、ユーザー実測）
+
+PR #31 の当初実装では、企業・管理者の403と無効ゲートの409は成功しましたが、creator の作成は500となり、
+DBマッピング・Stripe連結アカウントとも作成されませんでした。「既定値を継承する」という前提を訂正します。
+ReviewMatch のテストモードでのワークベンチ実測は次のとおりです（時刻はJST）。
+
+| 時刻 | 作成リクエスト | 結果・リクエストID |
+| --- | --- | --- |
+| 17:24 | dashboard／responsibilities を省略 | HTTP 400 `invalid_fields`。dashboard・losses_collector・fees_collector の3項目が必須。`req_v29LJy4yloq2fn9VC` |
+| 17:25 | dashboard=none、fees_collector=account、losses_collector=stripe | HTTP 400。account はv2のenum外（有効値: application、application_custom、application_express、stripe）。`req_v25I3KvJulGWGqigY` |
+| 17:26 | fees_collector を stripe に変更 | HTTP 200、作成成功。`req_v2gYzJTra3PsqkSjk` |
+
+成功応答は dashboard=none、livemode=false、fees_collector=stripe、losses_collector=stripe、
+requirements_collector=stripe（未指定でStripe側既定）、defaults.currency=jpy、identity.country=JP でした。
+Accounts v2 の fees_collector=stripe は v1 の fee payer=account と同等で、Stripe が連結アカウントから
+処理手数料とアプリケーションフィーを直接差し引く意味です。
+作成時の明示指定は読み戻し検証の代替ではなく、既存の manual／dashboard 検証は引き続き実施します。
+`noDashboard` の `livemode === false` 条件もテストモード前提のまま維持し、本番有効化前に検討します。
 
 ### API 読み戻しによる検証
 
@@ -109,9 +133,9 @@ DB 保存失敗時はリンクを発行しません。アカウント作成直�
 - プラットフォーム設定「アカウントによる入金スケジュールの管理を許可します」はユーザー実測で現在オン、
   新規登録アカウントのみに適用。切るかどうかを本番有効化前に判断します。本タスクで設定は変更しません。
 - クリエイター向け残高表示（組み込みコンポーネント）は今後の実装です。
-- この実装作業では Stripe 実アカウントの作成・manual 更新・読み戻し・リンク発行を実行していません。
-  実アカウントで当該既定値の組合せが適用されること、各 API が成功することは **未確認**です。
-  SDK 23.1.0 の型とモックにより検証しており、ユーザー実測結果と区別します。
+- ユーザーのワークベンチ実測でテストモードの作成成功を確認（前述）。修正後の Edge Function による
+  manual 更新・読み戻し・リンク発行までの一連の成功は **未確認**です。
+  今回の修正作業では実アカウント操作を行わず、SDK 23.1.0 の型とモックで検証します。
 - Stripe の冪等キー保持期間を越えて、作成成功後の DB 保存失敗から復旧する場合は、
   metadata.user_id と Stripe 側リソースを照合して既存アカウントを復旧してから再実行します。
   キーだけで永久に重複作成を防げるとは扱いません。
@@ -230,7 +254,7 @@ external notifications or refunds were sent in this task.
 - `stripe-payout-worker`: account-context balance/schedule/capability checks, durable reservation and idempotent
   Payout creation template. **Hard-disabled in source before credentials or Stripe services are accessed.**
 - `stripe-payout-webhook`: signed connected-account payout reconciliation; paid status is the bank-completion signal.
-- Creator onboarding now verifies inherited dashboard = none and manual payouts before issuing a v2 Account Link.
+- Creator onboarding now verifies explicit dashboard = none and manual payouts before issuing a v2 Account Link.
   Public project Checkout remains blocked. Existing demo approvals/money mutations stay blocked in Stripe mode.
 - UI copy explains planned “預かり中”, acceptance and 月末締め・翌月末払い without claiming regulated escrow.
 
@@ -315,7 +339,8 @@ exclusive payout control, bank arrival timing or production readiness.
 - `playwright test tests/stripe.spec.cjs`: **9件成功**。
 - Playwright 全体: **87件成功**（Stripe spec を含む）。システム Chromium を使用しました。
 - `deno check --node-modules-dir=none supabase/functions/stripe-api/index.ts`、`git diff --check`: 成功。
-- Stripe 実アカウントでのオンボーディング API 成功、本番の設定と排他管理は未確認です。
+- ユーザーのワークベンチによるテストモード作成成功は前述のとおり確認済み。
+  修正後の Edge Function の一連の成功、本番の設定と排他管理は未確認です。
 
 ## Main review fixes (2026-11-08)
 

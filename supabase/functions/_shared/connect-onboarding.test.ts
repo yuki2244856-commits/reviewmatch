@@ -109,6 +109,13 @@ function fixture(options: {
           create: async (params: unknown, config: unknown) => {
             record("create");
             same(params, {
+              dashboard: "none",
+              defaults: {
+                responsibilities: {
+                  fees_collector: "stripe",
+                  losses_collector: "stripe",
+                },
+              },
               contact_email: "creator@example.com",
               identity: { country: "JP" },
               configuration: {
