@@ -14,7 +14,8 @@ selection. The first broad planner request was rejected as outside its guide-bui
 integration-guide request succeeded. The planner did not certify escrow legality, payout-control eligibility,
 or the bespoke ledger: those details below are engineering analysis checked against Stripe documentation.
 
-No remote test, deployment, PR, Stripe resource creation, account-setting change or secret access occurred.
+The original planning phase performed no remote test, deployment, Stripe resource creation or account-setting change.
+The 2026-11-09 change implements Connect onboarding for PR review only; no live DB apply or function deployment is performed.
 
 ## Charge choice and funds location
 
@@ -48,45 +49,100 @@ Stripe explicitly says it **does not provide escrow services or support escrow a
 only with a clear connected-balance/manual-payout explanation. Do not advertise regulated escrow, trust
 segregation or bankruptcy protection based on this architecture. Legal/compliance sign-off is an activation gate.
 
-## Reconcile creator-account configuration and payout control
+## Connect 登録と排他的な出金管理（2026-11-09 決定）
 
-The previous choice was Full Stripe Dashboard, Stripe bills creators processing fees, and Stripe handles
-unrecoverable negative-balance liability. **Full Dashboard alone is insufficient** for this revised workflow.
-Stripe's payout-management docs require **Platform Controls** to manage payouts on Full Dashboard accounts.
+2026-11-09 のユーザー決定により **dashboard = none（組み込みコンポーネント）** で進めます。
+2026-11-07 の Full Stripe Dashboard 案を置き換えます。ユーザーによるテストモードの実測では、
+ReviewMatch プラットフォームに「Platform Controls」という名称の設定項目は存在しませんでした。
+Full Dashboard で出金スケジュールの排他管理を保証する設定を確認できなかったことが変更理由です。
 
-Primary conditional recommendation:
+ユーザーが実測した platform-setup の既定値:
 
-- Dashboard: Full Stripe Dashboard (`dashboard: full`).
-- Processing-fee collection: Stripe bills creators (`fees_collector: stripe`).
-- Negative-balance liability: Stripe (`losses_collector: stripe`), subject to Stripe terms and eligibility.
-- Direct-charge merchant configuration and active card-payments capability, plus active bank-payout capability.
-- Platform Controls must be enabled and verified to give ReviewMatch the required payout control.
-- Use Balance Settings `payments.payouts.schedule.interval = manual`, in the creator context, then read it back.
+- ビジネスモデル: ダイレクト支払い。
+- `defaults.dashboard = none`（ダッシュボード設定側の名称）。
+- `defaults.responsibilities.losses_collector = stripe`（マイナス残高の責任は Stripe）。
+- 設定画面の `fees_collector = account` は **Accounts v1 の fee payer 表記**。Accounts v2 では
+  `defaults.responsibilities.fees_collector = stripe` が同等で、Stripe がクリエイターから直接手数料を回収します。
+  `losses_collector = stripe` は両世代とも Stripe がマイナス残高の責任を負う意味です。
+- ホスティング／組み込みオンボーディングが利用可能。
 
-**A manual schedule is not proof of exclusive control.** Before charging, verify creators cannot bypass the
-acceptance rule through their own Dashboard/API credentials, extensions, instant payouts, account changes,
-other platforms or disconnection. Disable self-serve payout creation/schedule editing in any embedded payout
-component; show read-only status instead. Detect out-of-ledger payouts and suspend releases immediately.
-Removal/disconnection can reset platform controls. Existing accounts must be audited; controls are not inferred
-from a matching account name, a successful Account Link or an operator-set boolean.
+Accounts v2 の作成 API はプラットフォーム既定を継承せず、`dashboard` と
+`defaults.responsibilities.fees_collector`／`losses_collector` の明示が必須です。
+コードは ReviewMatch の決定に合わせ、`dashboard = none`、`fees_collector = stripe`、
+`losses_collector = stripe` を明示します。`requirements_collector` は指定しません。
+`identity.country = JP`、`contact_email = 認証ユーザーのメール`、
+`configuration.merchant.capabilities.card_payments.requested = true`、`metadata.user_id` を指定します。
+SDK 23.1.0 ではメールは identity 内ではなくトップレベルの `contact_email` です。
+アカウント作成の冪等キーは `connect-account:{user_id}:v1`。保存済みの v2 アカウントを再利用し、
+v1 の既存行は自動移行せず 409 にします。新規作成時は `stripe_accounts` に user_id・account_id・
+api_generation = v2 を先行 upsert し、並行リクエストで既存マッピングを上書きしません。
+DB 保存失敗時はリンクを発行しません。アカウント作成直後からマッピング保存までに到着した thin イベントは、
+未対応付けとして失敗し、保存後の Stripe 再配信で処理されます。
 
-The local starter **blocks new creator onboarding** until this compatibility gate is resolved. It does not
-silently retain the former unrestricted Full Dashboard behavior, switch account responsibilities, or migrate
-existing accounts.
+### 必須パラメータ不足の修正エビデンス（2026-11-09、ユーザー実測）
 
-If exclusive controls are unavailable for this account/country, reconsider newly onboarded Accounts v2
-**Express Dashboard** accounts:
+PR #31 の当初実装では、企業・管理者の403と無効ゲートの409は成功しましたが、creator の作成は500となり、
+DBマッピング・Stripe連結アカウントとも作成されませんでした。「既定値を継承する」という前提を訂正します。
+ReviewMatch のテストモードでのワークベンチ実測は次のとおりです（時刻はJST）。
 
-- General-availability direct-charge fallback: platform manages pricing and negative-balance liability
-  (`fees_collector: application`, `losses_collector: application`). This changes the earlier liability/fee decision
-  and requires explicit approval and fee-economics review; it is not implemented or selected silently.
-- Express + Stripe-managed fees/negative-balance liability is a **public-preview** direct-charge configuration.
-  It requires the current supported preview API, account eligibility and newly onboarded accounts. Do not assume
-  it is available, downgrade to a preview API, or claim an existing account's Dashboard can be changed in place.
-- In either case, confirm exclusivity/no seller payout bypass; Express by itself is not proof of that guarantee.
+| 時刻 | 作成リクエスト | 結果・リクエストID |
+| --- | --- | --- |
+| 17:24 | dashboard／responsibilities を省略 | HTTP 400 `invalid_fields`。dashboard・losses_collector・fees_collector の3項目が必須。`req_v29LJy4yloq2fn9VC` |
+| 17:25 | dashboard=none、fees_collector=account、losses_collector=stripe | HTTP 400。account はv2のenum外（有効値: application、application_custom、application_express、stripe）。`req_v25I3KvJulGWGqigY` |
+| 17:26 | fees_collector を stripe に変更 | HTTP 200、作成成功。`req_v2gYzJTra3PsqkSjk` |
 
-Platform Controls verification and any fallback configuration change remain unresolved, not remotely tested.
-No new account is created by the revised API.
+成功応答は dashboard=none、livemode=false、fees_collector=stripe、losses_collector=stripe、
+requirements_collector=stripe（未指定でStripe側既定）、defaults.currency=jpy、identity.country=JP でした。
+Accounts v2 の fees_collector=stripe は v1 の fee payer=account と同等で、Stripe が連結アカウントから
+処理手数料とアプリケーションフィーを直接差し引く意味です。
+作成時の明示指定は読み戻し検証の代替ではなく、既存の manual／dashboard 検証は引き続き実施します。
+`noDashboard` の `livemode === false` 条件もテストモード前提のまま維持し、本番有効化前に検討します。
+
+### API 読み戻しによる検証
+
+承認済み creator のみ `connect-onboarding` を実行できます。company／admin は 403。
+`STRIPE_BILLING_ENABLED` が無効な場合の 409 は、サービス生成・認証より前に従来どおり適用されます。
+新規／再呼び出し／オンボーディング完了済みアカウントで同じ検証を毎回行います。
+
+1. 古い `exclusive_payout_controls_verified_until` を NULL にして、再検証失敗時の証跡流用を防ぎます。
+2. クリエイターの `stripeAccount` 文脈で `MANUAL_PAYOUT_SETTINGS` を Balance Settings に設定します。
+3. `balanceSettings.retrieve({}, { stripeAccount })` の
+   `payments.payouts.schedule.interval === 'manual'` を確認します。
+4. `v2.core.accounts.retrieve(id, { include: ['configuration.merchant', 'defaults'] })` で
+   **応答のトップレベル `account.dashboard === 'none'`** を確認します。
+   SDK 23.1.0 の Account.dashboard は「当該アカウントがアクセスできる Stripe Dashboard」を表すフィールドです。
+   `defaults.dashboard` ではなく、include に依存しないトップレベル値を使用します。
+   作成リクエストやプラットフォーム設定の推測は証跡にしません。欠落・未知値・full・express は拒否します。
+   応答IDの一致、未閉鎖、テストモードも確認します。
+5. manual 確認時に `payout_interval = manual` を保存し、両条件を確認できた場合だけ
+   `exclusive_payout_controls_verified_until = 現在時刻 + 24時間` を保存します。
+   不一致・API 読み戻し失敗は検証期限を NULL のまま、理由を示す 409 で停止します。
+6. 保存後に `v2.core.accountLinks.create` の `use_case.type = account_onboarding` でリンクを発行し、
+   HTTPS の connect.stripe.com URL を `{ url }` で返します。
+   return／refresh は `{APP_ORIGIN}/mypage.html?stripe=connect-return`／`?stripe=connect-refresh`。
+   refresh で戻ったユーザーは認証済みのマイページボタンから再実行して新しいリンクを取得できます。
+
+排他管理の根拠は **dashboard = none ではクリエイターが Stripe の操作画面・API 資格情報を持たず、
+出金スケジュールを変更するのはプラットフォームだけ**という構成です。検証期限は API 読み戻しに基づく
+24時間の証跡であり、永続的な保証や資金照合の代替ではありません。将来の組み込みコンポーネントも
+クリエイターに出金スケジュール変更・任意出金の権限を付与しない設計が必要です。
+
+### 本番有効化前に残る確認
+
+- **本番モードでの再検証は未確認**。本番設定・適用後 dashboard・manual 設定の更新／読み戻しを再検証します。
+- プラットフォーム設定「アカウントによる入金スケジュールの管理を許可します」はユーザー実測で現在オン、
+  新規登録アカウントのみに適用。切るかどうかを本番有効化前に判断します。本タスクで設定は変更しません。
+- クリエイター向け残高表示（組み込みコンポーネント）は今後の実装です。
+- ユーザーのワークベンチ実測でテストモードの作成成功を確認（前述）。修正後の Edge Function による
+  manual 更新・読み戻し・リンク発行までの一連の成功は **未確認**です。
+  今回の修正作業では実アカウント操作を行わず、SDK 23.1.0 の型とモックで検証します。
+- Stripe の冪等キー保持期間を越えて、作成成功後の DB 保存失敗から復旧する場合は、
+  metadata.user_id と Stripe 側リソースを照合して既存アカウントを復旧してから再実行します。
+  キーだけで永久に重複作成を防げるとは扱いません。
+
+`contract-checkout` の 409 と `HELD_PROJECT_PAYMENTS_ENABLED = false` は維持します。
+Connect 登録の実装はプロジェクト課金・出金を有効にせず、既存 Billing の挙動も変更しません。
+新規マイグレーションは不要です。実 DB 適用・関数デプロイはこの作業の対象外です。
 
 ## Acceptance and payout cycle
 
@@ -198,11 +254,11 @@ external notifications or refunds were sent in this task.
 - `stripe-payout-worker`: account-context balance/schedule/capability checks, durable reservation and idempotent
   Payout creation template. **Hard-disabled in source before credentials or Stripe services are accessed.**
 - `stripe-payout-webhook`: signed connected-account payout reconciliation; paid status is the bank-completion signal.
-- Existing creator onboarding is now blocked, rather than creating an unrestricted Full Dashboard account.
-  Public project Checkout also remains blocked. Existing demo approvals/money mutations stay blocked in Stripe mode.
+- Creator onboarding now verifies explicit dashboard = none and manual payouts before issuing a v2 Account Link.
+  Public project Checkout remains blocked. Existing demo approvals/money mutations stay blocked in Stripe mode.
 - UI copy explains planned “預かり中”, acceptance and 月末締め・翌月末払い without claiming regulated escrow.
 
-**Not yet activation-ready:** no verified Platform Controls, no connected project charge/refund/dispute ingestion
+**Not yet activation-ready:** no production verification of dashboard = none / manual payout exclusivity, no connected project charge/refund/dispute ingestion
 pipeline, no production trusted-order creation/delivery/revision service, no deployed automatic-acceptance cron,
 no country/legal sign-off, no bank-arrival holiday calendar, no production reconciliation/alerting, and no automatic
 partial-refund or holding-deadline remediation. Local helpers/RPCs are tested building blocks, not proof that those
@@ -258,7 +314,7 @@ Tests use mocked/local data only. No deployment, remote testing or activation is
 - https://docs.stripe.com/connect/supported-embedded-components/notification-banner
 - https://docs.stripe.com/radar/radar-for-platforms
 
-### Verification results for this revision
+### Original starter verification results (historical)
 
 - **64 browser tests passed**, including the connected-balance hold/cycle copy and disabled demo money paths.
 - **19 Deno payment/account safety tests passed**, including approval timing, Japan month boundaries, invalid/
@@ -271,9 +327,20 @@ Tests use mocked/local data only. No deployment, remote testing or activation is
   Prior subscription/account-event migration regression checks also passed.
 - JavaScript syntax and Git whitespace checks passed. No actual Stripe/Supabase environment was tested.
 
-These results validate the local starter and mocks, not legal classification, Stripe Platform Controls eligibility,
+These results validate the local starter and mocks, not legal classification, production payout-control eligibility,
 exclusive payout control, bank arrival timing or production readiness.
 
+
+## Connect onboarding 検証結果（2026-11-09）
+
+- `npm run test:edge`: Deno **72件成功**（今回追加18件）。
+  テスト実行に必要な環境変数権限は APP_ORIGIN／STRIPE_BILLING_ENABLED のみに限定しています。
+- `npm run test:migrations`: PGlite の既存 **5スイートすべて成功**。実 DB には適用していません。
+- `playwright test tests/stripe.spec.cjs`: **9件成功**。
+- Playwright 全体: **87件成功**（Stripe spec を含む）。システム Chromium を使用しました。
+- `deno check --node-modules-dir=none supabase/functions/stripe-api/index.ts`、`git diff --check`: 成功。
+- ユーザーのワークベンチによるテストモード作成成功は前述のとおり確認済み。
+  修正後の Edge Function の一連の成功、本番の設定と排他管理は未確認です。
 
 ## Main review fixes (2026-11-08)
 
@@ -290,8 +357,8 @@ Billing API activation additionally requires the server-side Edge Function secre
 before Stripe credentials are read. Keep it unset until Billing deployment is
 verified; frontend `enabled:true` alone cannot activate the API. This gate does
 not stop signed webhooks, which must keep reconciling already-created resources.
-It does not enable connected onboarding, project charges or payouts: those remain
-independently blocked. No flag was enabled by the review.
+When enabled, this API gate now also permits approved-creator Connect onboarding after API readback verification.
+Project charges and payouts remain independently blocked. No flag was enabled by this change.
 
 All pages, including `tokusho.html`, `terms.html` and `privacy.html`, load the same Stripe config/client. The
 redirect helper rejects disabled calls. Stripe mode also blocks legacy delivery
@@ -382,7 +449,8 @@ Webhookが先にバッチを完了させた場合も書き戻さず停止し、�
 3. 不整合・外部出金・返金・紛争を解消し、排他的出金制御と資金照合の証跡を再取得します。
 4. 記録を残し、運営のサービス権限で対象アカウントの該当トークンのリースのみを解除します。期限切れだけでは自動取得し直せません。
 
-Stripe APIとDBの間に分散トランザクションはありません。外部での権限変更等の完全な排除には有効化前のPlatform Controls確認が引き続き必要です。
+Stripe APIとDBの間に分散トランザクションはありません。dashboard = none／manual の検証は24時間で失効し、
+本番有効化前の実構成の再検証と、権限・出金関連イベントによる証跡無効化が引き続き必要です。
 
 ### フロント公開前の計画
 
