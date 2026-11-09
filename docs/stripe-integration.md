@@ -290,7 +290,7 @@ Tests use mocked/local data only. No deployment, remote testing or activation is
 - https://docs.stripe.com/connect/supported-embedded-components/notification-banner
 - https://docs.stripe.com/radar/radar-for-platforms
 
-### Verification results for this revision
+### Original starter verification results (historical)
 
 - **64 browser tests passed**, including the connected-balance hold/cycle copy and disabled demo money paths.
 - **19 Deno payment/account safety tests passed**, including approval timing, Japan month boundaries, invalid/
@@ -303,9 +303,19 @@ Tests use mocked/local data only. No deployment, remote testing or activation is
   Prior subscription/account-event migration regression checks also passed.
 - JavaScript syntax and Git whitespace checks passed. No actual Stripe/Supabase environment was tested.
 
-These results validate the local starter and mocks, not legal classification, Stripe Platform Controls eligibility,
+These results validate the local starter and mocks, not legal classification, production payout-control eligibility,
 exclusive payout control, bank arrival timing or production readiness.
 
+
+## Connect onboarding 検証結果（2026-11-09）
+
+- `npm run test:edge`: Deno **72件成功**（今回追加18件）。
+  テスト実行に必要な環境変数権限は APP_ORIGIN／STRIPE_BILLING_ENABLED のみに限定しています。
+- `npm run test:migrations`: PGlite の既存 **5スイートすべて成功**。実 DB には適用していません。
+- `playwright test tests/stripe.spec.cjs`: **9件成功**。
+- Playwright 全体: **87件成功**（Stripe spec を含む）。システム Chromium を使用しました。
+- `deno check --node-modules-dir=none supabase/functions/stripe-api/index.ts`、`git diff --check`: 成功。
+- Stripe 実アカウントでのオンボーディング API 成功、本番の設定と排他管理は未確認です。
 
 ## Main review fixes (2026-11-08)
 
