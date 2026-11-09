@@ -172,7 +172,13 @@ Deno.test(
 );
 
 Deno.test("paid subscription Checkout starts a 30-day trial with the existing billing mode", () => {
-  const data = subscriptionCheckoutData("company-id", "スタンダード");
+  const data = subscriptionCheckoutData(
+    "company-id",
+    "スタンダード",
+    "2026-11-01T00:00:00Z",
+    false,
+    Date.parse("2026-11-01T00:00:00Z"),
+  );
   assert(data.trial_period_days === 30);
   assert(data.billing_mode?.type === "flexible");
   assert(data.metadata?.user_id === "company-id");
