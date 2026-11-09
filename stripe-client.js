@@ -6,7 +6,7 @@ window.ReviewMatchStripe = Object.freeze({
   get enabled() {
     return window.REVIEWMATCH_STRIPE_CONFIG?.enabled === true;
   },
-  async redirect(client, action, extra = {}) {
+  async request(client, action, extra = {}) {
     if (!window.ReviewMatchStripe.enabled)
       throw new Error("Stripe 機能は現在無効です。");
     const {
@@ -28,6 +28,10 @@ window.ReviewMatchStripe = Object.freeze({
       }
       throw new Error(message);
     }
+    return data;
+  },
+  async redirect(client, action, extra = {}) {
+    const data = await window.ReviewMatchStripe.request(client, action, extra);
     const url = new URL(data?.url);
     if (
       url.protocol !== "https:" ||

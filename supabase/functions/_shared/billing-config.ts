@@ -1,5 +1,9 @@
 import type Stripe from "npm:stripe@23.1.0";
 
+export function expectedLivemode(): boolean {
+  return Deno.env.get("STRIPE_MODE") === "live";
+}
+
 // Non-secret test configuration for ReviewMatch (Google sign-in account).
 // Use existing Prices only. No environment or browser-supplied Price override.
 export const STRIPE_ACCOUNT_ID = "acct_1UZ6DL3azRRJUDzk";
@@ -44,7 +48,7 @@ export function assertSubscriptionPrice(
   plan: string,
 ): void {
   if (
-    price.livemode ||
+    price.livemode !== expectedLivemode() ||
     !price.active ||
     price.currency !== "jpy" ||
     price.type !== "recurring" ||

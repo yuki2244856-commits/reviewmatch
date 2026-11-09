@@ -296,3 +296,45 @@ test("refunded terminal status renders without actionable payment buttons", asyn
   await expect(page.locator("main")).toContainText("返金済み");
   await expect(page.locator("[data-payment-action]")).toHaveCount(0);
 });
+
+for (const outcome of ["success", "error", "cancel"]) {
+  test(`buyer refund before delivery: ${outcome}`, async ({ page, api }) => {
+    await enableStripe(page);
+    const { conversationId, contractId } = seedContract(api);
+    api.db.contracts[0].status = "支払済（預かり中）";
+    let payload;
+    await page.route("**/functions/v1/stripe-api", async (route) => {
+      payload = route.request().postDataJSON();
+      await route.fulfill({ status: outcome === "error" ? 409 : 200,
+        contentType: "application/json", body: JSON.stringify(outcome === "error" ? { error: "返金できません" } : { processing: true }) });
+    });
+    await ready(page, `/chat.html?id=${conversationId}`);
+    await login(page, "company");
+    page.once("dialog", async (dialog) => {
+      expect(dialog.message()).toContain("11,000");
+      expect(dialog.message()).toContain("返金は取り消せません");
+      if (outcome === "cancel") await dialog.dismiss(); else await dialog.accept();
+    });
+    const button = page.getByRole("button", { name: "返金する", exact: true });
+    await button.click();
+    if (outcome === "success") {
+      await expect(page.getByText("返金処理を受け付けました")).toBeVisible();
+      await expect(button).toBeDisabled();
+    } else if (outcome === "error") {
+      await expect(page.getByText("返金できません")).toBeVisible();
+      await expect(button).toBeEnabled();
+    } else expect(payload).toBeUndefined();
+    if (outcome !== "cancel") expect(payload).toEqual({ action: "contract-refund", contractId });
+  });
+}
+for (const condition of ["disabled", "delivered", "creator", "unpaid"]) {
+  test(`refund hidden for ${condition}`, async ({ page, api }) => {
+    if (condition !== "disabled") await enableStripe(page);
+    const { conversationId } = seedContract(api);
+    api.db.contracts[0].status = condition === "unpaid" ? "契約成立" : "支払済（預かり中）";
+    if (condition === "delivered") api.db.contracts[0].delivery_at = "2026-11-01T00:00:00Z";
+    await ready(page, `/chat.html?id=${conversationId}`);
+    await login(page, condition === "creator" ? "creator" : "company");
+    await expect(page.getByRole("button", { name: "返金する", exact: true })).toHaveCount(0);
+  });
+}

@@ -2915,6 +2915,10 @@
         if (user.id === contract.companyId && contract.status === "契約成立") {
           actions += `<button class="btn primary" data-payment-action="pay" data-id="${id}">${window.ReviewMatchStripe?.enabled ? "支払う（Stripe）" : "支払う（デモ決済）"}</button>`;
         }
+        if (window.ReviewMatchStripe?.enabled && user.id === contract.companyId &&
+            contract.status === "支払済（預かり中）" && !contract.deliveredAt) {
+          actions += `<button class="btn" data-payment-action="refund" data-id="${id}">返金する</button><p data-refund-feedback role="alert"></p>`;
+        }
         if (
           user.id === contract.creatorId &&
           ["支払済（預かり中）", "修正依頼中"].includes(contract.status)
@@ -3007,6 +3011,24 @@
           (item) => item.id === id,
         );
         if (!contract) throw new Error("契約が見つかりません。");
+        if (window.ReviewMatchStripe?.enabled && action === "refund") {
+          const button = document.querySelector(`[data-payment-action="refund"][data-id="${CSS.escape(id)}"]`);
+          if (!button || button.disabled) return;
+          const feedback = button.parentElement.querySelector("[data-refund-feedback]");
+          const job = RMStore.getCollection("jobs").find((item) => item.id === contract.jobId);
+          const amount = contract.amount + RMStore.calcFee(job, contract.amount);
+          if (!window.confirm(`${yen(amount)}を返金します。返金は取り消せません。よろしいですか？`)) return;
+          button.disabled = true;
+          try {
+            const result = await window.ReviewMatchStripe.request(supabaseClient, "contract-refund", { contractId: id });
+            if (!result?.processing) throw new Error("返金受付を確認できませんでした。");
+            feedback.textContent = "返金処理を受け付けました";
+          } catch (error) {
+            feedback.textContent = error.message;
+            button.disabled = false;
+          }
+          return;
+        }
         if (window.ReviewMatchStripe?.enabled && action === "pay") {
           await RMStore.payContract(id);
           return;

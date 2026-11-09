@@ -1,3 +1,4 @@
+import { expectedLivemode } from "../_shared/billing-config.ts";
 import {
   isProjectSession,
   processProjectEvent,
@@ -33,7 +34,9 @@ Deno.serve(async (req: Request) => {
     return new Response("Invalid webhook", { status: 400 });
   }
   try {
-    if (event.livemode) return new Response("Mode mismatch", { status: 400 });
+    if (event.livemode !== expectedLivemode()) {
+      return new Response("Mode mismatch", { status: 400 });
+    }
     // Platform Billing is intentionally separate from creator direct charges.
     if (event.account && event.account !== STRIPE_ACCOUNT_ID) {
       return new Response("Connected events need their own handler", {

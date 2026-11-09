@@ -1,5 +1,8 @@
 import { serializedResourceEvent } from "../_shared/resource-event.ts";
-import { assertReviewMatchAccount } from "../_shared/billing-config.ts";
+import {
+  assertReviewMatchAccount,
+  expectedLivemode,
+} from "../_shared/billing-config.ts";
 import { checked, required, services, Stripe } from "../_shared/stripe.ts";
 
 // Dedicated Accounts v2 thin-event endpoint, separate from platform Billing snapshot events.
@@ -21,7 +24,9 @@ Deno.serve(async (req: Request) => {
     return new Response("Invalid signature", { status: 400 });
   }
   try {
-    if (event.livemode) return new Response("Mode mismatch", { status: 400 });
+    if (event.livemode !== expectedLivemode()) {
+      return new Response("Mode mismatch", { status: 400 });
+    }
     if (
       ![
         "v2.core.account.updated",
@@ -59,7 +64,9 @@ Deno.serve(async (req: Request) => {
         const account = await stripe.v2.core.accounts.retrieve(accountId, {
           include: ["configuration.merchant", "requirements"],
         });
-        if (account.livemode) throw new Error("Mode mismatch");
+        if (account.livemode !== expectedLivemode()) {
+          throw new Error("Mode mismatch");
+        }
         return {
           account_id: account.id,
           card_status: account.closed

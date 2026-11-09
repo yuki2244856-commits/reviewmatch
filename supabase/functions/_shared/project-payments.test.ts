@@ -48,7 +48,7 @@ const charge = {
     }],
   },
 } as unknown as Stripe.Charge;
-function fixture() {
+function fixture(syncInterval?: string) {
   const contract = {
     id: "contract",
     company_id: "buyer",
@@ -95,6 +95,11 @@ function fixture() {
     auth: {},
     from(table: string) {
       const q = {
+        update: (state: Record<string, unknown>) => {
+          Object.assign(account, state);
+          return q;
+        },
+        lte: () => q,
         select: () => q,
         eq: () => q,
         maybeSingle: async () => ({
@@ -122,6 +127,35 @@ function fixture() {
     },
   };
   const stripe = {
+    v2: {
+      core: {
+        accounts: {
+          retrieve: async () => {
+            if (!syncInterval) throw new Error("Stripe unavailable");
+            calls.push({ name: "sync-account", args: {} });
+            return {
+              id: account.account_id,
+              livemode: false,
+              dashboard: "none",
+              configuration: {
+                merchant: {
+                  capabilities: { card_payments: { status: "active" } },
+                },
+              },
+            };
+          },
+        },
+      },
+    },
+    balanceSettings: {
+      retrieve: async () => {
+        if (!syncInterval) throw new Error("Stripe unavailable");
+        calls.push({ name: "sync-settings", args: {} });
+        return {
+          payments: { payouts: { schedule: { interval: syncInterval } } },
+        };
+      },
+    },
     checkout: {
       sessions: {
         retrieve: async (_id: string, _params: unknown, options: unknown) => {
@@ -570,3 +604,36 @@ Deno.test("real handler ignores browser-supplied amount and uses trusted persist
       .args as Stripe.Checkout.SessionCreateParams;
     same(params.line_items![0].price_data!.unit_amount, 11000);
   }));
+
+Deno.test("charge_refunded dispute is accepted without modifying the held order", async () => {
+  const f = fixture();
+  f.dispute.status = "charge_refunded";
+  f.setOrder({ id: "intent", gross_jpy: 11000, state: "refunded" });
+  assert(
+    await processProjectEvent(
+      f.context,
+      { ...event(f.dispute), type: "charge.dispute.closed" } as Stripe.Event,
+    ),
+  );
+  assert(!f.calls.some((call) => call.name === "finish_project_event"));
+});
+
+Deno.test("checkout rereads self-healed account before the existing gates", async () => {
+  await withOrigin(async () => {
+    const f = fixture("manual");
+    f.account.card_payments_status = "inactive";
+    f.account.exclusive_payout_controls_verified_until = "2000-01-01";
+    same((await contractCheckout(f.context, "buyer", "contract")).status, 200);
+    same(f.calls.filter((c) => c.name.startsWith("sync-")).length, 2);
+    const bad = fixture("daily");
+    same(
+      (await contractCheckout(bad.context, "buyer", "contract")).status,
+      409,
+    );
+    assert(bad.account.payout_interval !== "manual");
+    const free = fixture("manual");
+    free.contract.amount = 0;
+    await contractCheckout(free.context, "buyer", "contract");
+    same(free.calls.filter((c) => c.name.startsWith("sync-")).length, 0);
+  });
+});
