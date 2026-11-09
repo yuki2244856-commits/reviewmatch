@@ -323,7 +323,8 @@ Checkout. The review report and current validation are in
 ## 税込料金と無料トライアル（実装時の必須事項）
 
 プランの Price は `tax_behavior: "inclusive"`（税込）に設定すること。プラン料金・成約手数料は税込表示とする。
-有料プランの Checkout は `subscription_data.trial_period_days: 30` とし、初回課金は登録から30日後、以後1か月ごととする。スターターの有効化は引き続きオフ。
+有料プランのトライアル期限は `profiles.created_at + 30日` を起点に固定する。サーバーで残日数を切り上げ、初回申込かつ期限内の場合だけ `subscription_data.trial_period_days` に指定する。登録後30日経過、または Stripe の全ステータスのサブスクリプション履歴が1件でもある場合は指定しない。以後の課金は1か月ごととする。スターターの有効化は引き続きオフ。
+日数指定は切り上げのため、実際のトライアル終了は登録後30日の時刻から最大24時間未満後になる。
 
 
 ## 第2弾レビュー修正と運用手順（2026-11-08）

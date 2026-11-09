@@ -4,8 +4,9 @@ import {
 } from "../_shared/checkout.ts";
 import {
   assertReviewMatchAccount,
+  assertSubscriptionPrice,
   BILLING_PRICES,
-  hasUnfinishedSubscription,
+  subscriptionHistory,
 } from "../_shared/billing-config.ts";
 import { appOrigin, checked, cors, json, services } from "../_shared/stripe.ts";
 
@@ -33,7 +34,7 @@ Deno.serve(async (req: Request) => {
     const profile = checked(
       await db
         .from("profiles")
-        .select("id, role, status")
+        .select("id, role, status, created_at")
         .eq("id", user.id)
         .single(),
     );
@@ -119,33 +120,19 @@ Deno.serve(async (req: Request) => {
         );
       }
       // Includes incomplete and delinquent subscriptions: never create a second subscription to bypass one.
-      if (
-        await hasUnfinishedSubscription(stripe.subscriptions.list({
-          customer: mapping.customer_id,
-          status: "all",
-          limit: 100,
-        }))
-      ) {
+      const history = await subscriptionHistory(stripe.subscriptions.list({
+        customer: mapping.customer_id,
+        status: "all",
+        limit: 100,
+      }));
+      if (history.hasUnfinished) {
         return json(
           { error: "Use billing portal to manage your existing subscription" },
           409,
         );
       }
       const price = await stripe.prices.retrieve(prices[body.plan]);
-      if (
-        price.livemode ||
-        !price.active ||
-        price.currency !== "jpy" ||
-        price.type !== "recurring" ||
-        price.recurring?.interval !== "month" ||
-        price.recurring.interval_count !== 1
-      ) {
-        throw new Error("Configured price must be active monthly JPY");
-      }
-      const expectedAmount = body.plan === "スタンダード" ? 9800 : 29800;
-      if (price.unit_amount !== expectedAmount) {
-        throw new Error("Configured price does not match advertised price");
-      }
+      assertSubscriptionPrice(price, body.plan);
       const [attempt] = checked(
         await db.rpc("claim_stripe_checkout", {
           p_user_id: user.id,
@@ -171,13 +158,18 @@ Deno.serve(async (req: Request) => {
             "reviewmatch_billing",
             attempt.attempt_id,
           ),
-          subscription_data: subscriptionCheckoutData(user.id, body.plan),
+          subscription_data: subscriptionCheckoutData(
+            user.id,
+            body.plan,
+            profile.created_at,
+            history.hasHistory,
+          ),
           success_url: `${returnUrl}?stripe=processing`,
           cancel_url: `${returnUrl}?stripe=canceled`,
         },
         { idempotencyKey: `subscription-checkout:${attempt.attempt_id}` },
       );
-      // Starter remains disabled; trial eligibility hardening is required before production activation.
+      // Starter remains disabled pending deployment verification.
       if (session.status !== "open" || !session.url) {
         return json(
           {

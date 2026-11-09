@@ -1,3 +1,5 @@
+import type Stripe from "npm:stripe@23.1.0";
+
 // Non-secret test configuration for ReviewMatch (Google sign-in account).
 // Use existing Prices only. No environment or browser-supplied Price override.
 export const STRIPE_ACCOUNT_ID = "acct_1UZ6DL3azRRJUDzk";
@@ -16,14 +18,46 @@ export async function assertReviewMatchAccount(client: {
   }
 }
 
-// Consume every page: an older active subscription can follow many canceled ones.
+// Consume every page once for both admission and one-time trial eligibility.
+export async function subscriptionHistory(
+  subscriptions: AsyncIterable<{ status: string }>,
+): Promise<{ hasHistory: boolean; hasUnfinished: boolean }> {
+  let hasHistory = false;
+  let hasUnfinished = false;
+  for await (const subscription of subscriptions) {
+    hasHistory = true;
+    if (!["canceled", "incomplete_expired"].includes(subscription.status)) {
+      hasUnfinished = true;
+    }
+  }
+  return { hasHistory, hasUnfinished };
+}
+
 export async function hasUnfinishedSubscription(
   subscriptions: AsyncIterable<{ status: string }>,
 ): Promise<boolean> {
-  for await (const subscription of subscriptions) {
-    if (!["canceled", "incomplete_expired"].includes(subscription.status)) {
-      return true;
-    }
+  return (await subscriptionHistory(subscriptions)).hasUnfinished;
+}
+
+export function assertSubscriptionPrice(
+  price: Stripe.Price,
+  plan: string,
+): void {
+  if (
+    price.livemode ||
+    !price.active ||
+    price.currency !== "jpy" ||
+    price.type !== "recurring" ||
+    price.recurring?.interval !== "month" ||
+    price.recurring.interval_count !== 1 ||
+    price.tax_behavior !== "inclusive"
+  ) {
+    throw new Error(
+      "Configured price must be active monthly tax-inclusive JPY",
+    );
   }
-  return false;
+  const expectedAmount = plan === "スタンダード" ? 9800 : 29800;
+  if (price.unit_amount !== expectedAmount) {
+    throw new Error("Configured price does not match advertised price");
+  }
 }

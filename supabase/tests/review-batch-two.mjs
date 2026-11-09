@@ -234,7 +234,7 @@ assert.equal(
   0,
 );
 
-// Resource retrieval leases, stable equal-second ID ordering, duplicate/stale rejection.
+// Resource retrieval leases, same-second latest-state application, duplicate/stale rejection.
 const key = "account:acct_creator";
 const claim = async () =>
   (await db.query("select claim_stripe_resource($1) t", [key])).rows[0].t;
@@ -248,14 +248,24 @@ const apply = async (id, created, card, t = lease) =>
       card_status: card,
     }],
   )).rows[0].applied;
-assert.equal(await apply("evt_z", 100, "inactive"), true);
+assert.equal(await apply("evt_z", 100, "active"), true);
+await db.query("select release_stripe_resource($1,$2)", [key, lease]);
+lease = await claim();
+// A new lease retrieves newer state; the lower random ID must not discard it.
+assert.equal(await apply("evt_a", 100, "inactive"), true);
 assert.equal(await apply("evt_a", 100, "active"), false);
 assert.equal(await apply("evt_zz", 99, "active"), false);
-assert.equal(await apply("evt_z", 100, "active"), false);
 assert.equal(
   (await db.query("select card_payments_status from stripe_accounts")).rows[0]
     .card_payments_status,
   "inactive",
+);
+assert.deepEqual(
+  (await db.query(
+    "select event_created,event_id from stripe_resource_leases where resource_key=$1",
+    [key],
+  )).rows[0],
+  { event_created: 100, event_id: "evt_a" },
 );
 await db.exec(
   "update stripe_resource_leases set expires_at=now()-interval '1 second'",
@@ -271,7 +281,7 @@ await db.query("select release_stripe_resource($1,$2)", [key, old]);
 await assert.rejects(claim, /Resource busy/);
 await db.query("select release_stripe_resource($1,$2)", [key, lease]);
 
-// Same-second higher IDs apply; subscriptions and payouts share the same fence.
+// Distinct same-second IDs apply; subscriptions and payouts share the same fence.
 const subscriptionKey = "subscription:sub_test";
 const subscriptionLease =
   (await db.query("select claim_stripe_resource($1) t", [subscriptionKey]))

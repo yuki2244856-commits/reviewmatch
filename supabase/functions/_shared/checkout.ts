@@ -98,13 +98,27 @@ export async function directChargeCheckout(
   return { params, options };
 }
 
-// Shared by the disabled starter and its regression test.
+// Eligibility comes only from the server-side profile and Stripe history.
 export function subscriptionCheckoutData(
   userId: string,
   plan: string,
+  profileCreatedAt: string,
+  hasSubscriptionHistory: boolean,
+  now: number = Date.now(),
 ): Stripe.Checkout.SessionCreateParams.SubscriptionData {
+  const registeredAt = Date.parse(profileCreatedAt);
+  if (!Number.isFinite(registeredAt) || !Number.isFinite(now)) {
+    throw new Error("Valid registration and Checkout timestamps required");
+  }
+  const dayMs = 24 * 60 * 60 * 1000;
+  const remainingDays = Math.min(
+    30,
+    Math.ceil((registeredAt + 30 * dayMs - now) / dayMs),
+  );
   return {
-    trial_period_days: 30,
+    ...(!hasSubscriptionHistory && remainingDays > 0
+      ? { trial_period_days: remainingDays }
+      : {}),
     billing_mode: { type: "flexible" },
     metadata: { user_id: userId, plan },
   };
