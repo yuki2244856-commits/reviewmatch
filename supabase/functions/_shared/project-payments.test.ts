@@ -209,6 +209,40 @@ Deno.test("charge facts reconcile gross minus application and processing to crea
   });
   same(11000 - 1000 - facts.processing_fee_jpy, 9604);
 });
+Deno.test("observed JCT on Stripe fees reconciles to the actual creator balance", () => {
+  const taxedCharge = structuredClone(charge);
+  const balance = taxedCharge.balance_transaction as Stripe.BalanceTransaction;
+  balance.fee = 1436;
+  balance.net = 9564;
+  balance.fee_details = [
+    {
+      amount: 396,
+      currency: "jpy",
+      type: "stripe_fee",
+      application: null,
+      description: null,
+    },
+    {
+      amount: 1000,
+      currency: "jpy",
+      type: "application_fee",
+      application: null,
+      description: null,
+    },
+    {
+      amount: 40,
+      currency: "jpy",
+      type: "tax",
+      application: null,
+      description: "JCT on Stripe fees",
+    },
+  ];
+
+  const facts = heldChargeFacts(taxedCharge, 11000, 1000);
+  same(facts.processing_fee_jpy, 436);
+  same(11000 - 1000 - facts.processing_fee_jpy, balance.net);
+  same(balance.fee, 1000 + facts.processing_fee_jpy);
+});
 Deno.test("unknown fees, missing balance and wrong charge amount fail closed", async () => {
   await rejects(() => heldChargeFacts(charge, 10000, 1000));
   await rejects(() =>
@@ -216,7 +250,7 @@ Deno.test("unknown fees, missing balance and wrong charge amount fail closed", a
   );
   const unknown = structuredClone(charge);
   (unknown.balance_transaction as Stripe.BalanceTransaction).fee_details[1]
-    .type = "tax";
+    .type = "payment_method_passthrough_fee";
   await rejects(() => heldChargeFacts(unknown, 11000, 1000));
 });
 for (

@@ -232,7 +232,8 @@ export function heldChargeFacts(
     balance.currency !== "jpy" || !charge.paid || charge.amount !== gross ||
     charge.application_fee_amount !== applicationFee
   ) throw new Error("Charge amount mismatch or incomplete balance transaction");
-  // Fail closed for unknown fee categories. This fixture assumption requires real-account reconciliation.
+  // Stripe processing fees and their tax both reduce the creator balance.
+  // Keep the fee-category allowlist closed for all other deductions.
   let processing = 0, app = 0;
   for (const fee of balance.fee_details) {
     if (
@@ -240,8 +241,9 @@ export function heldChargeFacts(
       fee.amount < 0
     ) throw new Error("Invalid fee detail");
     if (fee.type === "application_fee") app += fee.amount;
-    else if (fee.type === "stripe_fee") processing += fee.amount;
-    else {
+    else if (fee.type === "stripe_fee" || fee.type === "tax") {
+      processing += fee.amount;
+    } else {
       throw new Error(
         "Unsupported fee category; manual reconciliation required",
       );
