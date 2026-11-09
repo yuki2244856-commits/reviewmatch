@@ -1301,14 +1301,20 @@
         }
 
         async function payContract(id) {
-          if (window.ReviewMatchStripe?.enabled)
-            throw new Error(
-              "デモの決済・報酬操作は無効です。Stripe の管理機能をご利用ください。",
+          if (window.ReviewMatchStripe?.enabled) {
+            return window.ReviewMatchStripe.redirect(
+              client(),
+              "contract-checkout",
+              { contractId: id },
             );
+          }
           return workflow((data) => {
-            const { contract, conversation } = contractActor(data, id, "company", [
-              "契約成立",
-            ]);
+            const { contract, conversation } = contractActor(
+              data,
+              id,
+              "company",
+              ["契約成立"],
+            );
             if (data.payments.some((item) => item.contractId === id))
               throw new Error("決済済みです。");
             const fee = calcFee(
@@ -1317,7 +1323,9 @@
             );
             const priorityFee = data.jobs.find(
               (item) => item.id === contract.jobId,
-            )?.priority ? 2000 : 0;
+            )?.priority
+              ? 2000
+              : 0;
             data.payments.push({
               id: crypto.randomUUID(),
               kind: "案件",
@@ -1342,13 +1350,27 @@
         }
 
         async function deliverContract(id, url, message) {
-          if (window.ReviewMatchStripe?.enabled)
-            throw new Error("デモの納品・検収操作は無効です。案件決済は準備中です。");
-          return workflow((data) => {
-            const { contract, conversation } = contractActor(data, id, "creator", [
-              "支払済（預かり中）",
-              "修正依頼中",
-            ]);
+          if (
+            window.ReviewMatchStripe?.enabled &&
+            load().contracts.some(
+              (item) => item.id === id && item.status === "納品済（検収中）",
+            )
+          ) {
+            await request(
+              client().rpc("sync_project_review", {
+                p_contract_id: id,
+                p_revision: false,
+              }),
+            );
+            return;
+          }
+          const result = await workflow((data) => {
+            const { contract, conversation } = contractActor(
+              data,
+              id,
+              "creator",
+              ["支払済（預かり中）", "修正依頼中"],
+            );
             let parsed;
             try {
               parsed = new URL(url);
@@ -1380,21 +1402,46 @@
               `納品されました\n${contract.deliveryUrl}\n${contract.deliveryMessage}`,
             );
           });
+          if (window.ReviewMatchStripe?.enabled) {
+            await request(
+              client().rpc("sync_project_review", {
+                p_contract_id: id,
+                p_revision: false,
+              }),
+            );
+          }
+          return result;
         }
 
         function completeDelivery(data, contract, automatic = false) {
-          if (window.ReviewMatchStripe?.enabled)
-            throw new Error(
-              "デモの決済・報酬操作は無効です。Stripe の管理機能をご利用ください。",
+          if (window.ReviewMatchStripe?.enabled) {
+            contract.status = "完了";
+            appendMessage(
+              data,
+              data.conversations.find(
+                (item) => item.id === contract.conversationId,
+              ),
+              null,
+              "system",
+              "検収が承認されました。契約完了（報酬確定）",
             );
+            return;
+          }
           const payment = data.payments.find(
-            (item) => item.contractId === contract.id && item.status === "預かり中",
+            (item) =>
+              item.contractId === contract.id && item.status === "預かり中",
           );
-          if (!payment || data.payouts.some((item) => item.contractId === contract.id))
+          if (
+            !payment ||
+            data.payouts.some((item) => item.contractId === contract.id)
+          )
             throw new Error("決済状態を確認してください。");
           // Automatic approval is effective at the deadline, even if this browser opens later.
           const now = automatic
-            ? new Date(contract.reviewDeadline || Date.parse(contract.deliveredAt) + 48 * 3600000)
+            ? new Date(
+                contract.reviewDeadline ||
+                  Date.parse(contract.deliveredAt) + 48 * 3600000,
+              )
             : new Date();
           const month = new Intl.DateTimeFormat("sv-SE", {
             timeZone: "Asia/Tokyo",
@@ -1420,7 +1467,9 @@
           });
           appendMessage(
             data,
-            data.conversations.find((item) => item.id === contract.conversationId),
+            data.conversations.find(
+              (item) => item.id === contract.conversationId,
+            ),
             null,
             "system",
             automatic
@@ -1430,12 +1479,49 @@
         }
 
         async function reviewDelivery(id, approve, reason = "") {
-          if (window.ReviewMatchStripe?.enabled)
-            throw new Error("デモの納品・検収操作は無効です。案件決済は準備中です。");
-          return workflow((data) => {
-            const { contract, conversation } = contractActor(data, id, "company", [
-              "納品済（検収中）",
-            ]);
+          if (window.ReviewMatchStripe?.enabled) {
+            if (approve) {
+              const { data: order, error } = await client()
+                .from("stripe_held_orders")
+                .select("id")
+                .eq("contract_id", id)
+                .maybeSingle();
+              if (error) throw error;
+              await request(
+                client().rpc(
+                  order ? "approve_held_order" : "approve_project_fee",
+                  order ? { p_order_id: order.id } : { p_contract_id: id },
+                ),
+              );
+            } else if (
+              load().contracts.some(
+                (item) => item.id === id && item.status === "修正依頼中",
+              )
+            ) {
+              await request(
+                client().rpc("sync_project_review", {
+                  p_contract_id: id,
+                  p_revision: true,
+                }),
+              );
+              return;
+            }
+          }
+          const result = await workflow((data) => {
+            if (
+              approve &&
+              window.ReviewMatchStripe?.enabled &&
+              data.contracts.some(
+                (item) => item.id === id && item.status === "完了",
+              )
+            )
+              return;
+            const { contract, conversation } = contractActor(
+              data,
+              id,
+              "company",
+              ["納品済（検収中）"],
+            );
             if (approve) completeDelivery(data, contract);
             else {
               if (!reason.trim() || reason.length > 3000)
@@ -1450,11 +1536,23 @@
               );
             }
           });
+          if (window.ReviewMatchStripe?.enabled && !approve) {
+            await request(
+              client().rpc("sync_project_review", {
+                p_contract_id: id,
+                p_revision: true,
+              }),
+            );
+          }
+          return result;
         }
 
         async function runAutoApprovals() {
           if (window.ReviewMatchStripe?.enabled) return;
+          const user = currentUser();
+          if (user?.role !== "company" || user.status !== "approved") return;
           const expired = (item) =>
+            load().payments.some((payment) => payment.contractId === item.id) &&
             item.status === "納品済（検収中）" &&
             Date.now() >=
               Date.parse(
@@ -1463,17 +1561,27 @@
                     Date.parse(item.deliveredAt) + 48 * 60 * 60 * 1000,
                   ).toISOString(),
               );
-          const user = currentUser();
-          if (user?.role !== "company" || user.status !== "approved") return;
           if (
             !load().contracts.some(
               (item) => item.companyId === user.id && expired(item),
             )
           )
             return;
+          const heldOrders = await fetchAllRows(
+            "stripe_held_orders",
+            "contract_id",
+          );
+          const heldContracts = new Set(
+            heldOrders.map((item) => item.contract_id),
+          );
           return workflow((data) =>
             data.contracts
-              .filter((item) => item.companyId === user.id && expired(item))
+              .filter(
+                (item) =>
+                  item.companyId === user.id &&
+                  expired(item) &&
+                  !heldContracts.has(item.id),
+              )
               .forEach((item) => completeDelivery(data, item, true)),
           );
         }
@@ -2792,8 +2900,6 @@
       }
 
       function paymentActions(contract, user) {
-        if (window.ReviewMatchStripe?.enabled)
-          return '<p>案件決済・納品・検収は準備中です。</p>';
         const id = escapeHTML(contract.id);
         let actions = `<p>状態：${escapeHTML(contract.status)}</p>`;
         if (contract.deliveryUrl) {
@@ -2807,7 +2913,7 @@
           }
         }
         if (user.id === contract.companyId && contract.status === "契約成立") {
-          actions += `<button class="btn primary" data-payment-action="pay" data-id="${id}">支払う（デモ決済）</button>`;
+          actions += `<button class="btn primary" data-payment-action="pay" data-id="${id}">${window.ReviewMatchStripe?.enabled ? "支払う（Stripe）" : "支払う（デモ決済）"}</button>`;
         }
         if (
           user.id === contract.creatorId &&
@@ -2823,7 +2929,7 @@
           const action =
             user.role === "creator" ? "connect-onboarding" : "billing-portal";
           return `<div class="panel"><h2>Stripe（テストモード）</h2><p>本番運用では報酬から Stripe 決済手数料が差し引かれます。デモの表示金額は手数料控除前の契約額です。</p>
-            <p>案件決済の「預かり中」は Stripe のクリエイター残高で銀行への出金を保留する予定の状態です。検収承認後、月末締め・翌月末払いの対象となります。機能は準備中・無効です。</p>
+            <p>案件決済の「預かり中」は Stripe のクリエイター残高で銀行への出金を保留している状態です。検収承認後、月末締め・翌月末払いの対象となります。銀行への出金機能は現在無効です。</p>
             <button class="btn" data-stripe-action="${action}">${user.role === "creator" ? "Stripe で受取設定" : "請求・契約を管理"}</button>
             ${user.role === "company" ? '<button class="btn" data-stripe-action="subscription-checkout" data-plan="スタンダード">スタンダード 月額 ¥9,800</button><button class="btn" data-stripe-action="subscription-checkout" data-plan="プロ">プロ 月額 ¥29,800</button>' : ""}
             <p data-stripe-feedback role="alert"></p></div>`;
@@ -2897,18 +3003,14 @@
       }
 
       async function showPaymentForm(action, id) {
-        if (
-          window.ReviewMatchStripe?.enabled &&
-          ["pay", "approve", "simulate"].includes(action)
-        ) {
-          throw new Error(
-            "案件決済・検収承認・出金は準備中です。承認後も月末締め・翌月末払いまで銀行への出金を待ちます。",
-          );
-        }
         const contract = RMStore.getCollection("contracts").find(
           (item) => item.id === id,
         );
         if (!contract) throw new Error("契約が見つかりません。");
+        if (window.ReviewMatchStripe?.enabled && action === "pay") {
+          await RMStore.payContract(id);
+          return;
+        }
         if (action === "simulate") {
           await RMStore.simulateReviewDeadline(id);
           window.location.reload();
@@ -3130,9 +3232,19 @@
                 "修正依頼中",
               ].includes(item.status),
           );
+        const stripeReturn =
+          window.ReviewMatchStripe?.enabled &&
+          new URLSearchParams(location.search).get("stripe");
+        const returnNotice =
+          stripeReturn === "processing"
+            ? "支払い処理中です。Webhook による確認後、契約の状態が更新されます。"
+            : stripeReturn === "canceled"
+              ? "支払いをキャンセルしました。再度お支払いいただけます。"
+              : "";
         main.innerHTML = `
           <section class="section"><div class="container">
             <h1>チャット</h1>
+            ${returnNotice ? `<p role="status">${returnNotice}</p>` : ""}
             <div class="chat-layout ${selected ? "chat-selected" : ""}">
               <aside class="panel chat-list" aria-label="スレッド一覧">
                 <h2>スレッド一覧</h2>

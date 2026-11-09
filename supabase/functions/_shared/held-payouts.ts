@@ -1,7 +1,7 @@
 import type Stripe from "npm:stripe@23.1.0";
 import { STRIPE_ACCOUNT_ID } from "./billing-config.ts";
 
-// Report-only starter: no caller can activate project charging or payout execution by setting an env var.
+// Bank payout execution remains hard-disabled. Project Checkout uses the Billing API gate.
 export const HELD_PROJECT_PAYMENTS_ENABLED = false;
 export const HELD_PAYMENT_LABEL = "預かり中";
 export const MANUAL_PAYOUT_SETTINGS: Stripe.BalanceSettingsUpdateParams = {

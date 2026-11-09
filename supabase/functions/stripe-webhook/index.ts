@@ -1,3 +1,7 @@
+import {
+  isProjectSession,
+  processProjectEvent,
+} from "../_shared/project-payments.ts";
 import { serializedResourceEvent } from "../_shared/resource-event.ts";
 import {
   assertReviewMatchAccount,
@@ -37,6 +41,14 @@ Deno.serve(async (req: Request) => {
       });
     }
     await assertReviewMatchAccount(stripe);
+    if (
+      ["checkout.session.completed", "checkout.session.async_payment_succeeded"]
+        .includes(event.type) &&
+      isProjectSession(event.data.object as Stripe.Checkout.Session)
+    ) {
+      await processProjectEvent({ db, stripe }, event, true);
+      return Response.json({ received: true });
+    }
     const subscriptionId = subscriptionIdForBillingEvent(event);
     if (subscriptionId) {
       const key = `subscription:${subscriptionId}`;

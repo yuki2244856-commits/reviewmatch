@@ -24,8 +24,8 @@ export interface TrustedDirectOrder {
   returnUrl: string;
 }
 
-// Building block only. The API deliberately does not invoke this until trusted-order persistence
-// and connected-account payment/refund/dispute handlers are deployed. Never construct from browser amounts.
+// Build only from a durable server-owned project intent. Capability and payout
+// control snapshots come from the mapped creator account, never browser amounts.
 export async function directChargeCheckout(
   order: TrustedDirectOrder,
   cardPaymentsStatus: string,
