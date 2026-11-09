@@ -4,7 +4,7 @@
   "scripts": {
     "test": "playwright test",
     "test:migrations": "node supabase/tests/held-ledger.mjs && node supabase/tests/atomic-workflow.mjs && node supabase/tests/posting-privacy.mjs && node supabase/tests/review-batch-two.mjs && node supabase/tests/security-third-pass.mjs",
-    "test:edge": "deno test --node-modules-dir=none supabase/functions/_shared/*.test.ts"
+    "test:edge": "deno test --allow-env=APP_ORIGIN,STRIPE_BILLING_ENABLED --node-modules-dir=none supabase/functions/_shared/*.test.ts"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.15",
