@@ -6,11 +6,16 @@ import {
   assertReviewMatchAccount,
   assertSubscriptionPrice,
   BILLING_PRICES,
+  STRIPE_ACCOUNT_ID,
   subscriptionHistory,
 } from "./billing-config.ts";
 import { appOrigin, checked, cors, json, services } from "./stripe.ts";
 
 import { contractCheckout, contractRefund } from "./project-payments.ts";
+
+import { payoutOverview } from "./payout-overview.ts";
+import { callPayoutWorker } from "./payout-worker-client.ts";
+import { heldProjectPaymentsEnabled } from "./held-payouts.ts";
 
 import { payoutReconcile } from "./payout-reconcile.ts";
 
@@ -63,6 +68,8 @@ export function createStripeApiHandler(dependencies = {
         ![
           "connect-onboarding",
           "payout-reconcile",
+          "payout-overview",
+          "payout-run",
           "billing-portal",
           "subscription-checkout",
           "contract-checkout",
@@ -74,8 +81,34 @@ export function createStripeApiHandler(dependencies = {
       if (body.action === "connect-onboarding" && profile.role !== "creator") {
         return json({ error: "Creator account required" }, 403);
       }
-      if (body.action === "payout-reconcile" && profile.role !== "admin") {
+      if (
+        ["payout-reconcile", "payout-overview", "payout-run"].includes(
+          body.action,
+        ) && profile.role !== "admin"
+      ) {
         return json({ error: "Admin account required" }, 403);
+      }
+      if (body.action === "payout-overview") {
+        return await payoutOverview({ db, stripe });
+      }
+      if (body.action === "payout-run") {
+        if (!heldProjectPaymentsEnabled()) {
+          return json({
+            error: "Held payouts disabled: local report-only starter",
+          }, 409);
+        }
+        if (
+          typeof body.accountId !== "string" ||
+          !/^acct_[A-Za-z0-9]+$/.test(body.accountId) ||
+          body.accountId === STRIPE_ACCOUNT_ID
+        ) return json({ error: "Valid connected accountId required" }, 400);
+        const result = await callPayoutWorker(body.accountId);
+        return result.status === 200 ? json(result.body) : json({
+          error: result.status === 503
+            ? "Payout blocked; reconcile before retry"
+            : "Payout worker failed",
+          worker: result.body,
+        }, result.status);
       }
       await assertReviewMatchAccount(stripe);
       if (body.action === "payout-reconcile") {

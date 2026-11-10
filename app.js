@@ -1709,6 +1709,11 @@
         }
 
         return {
+          payoutRequest(action, accountId) {
+            return window.ReviewMatchStripe.request(
+              client(), action, accountId ? { accountId } : {},
+            );
+          },
           storageAvailable: storage.available,
           initialize,
           hydrate,
@@ -3806,6 +3811,152 @@
           });
       }
 
+      async function loadAdminPayouts(section) {
+        const feedback = () => document.getElementById("admin-feedback");
+        const date = (value) =>
+          value
+            ? new Date(value).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })
+            : "未確認";
+        const shortId = (id) =>
+          id.length > 20 ? `${id.slice(0, 12)}…${id.slice(-6)}` : id;
+        try {
+          const data = await RMStore.payoutRequest("payout-overview");
+          if (!section.isConnected) return;
+          section.innerHTML = `<h2>出金管理</h2>
+            <p class="small muted">保存済みの表示値です。実行前に照合し、最新の出金対象額を確認してください。日時は日本時間です。</p>
+            <div id="admin-payout-accounts"></div>
+            <h3>自動実行の履歴</h3>
+            ${
+            data.recentRuns.length
+              ? data.recentRuns.map((run) => `
+              <p class="small">${escapeHTML(date(run.created_at))} ／ ${
+                escapeHTML(shortId(run.account_id))
+              }
+              ／ ${escapeHTML(run.phase)} ／ ${escapeHTML(run.status)}
+              <span>${escapeHTML(JSON.stringify(run.detail).slice(0, 240))}</span></p>
+            `).join("")
+              : '<p class="muted">実行履歴はありません。</p>'
+          }`;
+          const accounts = section.querySelector("#admin-payout-accounts");
+          if (!data.accounts.length) {
+            accounts.textContent = "対象アカウントはありません。";
+          }
+          for (const account of data.accounts) {
+            const row = document.createElement("div");
+            row.className = "panel";
+            const held = account.heldOrders;
+            let eligible = held.eligibleTotalJpy;
+            const verified = Date.parse(account.verifiedUntil) > Date.now();
+            const nearDeadline = held.holdingDeadline &&
+              Date.parse(held.holdingDeadline) <= Date.now() + 14 * 86400000;
+            row.innerHTML = `
+              <h3>${escapeHTML(account.displayName || account.userId)}</h3>
+              <p>${escapeHTML(account.email)} ／ <span title="${
+              escapeHTML(account.accountId)
+            }">${escapeHTML(shortId(account.accountId))}</span></p>
+              <p>card_payments: ${
+              escapeHTML(account.cardPaymentsStatus || "未確認")
+            } ／ ${escapeHTML(account.payoutInterval || "未確認")}
+              ／ verified_until: ${escapeHTML(date(account.verifiedUntil))}（${
+              verified ? "有効" : "期限切れ・未確認"
+            }）</p>
+              <p>保留 ${held.count}件 ／ 出金対象額 <strong data-payout-eligible>${
+              yen(eligible)
+            }</strong> ／ 予備額 ${yen(held.reserveJpy)}</p>
+              <p>最終照合: <span data-payout-saved>${
+              yen(account.reconciledAvailableJpy)
+            } ／ ${escapeHTML(date(account.fundsReconciledAt))}</span></p>
+              <p>次回 due_on: ${escapeHTML(held.dueOn || "—")} ／ 保留期限: ${
+              escapeHTML(date(held.holdingDeadline))
+            }</p>
+              ${
+              nearDeadline
+                ? '<p role="alert">保留期限が近い、または期限を過ぎています。確認してください。</p>'
+                : ""
+            }
+              <div class="admin-actions">
+                <button class="btn" data-payout-reconcile>照合する</button>
+                <button class="btn primary" data-payout-run>出金を実行</button>
+              </div>
+              <p data-payout-result role="status" aria-live="polite"></p>`;
+            accounts.append(row);
+            const buttons = [...row.querySelectorAll("button")];
+            const report = (message) => {
+              row.querySelector("[data-payout-result]").textContent = message;
+              if (feedback()) feedback().textContent = message;
+            };
+            const act = async (action) => {
+              buttons.forEach((button) => {
+                button.disabled = true;
+              });
+              try {
+                const result = await RMStore.payoutRequest(action, account.accountId);
+                if (action === "payout-reconcile") {
+                  eligible = result.eligibleTotalJpy;
+                  row.querySelector("[data-payout-eligible]").textContent = yen(
+                    eligible,
+                  );
+                  row.querySelector("[data-payout-saved]").textContent = `${
+                    yen(result.reconciledAvailableJpy)
+                  } ／ ${date(result.reconciledAt)}`;
+                  report(
+                    `照合完了：Stripe 利用可能額 ${
+                      yen(result.stripeAvailableJpy)
+                    } ／ 出金対象額 ${yen(eligible)} ／ 予備額 ${
+                      yen(result.reserveJpy)
+                    } ／ 照合額 ${yen(result.reconciledAvailableJpy)} ／ warnings: ${
+                      JSON.stringify(result.warnings)
+                    }`,
+                  );
+                } else {
+                  report(
+                    `出金実行結果：${result.state}（batch: ${result.batch_id}）`,
+                  );
+                }
+              } catch (error) {
+                report(
+                  error.status === 503
+                    ? "安全停止しました。再照合してから出金を再実行してください。"
+                    : error.message,
+                );
+              } finally {
+                buttons.forEach((button) => {
+                  button.disabled = false;
+                });
+              }
+            };
+            row.querySelector("[data-payout-reconcile]").addEventListener(
+              "click",
+              () => act("payout-reconcile"),
+            );
+            row.querySelector("[data-payout-run]").addEventListener("click", () => {
+              openModal(
+                "出金実行の確認",
+                `
+                <p>${
+                  escapeHTML(account.displayName || account.accountId)
+                } の出金対象額 ${yen(eligible)} を出金します。</p>
+                <p>実行時に安全条件を再確認します。よろしいですか？</p>
+                <button class="btn primary" id="payout-confirm">出金を実行する</button>`,
+              );
+              document.getElementById("payout-confirm").addEventListener(
+                "click",
+                async (event) => {
+                  if (event.currentTarget.disabled || !row.isConnected) return;
+                  event.currentTarget.disabled = true;
+                  modal.close();
+                  await act("payout-run");
+                },
+              );
+            });
+          }
+        } catch (error) {
+          if (!section.isConnected) return;
+          section.textContent = "出金管理を読み込めませんでした。";
+          if (feedback()) feedback().textContent = error.message;
+        }
+      }
+
       let adminTab = 0;
       function renderAdmin() {
         if (RMStore.currentUser()?.role !== "admin") return;
@@ -3925,7 +4076,9 @@
               "案件管理",
             );
           } else {
-            content.innerHTML = ["contracts", "payments", "payouts"]
+            content.innerHTML = (window.ReviewMatchStripe?.enabled
+              ? '<section class="panel" id="admin-payout-management"><h2>出金管理</h2><p role="status">読み込み中…</p></section>'
+              : "") + ["contracts", "payments", "payouts"]
               .map((name) => {
                 const records = RMStore.getCollection(name);
                 const keys = [...new Set(records.flatMap(Object.keys))];
@@ -3949,6 +4102,8 @@
                 )}`;
               })
               .join("");
+            const payoutSection = content.querySelector("#admin-payout-management");
+            if (payoutSection) loadAdminPayouts(payoutSection);
           }
         };
         bindTabs(main, update);
@@ -3957,7 +4112,7 @@
           .getElementById("admin-content")
           .addEventListener("click", async (event) => {
             const button = event.target.closest("button");
-            if (!button || button.disabled) return;
+            if (!button || button.disabled || button.closest("#admin-payout-management")) return;
             button.disabled = true;
             try {
               const userId = button.closest("[data-user-id]")?.dataset.userId;

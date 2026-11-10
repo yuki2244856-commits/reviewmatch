@@ -618,3 +618,42 @@ Stripe CLI 1.50.9のdocs参照は環境のネットワーク制限で失敗し�
 - `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npm test -- --workers=4`：91件成功。
 
 実環境のマイグレーション適用・Secrets変更・デプロイ・Stripe設定変更・マージは行っていません。
+
+## 出金の自動実行と管理画面（第9弾）
+
+`stripe-payout-scheduler` は毎日 **09:00 JST（00:00 UTC）** に
+`reviewmatch-payout-scheduler` cron ジョブから起動します。
+`public.run_scheduled_payouts()` は Vault の `payout_scheduler_token` を読み、
+サーバー専用の Bearer 認証で Edge Function に POST します。
+Vault にシークレットがない場合は何も送信しません。
+
+導入時は `202611100002_payout_automation.sql` を適用し、
+`stripe-payout-scheduler` をデプロイしてください。Edge 環境の
+`PAYOUT_SCHEDULER_TOKEN` と Vault の `payout_scheduler_token` は同じ値を
+安全な設定画面から登録します。既存の `PAYOUT_WORKER_TOKEN`、`SUPABASE_URL`、
+サービスロール・Stripe のサーバー設定も必要です。トークンの値をコードや
+クライアント設定に記載しないでください。
+`STRIPE_BILLING_ENABLED` と `HELD_PROJECT_PAYMENTS_ENABLED` が両方 `true` の場合のみ実行します。
+公開側 `stripe-config.js` の `enabled` はこの変更では切り替えません。
+
+対象は v2・manual の連結アカウントで、承認済み held 注文の `due_on` が
+Asia/Tokyo の当日以前であるものです。アカウント ID 順に、既存の
+`payoutReconcile` → `stripe-payout-worker` の順で処理します。
+照合エラー・出金対象額 0 円では worker を呼びません。
+アカウント単位の例外は他アカウントの処理を止めません。
+worker のリース・証跡・直前再確認と `reserve_held_payout` は従来どおりです。
+
+結果は `stripe_payout_schedule_runs` に記録します。クライアントからの参照は
+管理者のみで、クライアント向けの書き込みポリシーはありません。
+照合失敗は `reconcile/error`、対象額 0 円は `reconcile/skipped`、
+worker 呼び出しは `worker/ok` または `worker/error` として記録します。
+未知の出金結果・503 は安全停止として扱い、履歴と Stripe の状態を確認して
+再照合してください。保存済み照合値を手動で書き換えて再試行しないでください。
+
+Stripe 有効時、管理画面「契約・決済」の先頭に「出金管理」が表示されます。
+管理者専用 `payout-overview` は Stripe へ問い合わせず、保存済み照合値と
+既存の計算関数による held 注文集計、全アカウント横断の最新 10 件の履歴を返します。
+一覧の金額は表示用です。「照合する」（`payout-reconcile`）で最新の数値と警告を確認し、
+「出金を実行」の金額確認後に `payout-run` から worker を呼び出せます。
+worker の認証トークンはサーバー側にのみ保持し、503 の本文も API 応答に保持します。
+この追加は本番フラグの有効化や実際の出金実行を行いません。
