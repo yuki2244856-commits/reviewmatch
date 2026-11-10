@@ -1,3 +1,4 @@
+import { preparePayoutExtensions, withoutPgNet } from "./payout-extension-stubs.mjs";
 import { PGlite } from "@electric-sql/pglite";
 import { readdir, readFile } from "node:fs/promises";
 import assert from "node:assert/strict";
@@ -17,11 +18,12 @@ await db.exec(`
     insert into cron.registered values ($1,$2,$3) returning 1::bigint
   $$;
 `);
+await preparePayoutExtensions(db);
 const directory = new URL("../migrations/", import.meta.url);
 for (const file of (await readdir(directory))
   .filter((x) => x.endsWith(".sql"))
   .sort()) {
-  let sql = await readFile(new URL(file, directory), "utf8");
+  let sql = withoutPgNet(await readFile(new URL(file, directory), "utf8"));
   sql = sql.replace(
     "create extension if not exists pg_cron;",
     "-- pg_cron registration stubbed locally",

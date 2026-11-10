@@ -338,3 +338,148 @@ for (const condition of ["disabled", "delivered", "creator", "unpaid"]) {
     await expect(page.getByRole("button", { name: "返金する", exact: true })).toHaveCount(0);
   });
 }
+
+test("admin payout management is visible only with Stripe enabled", async ({ page, api }) => {
+  await enableStripe(page);
+  await page.route("**/functions/v1/stripe-api", async (route) => {
+    expect(route.request().postDataJSON().action).toBe("payout-overview");
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ accounts: [], recentRuns: [] }),
+    });
+  });
+  await ready(page);
+  await login(page, "admin");
+  await ready(page, "/admin.html");
+  await page.getByRole("tab", { name: "契約・決済" }).click();
+  await expect(page.getByRole("heading", { name: "出金管理", exact: true }))
+    .toBeVisible();
+  await expect(page.getByText("実行履歴はありません。")).toBeVisible();
+});
+
+test("admin payout management is hidden with Stripe disabled", async ({ page, api }) => {
+  await ready(page);
+  await login(page, "admin");
+  await ready(page, "/admin.html");
+  await page.getByRole("tab", { name: "契約・決済" }).click();
+  await expect(page.locator("#admin-payout-management")).toHaveCount(0);
+});
+
+test("admin reconciles an account and confirms the updated amount before a safely blocked payout", async ({ page, api }) => {
+  await enableStripe(page);
+  const actions = [];
+  await page.route("**/functions/v1/stripe-api", async (route) => {
+    const body = route.request().postDataJSON();
+    actions.push(body);
+    if (body.action === "payout-overview") {
+      return route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({
+          accounts: [{
+            accountId: "acct_creator1234567890",
+            userId: "creator",
+            displayName: "出金テスト",
+            email: "payout@example.com",
+            payoutInterval: "manual",
+            cardPaymentsStatus: "active",
+            verifiedUntil: "2099-01-01T00:00:00Z",
+            fundsReconciledAt: null,
+            reconciledAvailableJpy: 500,
+            heldOrders: {
+              count: 2,
+              eligibleTotalJpy: 1000,
+              reserveJpy: 200,
+              dueOn: "2026-11-10",
+              holdingDeadline: "2026-11-11T00:00:00Z",
+            },
+          }],
+          recentRuns: [{
+            created_at: "2026-11-10T00:00:00Z",
+            account_id: "acct_creator1234567890",
+            phase: "worker",
+            status: "error",
+            detail: { message: "<script>history</script>" },
+          }],
+        }),
+      });
+    }
+    if (body.action === "payout-reconcile") {
+      return route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({
+          stripeAvailableJpy: 2000,
+          eligibleTotalJpy: 1500,
+          reserveJpy: 200,
+          reconciledAvailableJpy: 1700,
+          reconciledAt: "2026-11-10T00:00:00Z",
+          warnings: [],
+        }),
+      });
+    }
+    return route.fulfill({
+      status: 503,
+      contentType: "application/json",
+      body: JSON.stringify({
+        error: "Payout blocked; reconcile before retry",
+        worker: { message: "blocked" },
+      }),
+    });
+  });
+  await ready(page);
+  await login(page, "admin");
+  await ready(page, "/admin.html");
+  await page.getByRole("tab", { name: "契約・決済" }).click();
+  const section = page.locator("#admin-payout-management");
+  await expect(section.getByText("payout@example.com", { exact: false }))
+    .toBeVisible();
+  await expect(section.getByText("<script>history</script>", { exact: false }))
+    .toBeVisible();
+  await expect(section.locator("script")).toHaveCount(0);
+  await section.getByRole("button", { name: "照合する" }).click();
+  await expect(section.locator("[data-payout-result]")).toContainText(
+    "照合完了",
+  );
+  await expect(section.locator("[data-payout-eligible]")).toContainText(
+    "1,500",
+  );
+  await section.getByRole("button", { name: "出金を実行", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toContainText("1,500");
+  expect(actions.map((a) => a.action)).toEqual([
+    "payout-overview",
+    "payout-reconcile",
+  ]);
+  await page.getByRole("button", { name: "出金を実行する", exact: true })
+    .click();
+  await expect(section.locator("[data-payout-result]")).toContainText(
+    "安全停止",
+  );
+  await expect(page.locator("#admin-feedback")).toContainText("再照合");
+  expect(actions[2]).toEqual({
+    action: "payout-run",
+    accountId: "acct_creator1234567890",
+  });
+  await expect(section.getByRole("button", { name: "照合する" })).toBeEnabled();
+});
+
+test("admin payout overview errors appear in the feedback without removing contract lists", async ({ page, api }) => {
+  await enableStripe(page);
+  await page.route(
+    "**/functions/v1/stripe-api",
+    (route) =>
+      route.fulfill({
+        status: 500,
+        contentType: "application/json",
+        body: JSON.stringify({ error: "Overview unavailable" }),
+      }),
+  );
+  await ready(page);
+  await login(page, "admin");
+  await ready(page, "/admin.html");
+  await page.getByRole("tab", { name: "契約・決済" }).click();
+  await expect(page.locator("#admin-feedback")).toHaveText(
+    "Overview unavailable",
+  );
+  await expect(page.getByRole("heading", { name: "契約", exact: true }))
+    .toBeVisible();
+});
