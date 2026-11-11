@@ -11,7 +11,8 @@ async function mockProduction(context, calls, mode = "ok") {
   // Serve checked-out assets at the production origin without contacting it.
   await context.route(`${origin}/**`, async (route) => {
     const filename =
-      new URL(route.request().url()).pathname.split("/").pop() || "index.html";
+      new URL(route.request().url()).pathname.replace(/^\/reviewmatch\//, "") ||
+      "index.html";
     await route.fulfill({ path: path.join(__dirname, "..", filename) });
   });
   await context.route("**/rest/v1/page_views**", async (route) => {
