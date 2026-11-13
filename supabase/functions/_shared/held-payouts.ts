@@ -1,8 +1,9 @@
 import type Stripe from "npm:stripe@23.1.0";
 import { STRIPE_ACCOUNT_ID } from "./billing-config.ts";
 
-// Bank payout execution remains hard-disabled. Project Checkout uses the Billing API gate.
-export const HELD_PROJECT_PAYMENTS_ENABLED = false;
+export function heldProjectPaymentsEnabled(): boolean {
+  return Deno.env.get("HELD_PROJECT_PAYMENTS_ENABLED") === "true";
+}
 export const HELD_PAYMENT_LABEL = "預かり中";
 export const MANUAL_PAYOUT_SETTINGS: Stripe.BalanceSettingsUpdateParams = {
   payments: { payouts: { schedule: { interval: "manual" } } },
@@ -31,8 +32,9 @@ export function holdingDeadline(
   chargedAt: string,
   maxHoldingDays = 90,
 ): string {
-  if (!Number.isInteger(maxHoldingDays) || maxHoldingDays <= 0)
+  if (!Number.isInteger(maxHoldingDays) || maxHoldingDays <= 0) {
     throw new Error("Invalid country holding limit");
+  }
   return new Date(instant(chargedAt) + maxHoldingDays * 86400000).toISOString();
 }
 export interface ReleaseAllocation {
@@ -62,20 +64,23 @@ export function heldPayoutRequest(context: ReleaseContext) {
     !/^acct_[A-Za-z0-9]+$/.test(context.accountId) ||
     context.accountId === STRIPE_ACCOUNT_ID ||
     !context.batchId
-  )
+  ) {
     throw new Error("Creator context required");
+  }
   if (
     context.payoutInterval !== "manual" ||
     !context.reconciled ||
     instant(context.controlsVerifiedUntil) <= now
-  )
+  ) {
     throw new Error("Verified exclusive manual payout control required");
+  }
   if (
     !context.allocations.length ||
     new Set(context.allocations.map((a) => a.id)).size !==
       context.allocations.length
-  )
+  ) {
     throw new Error("Unique reserved allocations required");
+  }
   const todayTokyo = new Date(now + 9 * 3600000).toISOString().slice(0, 10);
   let amount = 0;
   for (const allocation of context.allocations) {
@@ -94,8 +99,9 @@ export function heldPayoutRequest(context: ReleaseContext) {
         ) ||
       !Number.isSafeInteger(allocation.netJpy) ||
       allocation.netJpy <= 0
-    )
+    ) {
       throw new Error("Allocation not eligible for release");
+    }
     amount += allocation.netJpy;
   }
   if (
@@ -104,8 +110,9 @@ export function heldPayoutRequest(context: ReleaseContext) {
     context.reservedJpy < 0 ||
     !Number.isSafeInteger(amount) ||
     amount > context.availableJpy - context.reservedJpy
-  )
+  ) {
     throw new Error("Insufficient unreserved connected balance");
+  }
   const params: Stripe.PayoutCreateParams = {
     amount,
     currency: "jpy",
@@ -130,8 +137,9 @@ export function cancellationRefund(
     !/^acct_[A-Za-z0-9]+$/.test(accountId) ||
     accountId === STRIPE_ACCOUNT_ID ||
     !refundRequestId
-  )
+  ) {
     throw new Error("Connected charge and durable refund request required");
+  }
   // Full pre-release cancellation returns the full application fee too. Do not use reverse_transfer for direct charges.
   const params: Stripe.RefundCreateParams = {
     charge: chargeId,

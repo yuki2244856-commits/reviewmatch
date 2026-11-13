@@ -14,6 +14,7 @@ for (
     "202611070003_held_project_payouts.sql",
     "202611080001_atomic_workflow.sql",
     "202611080002_held_payout_safety.sql",
+    "202611100001_payout_reserve_fix.sql",
   ]
 ) {
   await db.exec(
@@ -97,7 +98,7 @@ await assert.rejects(() =>
 );
 await db.exec(
   `update stripe_accounts set payout_interval='manual',exclusive_payout_controls_verified_until='2026-04-01',
-  funds_reconciled_at='2026-03-30T03:00:00Z',reconciled_available_jpy=1735;`,
+  funds_reconciled_at='2026-03-30T03:00:00Z',reconciled_available_jpy=1700;`,
 );
 await assert.rejects(
   () =>
@@ -107,7 +108,7 @@ await assert.rejects(
   /No approved due funds/,
 );
 await db.exec(
-  "update stripe_accounts set funds_reconciled_at='2026-03-31T03:00:00Z',reconciled_available_jpy=1734",
+  "update stripe_accounts set funds_reconciled_at='2026-03-31T03:00:00Z',reconciled_available_jpy=1699",
 );
 await assert.rejects(
   () =>
@@ -117,7 +118,7 @@ await assert.rejects(
   /Insufficient/,
 );
 await db.query("select request_held_refund($1)", [uuid(2)]);
-await db.exec("update stripe_accounts set reconciled_available_jpy=1735");
+await db.exec("update stripe_accounts set reconciled_available_jpy=1700");
 await assert.rejects(
   () =>
     db.query(
@@ -139,7 +140,7 @@ const batch = (
   )
 ).rows[0];
 assert.equal(Number(batch.amount_jpy), 1000);
-assert.equal(Number(batch.reserve_jpy), 735);
+assert.equal(Number(batch.reserve_jpy), 700);
 const replay = (
   await db.query(
     "select * from reserve_held_payout('acct_creator','2026-03-31T03:00:00Z')",
@@ -267,5 +268,5 @@ assert.equal(proof.exclusive_payout_controls_verified_until, null);
 assert.equal(proof.funds_reconciled_at, null);
 await db.close();
 console.log(
-  "PASS: five migrations; 48-hour acceptance/revisions; Tokyo cycle; reserve isolation; refund lock; replay; bank results/late failure; RPC/RLS denial",
+  "PASS: reserve-fix migration; 48-hour acceptance/revisions; Tokyo cycle; reserve isolation; refund lock; replay; bank results/late failure; RPC/RLS denial",
 );
