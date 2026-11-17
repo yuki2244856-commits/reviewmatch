@@ -1,14 +1,17 @@
 import { submitWithPayoutLease } from "../_shared/payout-submission.ts";
 import {
-  HELD_PROJECT_PAYMENTS_ENABLED,
   heldPayoutRequest,
+  heldProjectPaymentsEnabled,
 } from "../_shared/held-payouts.ts";
-import { assertReviewMatchAccount } from "../_shared/billing-config.ts";
+import {
+  assertReviewMatchAccount,
+  expectedLivemode,
+} from "../_shared/billing-config.ts";
 import { checked, required, services } from "../_shared/stripe.ts";
 
 Deno.serve(async (req: Request) => {
-  // Hard source-code gate, not an environment switch. No deployment/activation in this task.
-  if (!HELD_PROJECT_PAYMENTS_ENABLED) {
+  // Explicit opt-in; deployments without the variable keep payouts disabled.
+  if (!heldProjectPaymentsEnabled()) {
     return Response.json(
       { error: "Held payouts disabled: local report-only starter" },
       { status: 409 },
@@ -50,7 +53,7 @@ Deno.serve(async (req: Request) => {
     });
     if (
       account.closed ||
-      account.livemode ||
+      account.livemode !== expectedLivemode() ||
       account.configuration?.merchant?.capabilities?.card_payments?.status !==
         "active" ||
       account.configuration?.merchant?.capabilities?.stripe_balance?.payouts
@@ -162,7 +165,7 @@ Deno.serve(async (req: Request) => {
       stripeAccount: accountId,
     });
     if (
-      freshAccount.closed || freshAccount.livemode ||
+      freshAccount.closed || freshAccount.livemode !== expectedLivemode() ||
       freshAccount.configuration?.merchant?.capabilities?.card_payments
           ?.status !== "active" ||
       freshAccount.configuration?.merchant?.capabilities?.stripe_balance
