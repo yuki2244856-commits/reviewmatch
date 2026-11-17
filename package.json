@@ -3,8 +3,8 @@
   "private": true,
   "scripts": {
     "test": "playwright test",
-    "test:migrations": "node supabase/tests/held-ledger.mjs && node supabase/tests/atomic-workflow.mjs && node supabase/tests/posting-privacy.mjs && node supabase/tests/review-batch-two.mjs && node supabase/tests/security-third-pass.mjs && node supabase/tests/project-payments.mjs",
-    "test:edge": "deno test --allow-env=HELD_PROJECT_PAYMENTS_ENABLED,APP_ORIGIN,STRIPE_BILLING_ENABLED,STRIPE_MODE,STRIPE_PROJECT_WEBHOOK_SIGNING_SECRET --node-modules-dir=none supabase/functions/_shared/*.test.ts"
+    "test:migrations": "node supabase/tests/held-ledger.mjs && node supabase/tests/atomic-workflow.mjs && node supabase/tests/posting-privacy.mjs && node supabase/tests/review-batch-two.mjs && node supabase/tests/security-third-pass.mjs && node supabase/tests/project-payments.mjs && node supabase/tests/payout-automation.mjs",
+    "test:edge": "deno test --allow-env=SUPABASE_URL,PAYOUT_WORKER_TOKEN,PAYOUT_SCHEDULER_TOKEN,HELD_PROJECT_PAYMENTS_ENABLED,APP_ORIGIN,STRIPE_BILLING_ENABLED,STRIPE_MODE,STRIPE_PROJECT_WEBHOOK_SIGNING_SECRET --node-modules-dir=none supabase/functions/_shared/*.test.ts"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.15",

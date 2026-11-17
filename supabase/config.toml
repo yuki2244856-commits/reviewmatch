@@ -21,3 +21,7 @@ verify_jwt = false
 [functions.stripe-project-webhook]
 # Connected project charge snapshots, verified with their own raw-body signing secret.
 verify_jwt = false
+
+[functions.stripe-payout-scheduler]
+# Authenticated using the server-only PAYOUT_SCHEDULER_TOKEN inside the function.
+verify_jwt = false

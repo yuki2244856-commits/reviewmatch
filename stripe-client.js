@@ -26,7 +26,9 @@ window.ReviewMatchStripe = Object.freeze({
       } catch {
         /* no JSON response */
       }
-      throw new Error(message);
+      const failure = new Error(message);
+      failure.status = error.context?.status;
+      throw failure;
     }
     return data;
   },
